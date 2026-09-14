@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { Logo } from '@/components/ui/Logo';
-import { X, ArrowRight, User } from 'lucide-react';
+import { X, User, ShoppingBag, BookOpen, Info, ChevronRight, Heart } from 'lucide-react';
 
 export const MobileDrawer: React.FC = () => {
   const { isMobileNavOpen, closeMobileNav } = useUI();
@@ -14,94 +14,71 @@ export const MobileDrawer: React.FC = () => {
   if (!isMobileNavOpen) return null;
 
   const links = [
-    { label: 'SHOP', href: '/shop', subtitle: 'View all products' },
-    { label: 'BLOG', href: '/journal', subtitle: 'Grooming tips & articles' },
-    { label: 'ABOUT US', href: '/about', subtitle: 'Our brand story' },
-    { label: 'CART', href: '/cart', subtitle: 'View your cart items' },
-    { label: 'ACCOUNT', href: '/account', subtitle: 'Orders & saved details' },
+    { label: 'Shop Collection', href: '/shop', subtitle: 'View all our premium products', icon: ShoppingBag },
+    { label: 'Journal', href: '/journal', subtitle: 'Grooming tips & articles', icon: BookOpen },
+    { label: 'Wishlist', href: '/wishlist', subtitle: 'Your saved favorite items', icon: Heart },
+    { label: 'Our Story', href: '/about', subtitle: 'The Terra brand philosophy', icon: Info },
+    { label: 'Customer Portal', href: '/account', subtitle: 'Manage your account & orders', icon: User },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#F6F3ED] text-[#181817] animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#F9F8F6] text-[#181817] animate-in fade-in duration-300 overflow-hidden">
       {/* Header Bar */}
-      <div className="flex items-center justify-between p-6 border-b border-[#DDD8CF]">
+      <div className="flex items-center justify-between p-6 bg-white/50 backdrop-blur-md border-b border-[#EAE5DC] sticky top-0 z-10">
         <Logo variant="full" markHeight={26} />
         <button
           onClick={closeMobileNav}
-          className="p-2 text-[#181817] hover:text-[#2D4438] focus:outline-none"
+          className="p-2 -mr-2 bg-[#F2EFEA] rounded-full text-[#181817] hover:bg-[#EAE5DC] hover:text-[#2D4438] transition-colors focus:outline-none"
           aria-label="Close menu"
         >
-          <X size={24} />
+          <X size={20} strokeWidth={2} />
         </button>
       </div>
 
       {/* Main Navigation Links */}
-      <div className="flex-1 overflow-y-auto px-8 py-10 flex flex-col justify-between">
-        <nav className="space-y-6">
+      <div className="flex-1 px-6 py-8 flex flex-col gap-6 overflow-hidden">
+        
+        {/* Navigation Cards */}
+        <nav className="flex flex-col space-y-3">
           {links.map((link) => {
             const isActive = pathname === link.href;
+            const Icon = link.icon;
             return (
               <Link
                 key={link.label}
                 href={link.href}
                 onClick={closeMobileNav}
-                className="group flex items-center justify-between py-2 border-b border-[#DDD8CF]/40"
+                className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-white border-[#2D4438]/20 shadow-sm' 
+                    : 'bg-white/60 border-transparent hover:bg-white hover:border-[#EAE5DC] hover:shadow-sm'
+                }`}
               >
-                <div>
-                  <span
-                    className={`font-serif text-2xl tracking-wide uppercase transition-colors ${isActive
-                        ? 'text-[#2D4438] font-semibold'
-                        : 'text-[#181817] group-hover:text-[#2D4438]'
-                      }`}
-                  >
-                    {link.label}
-                  </span>
-                  <p className="text-xs text-[#77736C] font-sans mt-0.5">
-                    {link.subtitle}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl transition-colors ${
+                    isActive ? 'bg-[#2D4438]/10 text-[#2D4438]' : 'bg-[#F2EFEA] text-[#77736C] group-hover:bg-[#2D4438]/5 group-hover:text-[#2D4438]'
+                  }`}>
+                    <Icon size={20} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <span className="block font-serif text-xl text-[#181817]">
+                      {link.label}
+                    </span>
+                    <span className="block text-xs text-[#77736C] mt-0.5">
+                      {link.subtitle}
+                    </span>
+                  </div>
                 </div>
-                <ArrowRight
-                  size={18}
-                  className="text-[#DDD8CF] group-hover:text-[#2D4438] group-hover:translate-x-1 transition-all"
+                <ChevronRight 
+                  size={18} 
+                  className={`transition-transform duration-300 ${
+                    isActive ? 'text-[#2D4438]' : 'text-[#DDD8CF] group-hover:text-[#2D4438] group-hover:translate-x-1'
+                  }`}
                 />
               </Link>
             );
           })}
         </nav>
-
-        {/* Feature Callout in drawer */}
-        <div className="mt-8 pt-6 border-t border-[#DDD8CF]">
-          <div className="bg-[#EAE5DC] p-5">
-            <span className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#2D4438]">
-              The Core Routine
-            </span>
-            <h4 className="font-serif text-lg text-[#181817] mt-1">
-              The Complete Terra Method
-            </h4>
-            <p className="text-xs text-[#77736C] mt-1">
-              Face Wash + Beard Oil. The deliberate two-step fundamental set.
-            </p>
-            <Link
-              href="/shop/terra-set"
-              onClick={closeMobileNav}
-              className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-[#181817] hover:text-[#2D4438] mt-3"
-            >
-              Shop The Method &rarr;
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-between mt-6 text-xs text-[#77736C]">
-            <Link
-              href="/account"
-              onClick={closeMobileNav}
-              className="flex items-center gap-1.5 hover:text-[#181817]"
-            >
-              <User size={14} />
-              <span>Customer Portal</span>
-            </Link>
-            <span>INR (₹)</span>
-          </div>
-        </div>
       </div>
     </div>
   );

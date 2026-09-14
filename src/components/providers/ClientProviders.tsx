@@ -37,6 +37,8 @@ export const ClientProviders: React.FC<{ children: React.ReactNode; initialProdu
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin');
+  const isComingSoonRoute = pathname === '/coming-soon';
+  const hideLayout = isAdminRoute || isComingSoonRoute;
 
   useEffect(() => {
     setMounted(true);
@@ -48,17 +50,17 @@ export const ClientProviders: React.FC<{ children: React.ReactNode; initialProdu
         <CartProvider>
           <WishlistProvider>
             <UIProvider>
-              {!isAdminRoute && (
+              {!hideLayout && (
                 <header className="fixed top-0 w-full z-50 flex flex-col">
                   <AnnouncementBar />
                   <Navbar />
                 </header>
               )}
-              <main className={`flex-1 ${!isAdminRoute && pathname !== '/' ? 'pt-[70px] lg:pt-[135px]' : ''}`}>
+              <main className={`flex-1 ${!hideLayout && pathname !== '/' ? 'pt-[70px] lg:pt-[135px]' : ''}`}>
                 {children}
               </main>
-              {!isAdminRoute && <Footer />}
-              {mounted && !isAdminRoute && (
+              {!hideLayout && <Footer />}
+              {mounted && !hideLayout && (
                 <>
                   <SearchModal />
                   <MobileDrawer />
@@ -66,7 +68,7 @@ export const ClientProviders: React.FC<{ children: React.ReactNode; initialProdu
                   <CartAddedModal />
                 </>
               )}
-              {mounted && isAdminRoute && <ToastContainer />}
+              {mounted && hideLayout && <ToastContainer />}
             </UIProvider>
           </WishlistProvider>
         </CartProvider>

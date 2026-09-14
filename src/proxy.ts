@@ -8,6 +8,35 @@ const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
+  
+  // --- COMING SOON LOCK LOGIC ---
+  const adminBypassParam = req.nextUrl.searchParams.get('admin');
+  if (adminBypassParam === 'unlock') {
+    req.nextUrl.searchParams.delete('admin');
+    const response = NextResponse.redirect(new URL('/', req.url));
+    response.cookies.set('terra_admin_bypass', 'true', {
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return response;
+  }
+
+  const hasBypassCookie = req.cookies.has('terra_admin_bypass');
+  const isStaticOrApi = 
+    pathname.startsWith('/_next/') || 
+    pathname.startsWith('/images/') || 
+    pathname.startsWith('/api/') || 
+    pathname === '/coming-soon' || 
+    pathname.includes('.');
+
+  // If not bypassed and not static, force coming soon page
+  if (!hasBypassCookie && !isStaticOrApi) {
+    return NextResponse.redirect(new URL('/coming-soon', req.url));
+  }
+  // --- END COMING SOON LOCK LOGIC ---
+
   const token = req.cookies.get(COOKIE_NAME)?.value;
 
   // Verify JWT on protected routes
@@ -54,5 +83,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/account/:path*', '/login'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
