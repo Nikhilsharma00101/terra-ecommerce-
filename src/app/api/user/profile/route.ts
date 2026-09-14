@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
         status: status || user.subscription?.status || 'active',
         frequency: frequency || user.subscription?.frequency || '60d',
         nextDispatchDate: new Date(Date.now() + (frequency === '30d' ? 30 : frequency === '90d' ? 90 : 60) * 24 * 60 * 60 * 1000),
-        productSlug: 'the-method',
+        productSlug: 'terra-set',
       };
       await user.save();
 

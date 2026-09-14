@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://terramens.co'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app'),
   title: {
     default: "TERRA MEN'S CO. | Because Men Deserve Better",
     template: "%s | TERRA MEN'S CO.",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     'botanical beard oil',
     'organic grooming essentials',
   ],
-  authors: [{ name: "TERRA MEN'S CO.", url: 'https://terramens.co' }],
+  authors: [{ name: "TERRA MEN'S CO.", url: 'https://terra-ecommerce.vercel.app' }],
   creator: "TERRA MEN'S CO.",
   publisher: "TERRA MEN'S CO.",
   alternates: {
@@ -61,15 +61,17 @@ export const metadata: Metadata = {
     description:
       'The foundational two-step grooming method for men. Cleanse. Nourish. Nothing unnecessary.',
     type: 'website',
-    url: 'https://terramens.co',
+    url: 'https://terra-ecommerce.vercel.app',
     siteName: "TERRA MEN'S CO.",
     locale: 'en_US',
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/og/og-image.jpeg',
+        secureUrl: 'https://terra-ecommerce.vercel.app/images/og/og-image.jpeg',
         width: 1200,
         height: 630,
-        alt: "TERRA MEN'S CO. Campaign",
+        type: 'image/jpeg',
+        alt: "TERRA MEN'S CO. — Because Men Deserve Better",
       },
     ],
   },
@@ -78,7 +80,7 @@ export const metadata: Metadata = {
     title: "TERRA MEN'S CO. — Because Men Deserve Better",
     description:
       'Disciplined luxury grooming fundamentals for skin and beard. Cleanse. Nourish. Nothing unnecessary.',
-    images: ['/images/home/hero-campaign.jpg'],
+    images: ['/images/og/og-image.jpeg'],
   },
   robots: {
     index: true,
@@ -98,27 +100,27 @@ const organizationJsonLd = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://terramens.co/#organization',
+      '@id': 'https://terra-ecommerce.vercel.app/#organization',
       name: "TERRA MEN'S CO.",
-      url: 'https://terramens.co',
+      url: 'https://terra-ecommerce.vercel.app',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://terramens.co/images/logo/logo-dark.png',
+        url: 'https://terra-ecommerce.vercel.app/images/logo/logo-dark.png',
       },
       description: 'Disciplined luxury grooming fundamentals for skin and beard.',
       sameAs: ['https://www.instagram.com/terramensco'],
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://terramens.co/#website',
-      url: 'https://terramens.co',
+      '@id': 'https://terra-ecommerce.vercel.app/#website',
+      url: 'https://terra-ecommerce.vercel.app',
       name: "TERRA MEN'S CO.",
       publisher: {
-        '@id': 'https://terramens.co/#organization',
+        '@id': 'https://terra-ecommerce.vercel.app/#organization',
       },
       potentialAction: {
         '@type': 'SearchAction',
-        target: 'https://terramens.co/shop?search={search_term_string}',
+        target: 'https://terra-ecommerce.vercel.app/shop?search={search_term_string}',
         'query-input': 'required name=search_term_string',
       },
     },

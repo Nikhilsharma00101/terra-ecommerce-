@@ -22,11 +22,11 @@ export const metadata: Metadata = {
     title: "Shop All Formulations | TERRA MEN'S CO.",
     description:
       'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
-    url: 'https://terramens.co/shop',
+    url: 'https://terra-ecommerce.vercel.app/shop',
     siteName: "TERRA MEN'S CO.",
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/og/og-image.jpeg',
         width: 1200,
         height: 630,
         alt: "TERRA MEN'S CO. Shop Collection",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     title: "Shop All Formulations | TERRA MEN'S CO.",
     description:
       'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
-    images: ['/images/home/hero-campaign.jpg'],
+    images: ['/images/og/og-image.jpeg'],
   },
 };
 

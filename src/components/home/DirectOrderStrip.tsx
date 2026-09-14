@@ -43,9 +43,9 @@ export const DirectOrderStrip: React.FC = () => {
   // Dynamically resolve Set / Bundle product from DB (prioritizing custom DB items with images)
   const bundleProduct =
     products.find((p) => (p.category === 'Sets' || p.isBundle) && (p.featuredImage || (p.images && p.images.length > 0 && p.images[0]?.url))) ||
-    products.find((p) => (p.slug === 'the-method' || p.slug === 'the-complete-terra-method') && (p.featuredImage || (p.images && p.images.length > 0 && p.images[0]?.url))) ||
-    products.find((p) => p.category === 'Sets' || p.isBundle || p.slug === 'the-method' || p.purpose === 'The Method') ||
-    getProductBySlug('the-method');
+    products.find((p) => (p.slug === 'terra-set' || p.slug === 'the-complete-terra-method') && (p.featuredImage || (p.images && p.images.length > 0 && p.images[0]?.url))) ||
+    products.find((p) => p.category === 'Sets' || p.isBundle || p.slug === 'terra-set' || p.purpose === 'The Method') ||
+    getProductBySlug('terra-set');
 
   if (!faceWash || !beardOil) return null;
 
@@ -64,7 +64,7 @@ export const DirectOrderStrip: React.FC = () => {
       showToast(`${productToAdd.name} added to bag.`, 'success');
     }
 
-    const key = isBundleAction ? 'the-method' : productToAdd.slug;
+    const key = isBundleAction ? 'terra-set' : productToAdd.slug;
     setAddedSlug(key);
     setTimeout(() => {
       setAddedSlug(null);
@@ -305,7 +305,7 @@ export const DirectOrderStrip: React.FC = () => {
                 </div>
 
                 <Link
-                  href={`/shop/${bundleProduct?.slug || 'the-method'}`}
+                  href={`/shop/${bundleProduct?.slug || 'terra-set'}`}
                   className="group/link inline-flex items-center gap-1 text-[#141414] hover:text-[#8B0000] transition-colors"
                 >
                   <h3 className="text-base sm:text-lg font-serif font-normal leading-tight truncate">
@@ -335,12 +335,12 @@ export const DirectOrderStrip: React.FC = () => {
                     handleQuickAdd(e, bundleProduct || faceWash, !bundleProduct)
                   }
                   className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs text-[11px] font-bold tracking-wider uppercase transition-all duration-300 shadow-xs ${
-                    addedSlug === (bundleProduct?.slug || 'the-method')
-                      ? 'bg-emerald-700 text-white'
-                      : 'bg-[#8B0000] hover:bg-[#A50000] text-white'
+                    addedSlug === (bundleProduct?.slug || 'terra-set')
+                      ? 'bg-[#E5D5C5] text-black border-[#E5D5C5]'
+                      : 'bg-[#2A2A2A] text-white hover:bg-[#333333] border-[#333333]'
                   }`}
                 >
-                  {addedSlug === (bundleProduct?.slug || 'the-method') ? (
+                  {addedSlug === (bundleProduct?.slug || 'terra-set') ? (
                     <>
                       <Check size={12} />
                       <span>ADDED</span>

@@ -205,7 +205,7 @@ export const products: Product[] = [
   },
   {
     id: 'terra-method-bundle',
-    slug: 'the-method',
+    slug: 'terra-set',
     name: 'The Complete Terra Method',
     category: 'Sets',
     purpose: 'The Method',

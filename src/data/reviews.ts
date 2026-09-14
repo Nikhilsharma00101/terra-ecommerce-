@@ -45,7 +45,7 @@ export const reviews: Review[] = [
     content: 'I used to buy toners and moisturizers that just cluttered my bathroom shelf. Switching to the Terra 2-Step Method took less than 2 minutes every morning, and my skin and beard look noticeably healthier in two weeks.',
     verified: true,
     productName: 'The Complete Terra Method',
-    productSlug: 'the-method',
+    productSlug: 'terra-set',
     helpfulCount: 59,
     isSpotlight: true
   },
@@ -77,7 +77,7 @@ export const reviews: Review[] = [
     content: 'Ordered The Method set. Fast delivery in Hyderabad within 2 days. The face wash clears excess oil and the beard oil softens rough beard hair effortlessly. Great value at ₹1,399.',
     verified: true,
     productName: 'The Complete Terra Method',
-    productSlug: 'the-method',
+    productSlug: 'terra-set',
     helpfulCount: 27,
     isSpotlight: false
   },
@@ -109,13 +109,13 @@ export const reviews: Review[] = [
     content: 'As someone who dislikes heavy skincare routines, Terra’s minimalistic philosophy hits the sweet spot. Two steps, top-tier botanical ingredients, zero clutter.',
     verified: true,
     productName: 'The Complete Terra Method',
-    productSlug: 'the-method',
+    productSlug: 'terra-set',
     helpfulCount: 31,
     isSpotlight: false
   }
 ];
 
 export function getReviewsByProduct(slug: string): Review[] {
-  if (!slug || slug === 'the-method') return reviews;
+  if (!slug || slug === 'terra-set') return reviews;
   return reviews.filter((r) => r.productSlug === slug);
 }

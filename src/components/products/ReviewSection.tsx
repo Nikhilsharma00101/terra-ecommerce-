@@ -77,7 +77,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [formAuthor, setFormAuthor] = useState<string>('');
   const [formLocation, setFormLocation] = useState<string>('');
   const [formSkinType, setFormSkinType] = useState<string>('Normal / Combination');
-  const [formProductSlug, setFormProductSlug] = useState<string>('the-method');
+  const [formProductSlug, setFormProductSlug] = useState<string>('terra-set');
   const [formTitle, setFormTitle] = useState<string>('');
   const [formContent, setFormContent] = useState<string>('');
 
@@ -135,7 +135,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
     const productNameMap: Record<string, string> = {
       'face-wash': 'Terra Face Wash',
       'beard-oil': 'Terra Beard Oil',
-      'the-method': 'The Complete Terra Method',
+      'terra-set': 'The Complete Terra Method',
     };
 
     const newRev: Review = {
@@ -266,7 +266,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 { id: 'all', label: `ALL (${initialReviews.length})` },
                 { id: 'face-wash', label: 'FACE WASH' },
                 { id: 'beard-oil', label: 'BEARD OIL' },
-                { id: 'the-method', label: 'THE METHOD' },
+                { id: 'terra-set', label: 'THE METHOD' },
               ].map((f) => (
                 <button
                   key={f.id}
@@ -825,7 +825,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                           : 'bg-[#1A1A1A] border border-[#333333] text-white focus:border-[#8B0000]'
                       }`}
                     >
-                      <option value="the-method">The Complete Terra Method</option>
+                      <option value="terra-set">The Complete Terra Method</option>
                       <option value="face-wash">Terra Face Wash</option>
                       <option value="beard-oil">Terra Beard Oil</option>
                     </select>

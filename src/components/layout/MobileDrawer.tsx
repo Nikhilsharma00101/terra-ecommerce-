@@ -82,7 +82,7 @@ export const MobileDrawer: React.FC = () => {
               Face Wash + Beard Oil. The deliberate two-step fundamental set.
             </p>
             <Link
-              href="/shop/the-method"
+              href="/shop/terra-set"
               onClick={closeMobileNav}
               className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-[#181817] hover:text-[#2D4438] mt-3"
             >

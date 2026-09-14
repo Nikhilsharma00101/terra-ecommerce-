@@ -126,10 +126,7 @@ export default function CheckoutPage() {
             (i.product.images && i.product.images.length > 0 ? i.product.images[0].url : '') ||
             '',
         })),
-        subtotal: discountedSubtotal,
-        shipping: shippingCost,
-        tax: 0,
-        total,
+        couponCode: appliedCoupon || undefined,
         paymentMethod: formData.paymentMethod,
         shippingAddress: {
           firstName: formData.firstName,

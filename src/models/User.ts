@@ -56,7 +56,7 @@ const SubscriptionSchema = new Schema<IUserSubscription>(
     status: { type: String, enum: ['active', 'paused', 'cancelled'], default: 'active' },
     frequency: { type: String, enum: ['30d', '60d', '90d'], default: '60d' },
     nextDispatchDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-    productSlug: { type: String, default: 'the-method' },
+    productSlug: { type: String, default: 'terra-set' },
   },
   { _id: false }
 );
@@ -109,7 +109,7 @@ const UserSchema = new Schema<IUser>(
         status: 'active',
         frequency: '60d',
         nextDispatchDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        productSlug: 'the-method',
+        productSlug: 'terra-set',
       }),
     },
     addresses: [AddressSchema],

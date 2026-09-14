@@ -150,7 +150,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/shop/the-method" className="hover:text-white transition-colors flex items-center gap-1.5">
+                <Link href="/shop/terra-set" className="hover:text-white transition-colors flex items-center gap-1.5">
                   <span>The Complete Method</span>
                   <span className="text-[9px] bg-[#2D4438] text-white px-1.5 py-0.2 rounded-xs font-mono">SAVE ₹399</span>
                 </Link>

@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const article = getArticleBySlug(slug);
   if (!article) return { title: 'Article Not Found | The Terra Journal' };
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terramens.co';
-  const coverImage = article.coverImage || '/images/home/hero-campaign.jpg';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app';
+  const coverImage = article.coverImage || '/images/og/og-image.jpeg';
   const fullCoverUrl = coverImage.startsWith('http')
     ? coverImage
     : `${baseUrl}${coverImage.startsWith('/') ? '' : '/'}${coverImage}`;
@@ -70,8 +70,8 @@ export default async function JournalSlugPage({ params }: PageProps) {
     notFound();
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terramens.co';
-  const coverImage = article.coverImage || '/images/home/hero-campaign.jpg';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app';
+  const coverImage = article.coverImage || '/images/og/og-image.jpeg';
   const fullCoverUrl = coverImage.startsWith('http')
     ? coverImage
     : `${baseUrl}${coverImage.startsWith('/') ? '' : '/'}${coverImage}`;

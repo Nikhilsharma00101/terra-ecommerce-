@@ -52,7 +52,7 @@ export default function AboutPage() {
 
   // Find The Method bundle or fallback flagship product from live DB
   const bundleProduct =
-    products.find((p) => p.slug === 'the-method' || p.isBundle || p.category === 'Sets') ||
+    products.find((p) => p.slug === 'terra-set' || p.isBundle || p.category === 'Sets') ||
     products.find((p) => p.slug === 'face-wash' || p.category === 'Face') ||
     products[0];
 

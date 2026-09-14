@@ -44,7 +44,7 @@ export default function CartPage() {
   const hasBeardOil = items.some((i) => i.product.slug === 'beard-oil' || i.product.slug === 'terra-beard-oil');
   const faceWash = getProductBySlug('face-wash') || products.find((p) => p.category === 'Face') || products[0];
   const beardOil = getProductBySlug('beard-oil') || products.find((p) => p.category === 'Beard') || products[1];
-  const bundle = getProductBySlug('the-method') || products.find((p) => p.isBundle || p.slug === 'the-method');
+  const bundle = getProductBySlug('terra-set') || products.find((p) => p.isBundle || p.slug === 'terra-set');
 
   const suggestedCompanion = !hasBeardOil && beardOil ? beardOil : !hasFaceWash && faceWash ? faceWash : null;
 

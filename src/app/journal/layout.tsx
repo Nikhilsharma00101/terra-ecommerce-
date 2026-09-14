@@ -12,11 +12,11 @@ export const metadata: Metadata = {
     title: "The Terra Journal | TERRA MEN'S CO.",
     description:
       'Evidence-based skin science, beard care guides, and routine breakdowns.',
-    url: 'https://terramens.co/journal',
+    url: 'https://terra-ecommerce.vercel.app/journal',
     siteName: "TERRA MEN'S CO.",
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/og/og-image.jpeg',
         width: 1200,
         height: 630,
         alt: "The Terra Journal",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "The Terra Journal | TERRA MEN'S CO.",
     description:
       'Evidence-based skin science, beard care guides, and routine breakdowns.',
-    images: ['/images/home/hero-campaign.jpg'],
+    images: ['/images/og/og-image.jpeg'],
   },
 };
 

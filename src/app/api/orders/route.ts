@@ -76,22 +76,47 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid request body.' },
+        { status: 400 }
+      );
+    }
+
     const {
       customerEmail,
       customerName,
       customerPhone,
       items,
-      subtotal,
-      shipping,
-      tax,
-      total,
       paymentMethod,
       shippingAddress,
+      couponCode,
     } = body;
 
-    if (!customerEmail || !customerName || !items || !items.length || !shippingAddress) {
+    if (
+      !customerEmail ||
+      typeof customerEmail !== 'string' ||
+      !customerEmail.trim() ||
+      !customerName ||
+      typeof customerName !== 'string' ||
+      !customerName.trim() ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !shippingAddress ||
+      typeof shippingAddress !== 'object' ||
+      typeof shippingAddress.firstName !== 'string' ||
+      !shippingAddress.firstName.trim() ||
+      typeof shippingAddress.lastName !== 'string' ||
+      !shippingAddress.lastName.trim() ||
+      typeof shippingAddress.address1 !== 'string' ||
+      !shippingAddress.address1.trim() ||
+      typeof shippingAddress.city !== 'string' ||
+      !shippingAddress.city.trim() ||
+      typeof shippingAddress.postalCode !== 'string' ||
+      !shippingAddress.postalCode.trim()
+    ) {
       return NextResponse.json(
-        { error: 'Missing required order fields.' },
+        { error: 'Missing or invalid required order fields.' },
         { status: 400 }
       );
     }
@@ -100,6 +125,70 @@ export async function POST(req: NextRequest) {
 
     // Check if user is logged in
     const authUser = await getAuthUser();
+
+    // Fetch authoritative prices from the database
+    let calculatedSubtotal = 0;
+    const validatedItems = [];
+    const allDbProducts = await Product.find({}).lean();
+
+    for (const item of items) {
+      const quantity = Math.floor(item.quantity || 1);
+      if (quantity < 1 || quantity > 100) {
+        return NextResponse.json(
+          { error: `Invalid quantity for item ${item.name || item.productId}. Quantity must be between 1 and 100.` },
+          { status: 400 }
+        );
+      }
+
+      const dbProduct = allDbProducts.find(
+        (p: any) =>
+          p._id.toString() === item.productId ||
+          p.slug === item.productId
+      );
+
+      if (!dbProduct) {
+        return NextResponse.json(
+          { error: `Product not found: ${item.name || item.productId}. Cannot process order.` },
+          { status: 400 }
+        );
+      }
+
+      const price = dbProduct.price;
+      calculatedSubtotal += price * quantity;
+
+      validatedItems.push({
+        productId: item.productId || item.id || item.product?.id || 'unknown',
+        name: dbProduct.name,
+        price: price,
+        quantity: quantity,
+        image:
+          dbProduct.featuredImage ||
+          (dbProduct.images && dbProduct.images.length > 0 ? dbProduct.images[0]?.url : '') ||
+          item.image ||
+          '',
+      });
+    }
+
+    let discountAmount = 0;
+    let appliedCoupon = '';
+
+    if (couponCode && typeof couponCode === 'string') {
+      const code = couponCode.trim().toUpperCase();
+      if (code === 'TERRA10' || code === 'WELCOME10') {
+        discountAmount = Math.round(calculatedSubtotal * 0.10);
+        appliedCoupon = code;
+      } else if (code === 'METHOD20') {
+        discountAmount = Math.round(calculatedSubtotal * 0.20);
+        appliedCoupon = code;
+      } else if (code === 'TERRA100') {
+        discountAmount = 100;
+        appliedCoupon = code;
+      }
+    }
+
+    const freeShippingThreshold = 999;
+    const shippingCost = (calculatedSubtotal - discountAmount) >= freeShippingThreshold ? 0 : 75;
+    const calculatedTotal = Math.max(0, calculatedSubtotal - discountAmount + shippingCost);
 
     // Generate unique order number
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
@@ -110,21 +199,14 @@ export async function POST(req: NextRequest) {
       userId: authUser?.userId ? authUser.userId : undefined,
       customerEmail: customerEmail.toLowerCase().trim(),
       customerName: customerName.trim(),
-      customerPhone: customerPhone?.trim(),
-      items: items.map((item: any) => ({
-        productId: item.productId || item.id || item.product?.id || 'unknown',
-        name: item.name || item.product?.name || 'Terra Product',
-        price: item.price || item.product?.price || 0,
-        quantity: item.quantity || 1,
-        image:
-          item.image ||
-          item.product?.featuredImage ||
-          '',
-      })),
-      subtotal: Number(subtotal),
-      shipping: Number(shipping || 0),
-      tax: Number(tax || 0),
-      total: Number(total),
+      customerPhone: typeof customerPhone === 'string' ? customerPhone.trim() : (customerPhone ? String(customerPhone).trim() : undefined),
+      items: validatedItems,
+      subtotal: calculatedSubtotal,
+      shipping: shippingCost,
+      tax: 0,
+      total: calculatedTotal,
+      couponCode: appliedCoupon || undefined,
+      discountAmount: discountAmount,
       status: 'Processing',
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Paid',
       paymentMethod: paymentMethod || 'upi',

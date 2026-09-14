@@ -36,6 +36,8 @@ export interface IOrder extends Document {
   paymentMethod: string;
   shippingAddress: IOrderAddress;
   trackingNumber?: string;
+  couponCode?: string;
+  discountAmount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -130,6 +132,13 @@ const OrderSchema = new Schema<IOrder>(
     },
     trackingNumber: {
       type: String,
+    },
+    couponCode: {
+      type: String,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
     },
   },
   {

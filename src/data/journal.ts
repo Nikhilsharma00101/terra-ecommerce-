@@ -69,7 +69,7 @@ export const journalArticles: JournalArticle[] = [
       'A streamlined 2-step methodology provides superior results with zero wasted effort.',
       'Daily discipline in fundamentals creates sustainable, long-term skin health.'
     ],
-    relatedProductSlug: 'the-method'
+    relatedProductSlug: 'terra-set'
   },
   {
     slug: 'building-a-better-two-step-morning-routine',
