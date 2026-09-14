@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/lib/mongodb';
+import { User } from '@/models/User';
+import { hashPassword, signToken, setAuthCookie } from '@/lib/auth';
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { name, email, password, phone } = body;
+
+    // Validate inputs
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: 'Name, email, and password are required.' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters in length.' },
+        { status: 400 }
+      );
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Please enter a valid email address.' },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'An account with this email address already exists.' },
+        { status: 409 }
+      );
+    }
+
+    // Secure password hashing with bcrypt
+    const hashedPassword = await hashPassword(password);
+
+    // Create user
+    const newUser = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone ? phone.trim() : undefined,
+      role: 'user', // standard registration is always 'user'
+      tier: 'Terra Club Member',
+    });
+
+    // Create JWT Token
+    const token = await signToken({
+      userId: newUser._id.toString(),
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+      tier: newUser.tier,
+    });
+
+    const response = NextResponse.json(
+      {
+        message: 'Account created successfully',
+        user: {
+          id: newUser._id.toString(),
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          tier: newUser.tier,
+          phone: newUser.phone,
+        },
+      },
+      { status: 201 }
+    );
+
+    // Set secure HTTP-only cookie
+    setAuthCookie(response, token);
+
+    return response;
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    return NextResponse.json(
+      { error: error.message || 'An error occurred during registration.' },
+      { status: 500 }
+    );
+  }
+}

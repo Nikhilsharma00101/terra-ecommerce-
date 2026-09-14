@@ -1,26 +1,230 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #F6F3ED;
+    --background-secondary: #FBF9F5;
+    --foreground: #181817;
+    --foreground-muted: #77736C;
+    --border: #DDD8CF;
+    --accent-green: #2D4438;
+    --accent-green-light: #3B5947;
+    --accent-amber: #8C6D46;
+    --accent-gold: #C4A482;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: var(--font-serif), Georgia, Cambria, 'Times New Roman', serif;
+  }
+
+  .font-mono, code, pre, kbd {
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Editorial Utilities */
+.tracking-widest-editorial {
+  letter-spacing: 0.22em;
 }
+
+.tracking-wide-editorial {
+  letter-spacing: 0.12em;
+}
+
+/* Custom refined scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F3ED;
+}
+::-webkit-scrollbar-thumb {
+  background: #DDD8CF;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #77736C;
+}
+
+/* Smooth Image hover scales */
+.image-zoom-container {
+  overflow: hidden;
+}
+.image-zoom-container img {
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.image-zoom-container:hover img {
+  transform: scale(1.04);
+}
+
+/* Subtle button transitions */
+.btn-terra-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #181817;
+  color: #F6F3ED;
+  padding: 0.875rem 2rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #181817;
+}
+.btn-terra-primary:hover {
+  background-color: #2D4438;
+  border-color: #2D4438;
+  color: #F6F3ED;
+  transform: translateY(-1px);
+}
+
+.btn-terra-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: #181817;
+  padding: 0.875rem 2rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #181817;
+}
+.btn-terra-secondary:hover {
+  background-color: #181817;
+  color: #F6F3ED;
+}
+
+.btn-terra-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: #181817;
+  padding: 0.5rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 0.3s ease;
+}
+.btn-terra-ghost::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform-origin: right;
+  transform: scaleX(1);
+  transition: transform 0.3s ease;
+}
+.btn-terra-ghost:hover::after {
+  transform-origin: left;
+  transform: scaleX(0.4);
+}
+
+/* Glassmorphism subtle overlay */
+.terra-overlay {
+  background: rgba(246, 243, 237, 0.88);
+  backdrop-filter: blur(12px);
+}
+
+/* Marquee infinite ticker animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* ==========================================================================
+   ENTERPRISE PRINT STYLESHEET (TAX INVOICES & PACKING SLIPS)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 12mm 12mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    font-size: 11pt !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide entire page and chrome by default */
+  body > * {
+    visibility: hidden !important;
+  }
+
+  /* Make ONLY the printable invoice visible and position it from top */
+  #printable-tax-invoice,
+  #printable-tax-invoice * {
+    visibility: visible !important;
+  }
+
+  #printable-tax-invoice {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+    z-index: 99999 !important;
+  }
+
+  /* Remove all print-hostile constraints */
+  .no-print,
+  button,
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  /* Avoid cutting table rows or cards across page boundaries */
+  table, tr, td, th, .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+}
+
+
