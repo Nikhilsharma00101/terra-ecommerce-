@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -47,11 +48,7 @@ export default function CheckoutPage() {
     city: '',
     state: 'Maharashtra',
     postalCode: '',
-    paymentMethod: 'upi',
-    upiId: '',
-    cardNumber: '',
-    cardExp: '',
-    cardCvc: '',
+    paymentMethod: 'razorpay',
   });
 
   // Promo code discount state
@@ -140,29 +137,114 @@ export default function CheckoutPage() {
         },
       };
 
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
-      });
+      if (formData.paymentMethod !== 'cod') {
+        const createOrderRes = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: total * 100, currency: 'INR' })
+        });
+        const createOrderData = await createOrderRes.json();
+        
+        if (!createOrderRes.ok) throw new Error(createOrderData.error || 'Failed to create order');
 
-      let orderNumber = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.orderNumber) {
-          orderNumber = data.orderNumber;
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: createOrderData.amount,
+          currency: createOrderData.currency,
+          name: 'Terra',
+          description: 'Purchase from Terra',
+          order_id: createOrderData.order_id,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                })
+              });
+              
+              const verifyData = await verifyRes.json();
+              
+              if (verifyRes.ok) {
+                const res = await fetch('/api/orders', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(orderPayload),
+                });
+                
+                let orderNumber = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.orderNumber) orderNumber = data.orderNumber;
+                }
+                clearCart();
+                router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+              } else {
+                alert('Payment verification failed: ' + verifyData.error);
+                setIsProcessing(false);
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Payment verification error.');
+              setIsProcessing(false);
+            }
+          },
+          prefill: {
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email,
+            contact: formData.phone
+          },
+          theme: {
+            color: '#181817'
+          },
+          modal: {
+            ondismiss: function() {
+              setIsProcessing(false);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (response: any) {
+          alert('Payment Failed: ' + response.error.description);
+          setIsProcessing(false);
+        });
+        rzp.open();
+      } else {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
+        });
+
+        let orderNumber = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.orderNumber) {
+            orderNumber = data.orderNumber;
+          }
         }
-      }
 
-      clearCart();
-      router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+        clearCart();
+        router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+      }
     } catch (err) {
       console.error('Order creation error:', err);
-      const orderNum = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
-      clearCart();
-      router.push(`/checkout/success?order=${orderNum}&total=${total}`);
+      if (formData.paymentMethod === 'cod') {
+        const orderNum = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
+        clearCart();
+        router.push(`/checkout/success?order=${orderNum}&total=${total}`);
+      } else {
+        alert('An error occurred during payment initialization.');
+        setIsProcessing(false);
+      }
     } finally {
-      setIsProcessing(false);
+      if (formData.paymentMethod === 'cod') {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -198,6 +280,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F3ED] py-10 sm:py-16 select-none">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ========================================================================= */}
@@ -454,128 +537,169 @@ export default function CheckoutPage() {
                   </span>
                 </div>
 
-                {/* Payment Option Selector */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { id: 'upi', label: 'UPI (GPay/Paytm)', icon: Smartphone },
-                    { id: 'card', label: 'Cards (RuPay/Visa)', icon: CreditCard },
-                    { id: 'netbanking', label: 'NetBanking', icon: Building },
-                    { id: 'cod', label: 'Cash on Delivery', icon: Banknote },
-                  ].map((pm) => {
-                    const Icon = pm.icon;
-                    const isSelected = formData.paymentMethod === pm.id;
-                    return (
-                      <button
-                        type="button"
-                        key={pm.id}
-                        onClick={() => {
-                          setFormData({ ...formData, paymentMethod: pm.id });
-                          setCurrentStep(2);
-                        }}
-                        className={`p-3 border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#181817] text-[#F6F3ED] border-[#181817]'
-                            : 'bg-[#F6F3ED] text-[#57534E] border-[#DDD8CF] hover:border-[#181817]'
-                        }`}
-                      >
-                        <Icon size={18} className={isSelected ? 'text-[#C4A482]' : 'text-[#77736C]'} />
-                        <span className="text-[10px] uppercase font-mono font-semibold tracking-wider mt-3">
-                          {pm.label}
+                {/* Payment Option Selector - High-end Accordion Style */}
+                <div className="border border-[#DDD8CF] divide-y divide-[#DDD8CF] bg-[#FBF9F5] shadow-sm">
+                  
+                  {/* Razorpay Option */}
+                  <div className={`transition-colors ${formData.paymentMethod === 'razorpay' ? 'bg-[#F6F3ED]' : 'hover:bg-[#F6F3ED]'}`}>
+                    <label className="flex items-center gap-4 p-5 cursor-pointer select-none">
+                      <div className="relative flex items-center justify-center w-4 h-4 rounded-full border border-[#181817] shrink-0">
+                        {formData.paymentMethod === 'razorpay' && (
+                          <motion.div layoutId="radio-dot" className="w-2 h-2 rounded-full bg-[#181817]" />
+                        )}
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="paymentMethod" 
+                        value="razorpay" 
+                        checked={formData.paymentMethod === 'razorpay'} 
+                        onChange={handleChange} 
+                        className="hidden" 
+                      />
+                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-[13px] font-semibold text-[#181817] tracking-wide">
+                          Credit Card, UPI, or NetBanking
                         </span>
-                      </button>
-                    );
-                  })}
+                        <div className="flex items-center gap-1.5 opacity-100">
+                          {/* Visa */}
+                          <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#1434CB" fontSize="9" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">VISA</text>
+                          </svg>
+                          {/* Mastercard */}
+                          <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="10" r="5" fill="#EB001B" />
+                            <circle cx="20" cy="10" r="5" fill="#F79E1B" opacity="0.9" />
+                          </svg>
+                          {/* Amex */}
+                          <svg viewBox="0 0 32 20" className="w-8 h-5 bg-[#016FD0] border border-[#016FD0] rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="bold" fontFamily="Arial, sans-serif">AMEX</text>
+                          </svg>
+                          {/* UPI */}
+                          <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#44403C" fontSize="8" fontWeight="bold" fontFamily="Arial, sans-serif">UPI</text>
+                          </svg>
+                        </div>
+                      </div>
+                    </label>
+                    
+                    <AnimatePresence>
+                      {formData.paymentMethod === 'razorpay' && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-5 pb-6 pt-1 ml-6 sm:ml-8">
+                            <div className="flex flex-col items-center justify-center py-8 px-6 bg-white border border-[#DDD8CF] text-center gap-3 shadow-inner">
+                              <div className="w-12 h-12 bg-[#2D4438]/10 text-[#2D4438] rounded-full flex items-center justify-center">
+                                <ShieldCheck size={24} strokeWidth={1.5} />
+                              </div>
+                              <div className="space-y-1 max-w-sm">
+                                <p className="text-[13px] text-[#181817] font-semibold tracking-wide">
+                                  Secure Encrypted Gateway
+                                </p>
+                                <p className="text-[11px] text-[#77736C] leading-relaxed">
+                                  After clicking "Confirm Order", you will be safely redirected to Razorpay to complete your purchase using your preferred payment method.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* COD Option */}
+                  <div className={`transition-colors ${formData.paymentMethod === 'cod' ? 'bg-[#F6F3ED]' : 'hover:bg-[#F6F3ED]'}`}>
+                    <label className="flex items-center gap-4 p-5 cursor-pointer select-none">
+                      <div className="relative flex items-center justify-center w-4 h-4 rounded-full border border-[#181817] shrink-0">
+                        {formData.paymentMethod === 'cod' && (
+                          <motion.div layoutId="radio-dot" className="w-2 h-2 rounded-full bg-[#181817]" />
+                        )}
+                      </div>
+                      <input 
+                        type="radio" 
+                        name="paymentMethod" 
+                        value="cod" 
+                        checked={formData.paymentMethod === 'cod'} 
+                        onChange={handleChange} 
+                        className="hidden" 
+                      />
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-[13px] font-semibold text-[#181817] tracking-wide">
+                          Cash on Delivery
+                        </span>
+                        <div className="flex items-center gap-1.5 opacity-100">
+                          {/* Realistic Cash & Coins Icon */}
+                          <svg viewBox="0 0 34 22" className="w-9 h-5 rounded-[2px] shadow-sm overflow-hidden" xmlns="http://www.w3.org/2000/svg">
+                            {/* Back banknote (angled) */}
+                            <g transform="rotate(-6 13 10)">
+                              <rect x="2" y="3" width="22" height="13" rx="1.5" fill="#15803D" stroke="#14532D" strokeWidth="0.6" />
+                              <rect x="3.5" y="4.5" width="19" height="10" rx="1" fill="none" stroke="#86EFAC" strokeWidth="0.4" strokeDasharray="1 1" />
+                            </g>
+                            {/* Front banknote */}
+                            <rect x="2" y="4.5" width="22" height="13.5" rx="1.5" fill="#22C55E" stroke="#15803D" strokeWidth="0.6" />
+                            <rect x="3.5" y="6" width="19" height="10.5" rx="1" fill="none" stroke="#DCFCE7" strokeWidth="0.5" />
+                            {/* Banknote center medallion */}
+                            <circle cx="13" cy="11.2" r="3.2" fill="#15803D" stroke="#86EFAC" strokeWidth="0.5" />
+                            <text x="13" y="11.8" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontSize="4.5" fontWeight="bold" fontFamily="Arial, sans-serif">₹</text>
+                            {/* Corner dots */}
+                            <circle cx="4.8" cy="7.2" r="0.6" fill="#DCFCE7" />
+                            <circle cx="21.2" cy="7.2" r="0.6" fill="#DCFCE7" />
+                            <circle cx="4.8" cy="15.2" r="0.6" fill="#DCFCE7" />
+                            <circle cx="21.2" cy="15.2" r="0.6" fill="#DCFCE7" />
+                            
+                            {/* Stack of Gold Coins on the right */}
+                            {/* Bottom coin */}
+                            <ellipse cx="26.5" cy="14.5" rx="4.5" ry="2" fill="#D97706" />
+                            <ellipse cx="26.5" cy="13.8" rx="4.5" ry="1.8" fill="#F59E0B" stroke="#B45309" strokeWidth="0.4" />
+                            {/* Middle coin */}
+                            <ellipse cx="26.5" cy="11.8" rx="4.5" ry="2" fill="#D97706" />
+                            <ellipse cx="26.5" cy="11.1" rx="4.5" ry="1.8" fill="#FBBF24" stroke="#D97706" strokeWidth="0.4" />
+                            {/* Top coin */}
+                            <ellipse cx="26.5" cy="9.1" rx="4.5" ry="2" fill="#D97706" />
+                            <ellipse cx="26.5" cy="8.4" rx="4.5" ry="1.8" fill="#FDE047" stroke="#F59E0B" strokeWidth="0.4" />
+                            <text x="26.5" y="8.8" textAnchor="middle" dominantBaseline="middle" fill="#92400E" fontSize="3.2" fontWeight="900" fontFamily="Arial, sans-serif">₹</text>
+                          </svg>
+
+                          {/* COD Badge */}
+                          <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2.5" width="28" height="15" rx="1" fill="#F0FDF4" stroke="#86EFAC" strokeWidth="0.5" />
+                            <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#15803D" fontSize="7" fontWeight="bold" fontFamily="Arial, sans-serif" letterSpacing="0.4">COD</text>
+                          </svg>
+                        </div>
+                      </div>
+                    </label>
+
+                    <AnimatePresence>
+                      {formData.paymentMethod === 'cod' && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-5 pb-6 pt-1 ml-6 sm:ml-8">
+                            <div className="p-5 bg-white border border-[#DDD8CF] space-y-3 shadow-inner">
+                              <div className="flex items-center gap-2 text-[#181817] text-xs font-bold uppercase tracking-wider">
+                                <Banknote size={14} className="text-[#2D4438]" />
+                                <span>Pay at Doorstep</span>
+                              </div>
+                              <p className="text-[11px] text-[#57534E] leading-relaxed">
+                                Pay <strong className="text-[#181817]">₹{total}</strong> directly to the delivery executive upon arrival. We accept Cash, UPI QR scans, and standard cards at your door.
+                              </p>
+                              <div className="pt-3 mt-3 border-t border-[#DDD8CF] flex items-center gap-2 text-[10px] text-[#77736C]">
+                                <ShieldCheck size={14} className="text-[#2D4438]" />
+                                <span>Includes complimentary tamper-proof packaging</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-
-                {/* UPI Details */}
-                {formData.paymentMethod === 'upi' && (
-                  <div className="p-4 bg-[#F6F3ED] border border-[#DDD8CF] space-y-3">
-                    <label className="block text-[11px] font-mono uppercase tracking-wider text-[#181817] font-semibold">
-                      Enter VPA / UPI ID
-                    </label>
-                    <input
-                      type="text"
-                      name="upiId"
-                      value={formData.upiId}
-                      onChange={handleChange}
-                      placeholder="e.g. mobile@okhdfcbank or user@paytm"
-                      className="w-full bg-white border border-[#DDD8CF] px-3.5 py-2.5 text-xs text-[#181817] font-mono focus:outline-none focus:border-[#2D4438]"
-                    />
-                    <p className="text-[10px] text-[#77736C]">
-                      Supports Google Pay, PhonePe, Paytm, CRED, and BHIM UPI.
-                    </p>
-                  </div>
-                )}
-
-                {/* Card Details */}
-                {formData.paymentMethod === 'card' && (
-                  <div className="p-4 bg-[#F6F3ED] border border-[#DDD8CF] space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider text-[#181817] font-semibold mb-1">
-                        Card Number (16 Digits)
-                      </label>
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        value={formData.cardNumber}
-                        onChange={handleChange}
-                        placeholder="4532 •••• •••• 8921"
-                        className="w-full bg-white border border-[#DDD8CF] px-3.5 py-2.5 text-xs text-[#181817] font-mono focus:outline-none focus:border-[#2D4438]"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        name="cardExp"
-                        value={formData.cardExp}
-                        onChange={handleChange}
-                        placeholder="MM / YY"
-                        className="w-full bg-white border border-[#DDD8CF] px-3.5 py-2.5 text-xs text-[#181817] font-mono focus:outline-none focus:border-[#2D4438]"
-                      />
-                      <input
-                        type="text"
-                        name="cardCvc"
-                        value={formData.cardCvc}
-                        onChange={handleChange}
-                        placeholder="CVV"
-                        className="w-full bg-white border border-[#DDD8CF] px-3.5 py-2.5 text-xs text-[#181817] font-mono focus:outline-none focus:border-[#2D4438]"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* NetBanking Details */}
-                {formData.paymentMethod === 'netbanking' && (
-                  <div className="p-4 bg-[#F6F3ED] border border-[#DDD8CF] space-y-2">
-                    <label className="block text-[11px] font-mono uppercase tracking-wider text-[#181817] font-semibold">
-                      Select Primary Bank
-                    </label>
-                    <select className="w-full bg-white border border-[#DDD8CF] px-3 py-2.5 text-xs text-[#181817]">
-                      <option>HDFC Bank</option>
-                      <option>ICICI Bank</option>
-                      <option>State Bank of India (SBI)</option>
-                      <option>Axis Bank</option>
-                      <option>Kotak Mahindra Bank</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Cash on Delivery Details */}
-                {formData.paymentMethod === 'cod' && (
-                  <div className="p-4 bg-[#F6F3ED] border border-[#DDD8CF] space-y-3">
-                    <div className="flex items-center gap-2 text-[#2D4438] font-bold text-xs uppercase tracking-wider">
-                      <Banknote size={16} />
-                      <span>Cash / Pay on Delivery Selected</span>
-                    </div>
-                    <p className="text-xs text-[#57534E] leading-relaxed">
-                      Pay <strong className="text-[#181817]">₹{total}</strong> via Cash, UPI QR code, or Card to the courier partner upon doorstep delivery. No advance online payment needed.
-                    </p>
-                    <div className="p-3 bg-[#EAE5DC] text-[11px] text-[#44403C] flex items-center gap-2 border border-[#DDD8CF]">
-                      <ShieldCheck size={14} className="text-[#2D4438] shrink-0" />
-                      <span>Includes complimentary delivery verification & tamper-proof packaging.</span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Final Submit Order Button */}
                 <button

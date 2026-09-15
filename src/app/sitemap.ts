@@ -5,7 +5,7 @@ import { products as fallbackProducts } from '@/data/products';
 import { journalArticles } from '@/data/journal';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com';
   const currentDate = new Date();
 
   // 1. Core static pages

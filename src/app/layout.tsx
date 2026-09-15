@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com'),
   title: {
     default: "TERRA MEN'S CO. | Because Men Deserve Better",
     template: "%s | TERRA MEN'S CO.",
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     'botanical beard oil',
     'organic grooming essentials',
   ],
-  authors: [{ name: "TERRA MEN'S CO.", url: 'https://terra-ecommerce.vercel.app' }],
+  authors: [{ name: "TERRA MEN'S CO.", url: 'https://www.terramensco.com' }],
   creator: "TERRA MEN'S CO.",
   publisher: "TERRA MEN'S CO.",
   alternates: {
@@ -61,13 +61,13 @@ export const metadata: Metadata = {
     description:
       'The foundational two-step grooming method for men. Cleanse. Nourish. Nothing unnecessary.',
     type: 'website',
-    url: 'https://terra-ecommerce.vercel.app',
+    url: 'https://www.terramensco.com',
     siteName: "TERRA MEN'S CO.",
     locale: 'en_US',
     images: [
       {
         url: '/images/og/og-image.jpeg',
-        secureUrl: 'https://terra-ecommerce.vercel.app/images/og/og-image.jpeg',
+        secureUrl: 'https://www.terramensco.com/images/og/og-image.jpeg',
         width: 1200,
         height: 630,
         type: 'image/jpeg',
@@ -100,27 +100,27 @@ const organizationJsonLd = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://terra-ecommerce.vercel.app/#organization',
+      '@id': 'https://www.terramensco.com/#organization',
       name: "TERRA MEN'S CO.",
-      url: 'https://terra-ecommerce.vercel.app',
+      url: 'https://www.terramensco.com',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://terra-ecommerce.vercel.app/images/logo/logo-dark.png',
+        url: 'https://www.terramensco.com/images/logo/logo-dark.png',
       },
       description: 'Disciplined luxury grooming fundamentals for skin and beard.',
       sameAs: ['https://www.instagram.com/terramensco'],
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://terra-ecommerce.vercel.app/#website',
-      url: 'https://terra-ecommerce.vercel.app',
+      '@id': 'https://www.terramensco.com/#website',
+      url: 'https://www.terramensco.com',
       name: "TERRA MEN'S CO.",
       publisher: {
-        '@id': 'https://terra-ecommerce.vercel.app/#organization',
+        '@id': 'https://www.terramensco.com/#organization',
       },
       potentialAction: {
         '@type': 'SearchAction',
-        target: 'https://terra-ecommerce.vercel.app/shop?search={search_term_string}',
+        target: 'https://www.terramensco.com/shop?search={search_term_string}',
         'query-input': 'required name=search_term_string',
       },
     },

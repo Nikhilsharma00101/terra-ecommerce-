@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "Shop All Formulations | TERRA MEN'S CO.",
     description:
       'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
-    url: 'https://terra-ecommerce.vercel.app/shop',
+    url: 'https://www.terramensco.com/shop',
     siteName: "TERRA MEN'S CO.",
     images: [
       {
@@ -59,7 +59,7 @@ async function fetchAllProducts(): Promise<Product[]> {
 
 export default async function ShopPage() {
   const allProducts = await fetchAllProducts();
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terramens.co';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com';
 
   const collectionJsonLd = {
     '@context': 'https://schema.org',

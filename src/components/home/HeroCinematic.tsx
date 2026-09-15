@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, ArrowDown } from 'lucide-react';
 import { useProducts } from '@/context/ProductContext';
 
@@ -52,7 +53,6 @@ export const HeroCinematic: React.FC = () => {
           {/* Top Right: Headline */}
           <div className="text-left lg:text-right animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <h1 className="flex flex-col items-start lg:items-end gap-2">
-              <span className="sr-only">Terra Men&apos;s Co. — Essential Men&apos;s Skincare &amp; Beard Grooming Routine</span>
               <span className="font-serif text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-light tracking-wide text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 Two Steps.
               </span>
@@ -60,6 +60,7 @@ export const HeroCinematic: React.FC = () => {
                 Nothing Unnecessary.
               </span>
             </h1>
+            <h2 className="sr-only">Essential Men&apos;s Skincare &amp; Beard Grooming Routine by Terra Men&apos;s Co.</h2>
           </div>
 
         </div>
@@ -113,10 +114,13 @@ export const HeroCinematic: React.FC = () => {
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full relative flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(220,20,60,0.4)] transition-shadow duration-500">
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="absolute inset-[2px] rounded-full overflow-hidden bg-[#121212]">
-                      <img
+                      <Image
                         src={faceWash?.featuredImage || faceWash?.images?.[0]?.url || '/images/home/hero-campaign.jpg'}
-                        alt={faceWash?.name || 'Product'}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        alt={`Terra Men's Co. ${faceWash?.name || 'Face Wash'}`}
+                        fill
+                        sizes="(max-width: 640px) 64px, 80px"
+                        priority
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                     </div>
                   </div>
@@ -134,10 +138,13 @@ export const HeroCinematic: React.FC = () => {
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full relative flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(220,20,60,0.4)] transition-shadow duration-500">
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" style={{ animationDelay: '-1.5s' }} />
                     <div className="absolute inset-[2px] rounded-full overflow-hidden bg-[#121212]">
-                      <img
+                      <Image
                         src={beardOil?.featuredImage || beardOil?.images?.[0]?.url || '/images/home/hero-campaign.jpg'}
-                        alt={beardOil?.name || 'Product'}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        alt={`Terra Men's Co. ${beardOil?.name || 'Beard Oil'}`}
+                        fill
+                        sizes="(max-width: 640px) 64px, 80px"
+                        priority
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                     </div>
                   </div>

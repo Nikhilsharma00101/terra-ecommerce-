@@ -85,7 +85,7 @@ export const BundleUpsell: React.FC = () => {
               {/* Main Full Uncropped Videos — preload=none until section is in view */}
               <video
                 ref={faceWashRef}
-                src="/images/home/the-method/face-wash-animated.mp4"
+                src="/videos/the-method/face-wash.mp4"
                 loop
                 muted
                 playsInline
@@ -96,7 +96,7 @@ export const BundleUpsell: React.FC = () => {
               />
               <video
                 ref={beardOilRef}
-                src="/images/home/the-method/beard-oil-animated.mp4"
+                src="/videos/the-method/beard-oil.mp4"
                 loop
                 muted
                 playsInline

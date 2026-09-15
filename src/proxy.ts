@@ -11,6 +11,7 @@ export async function proxy(req: NextRequest) {
   
   // --- COMING SOON LOCK LOGIC ---
   const adminBypassParam = req.nextUrl.searchParams.get('admin');
+  
   if (adminBypassParam === 'unlock') {
     req.nextUrl.searchParams.delete('admin');
     const response = NextResponse.redirect(new URL('/', req.url));
@@ -20,6 +21,13 @@ export async function proxy(req: NextRequest) {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     });
+    return response;
+  }
+  
+  if (adminBypassParam === 'lock') {
+    req.nextUrl.searchParams.delete('admin');
+    const response = NextResponse.redirect(new URL('/coming-soon', req.url));
+    response.cookies.delete('terra_admin_bypass');
     return response;
   }
 

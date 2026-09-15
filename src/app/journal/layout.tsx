@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     title: "The Terra Journal | TERRA MEN'S CO.",
     description:
       'Evidence-based skin science, beard care guides, and routine breakdowns.',
-    url: 'https://terra-ecommerce.vercel.app/journal',
+    url: 'https://www.terramensco.com/journal',
     siteName: "TERRA MEN'S CO.",
     images: [
       {

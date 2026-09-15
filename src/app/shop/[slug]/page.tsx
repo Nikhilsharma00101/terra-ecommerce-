@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await fetchProduct(slug);
   if (!product) return { title: 'Product Not Found' };
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com';
   const primaryImage = product.featuredImage || product.images?.[0]?.url || '/images/og/og-image.jpeg';
   const fullImageUrl = primaryImage.startsWith('http') ? primaryImage : `${baseUrl}${primaryImage.startsWith('/') ? '' : '/'}${primaryImage}`;
   const description = product.shortDescription || product.tagline || `Shop ${product.name} by Terra Men's Co.`;
@@ -130,7 +130,7 @@ export default async function DynamicProductPage({ params }: PageProps) {
 
   const reviews = getReviewsByProduct(product.slug);
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://terra-ecommerce.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com';
   const primaryImage = product.featuredImage || product.images?.[0]?.url || '/images/og/og-image.jpeg';
   const productImageUrl = primaryImage.startsWith('http') ? primaryImage : `${baseUrl}${primaryImage.startsWith('/') ? '' : '/'}${primaryImage}`;
 

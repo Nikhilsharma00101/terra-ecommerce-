@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     title: "About The Terra Method | TERRA MEN'S CO.",
     description:
       'Disciplined luxury grooming fundamentals. Two steps. No unnecessary steps, no synthetic fragrances, no compromise.',
-    url: 'https://terra-ecommerce.vercel.app/about',
+    url: 'https://www.terramensco.com/about',
     siteName: "TERRA MEN'S CO.",
     images: [
       {
@@ -36,13 +36,13 @@ const aboutJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'AboutPage',
   name: "About The Terra Method",
-  url: 'https://terra-ecommerce.vercel.app/about',
+  url: 'https://www.terramensco.com/about',
   description:
     'Disciplined luxury grooming fundamentals crafted with clinically proven bio-compatibles and cold-pressed botanicals.',
   mainEntity: {
     '@type': 'Organization',
     name: "TERRA MEN'S CO.",
-    url: 'https://terra-ecommerce.vercel.app',
+    url: 'https://www.terramensco.com',
   },
 };
 
