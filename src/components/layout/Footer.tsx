@@ -14,6 +14,8 @@ import {
   Lock,
   Globe,
   Sparkles,
+  Camera,
+  PlayCircle,
 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -247,17 +249,17 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-3 text-xs text-gray-400">
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link href="/privacy-policy" className="hover:text-white transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link href="/terms-of-service" className="hover:text-white transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link href="/about#faq" className="hover:text-white transition-colors">
                   Return Policy
                 </Link>
               </li>
@@ -269,14 +271,16 @@ export const Footer: React.FC = () => {
             <h4 className="text-[11px] uppercase tracking-[0.2em] text-white font-semibold mb-5 font-mono">
               SOCIAL
             </h4>
+
             <ul className="space-y-3 text-xs text-gray-400 mb-6">
               <li>
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/terramensco?stkn=MW92OWNycmxhNWRpNQ=="
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                  className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
+                  <Camera size={16} className="group-hover:text-pink-500 transition-colors" />
                   <span>Instagram</span>
                 </a>
               </li>
@@ -285,8 +289,9 @@ export const Footer: React.FC = () => {
                   href="https://youtube.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                  className="hover:text-white transition-colors flex items-center gap-2 group"
                 >
+                  <PlayCircle size={16} className="group-hover:text-red-500 transition-colors" />
                   <span>YouTube</span>
                 </a>
               </li>

@@ -51,9 +51,9 @@ export const Navbar: React.FC = () => {
   return (
     <nav
       className={`relative w-full z-50 transition-colors duration-300 border-b ${
-        isTransparent
-          ? 'bg-transparent border-transparent'
-          : 'bg-[#121212] border-white/10'
+        scrolled
+          ? 'bg-[#121212] border-white/10 shadow-md'
+          : 'bg-[#121212] border-transparent'
       }`}
     >
       <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">

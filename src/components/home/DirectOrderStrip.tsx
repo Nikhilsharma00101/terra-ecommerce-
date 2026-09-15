@@ -74,6 +74,11 @@ export const DirectOrderStrip: React.FC = () => {
     openCart();
   };
 
+  // Calculate dynamic savings
+  const bundleSavings = bundleProduct 
+    ? (bundleProduct.compareAtPrice || (faceWash.price + beardOil.price)) - bundleProduct.price 
+    : 199;
+
   return (
     <section className="relative bg-[#FAF8F5] border-t border-b border-[#E8E2D7] py-10 lg:py-12 select-none overflow-hidden font-sans">
       {/* Subtle Luxury Watermark Accent in Background */}
@@ -273,7 +278,7 @@ export const DirectOrderStrip: React.FC = () => {
             {/* Value Ribbon */}
             <div className="absolute -top-2.5 right-3 bg-[#8B0000] text-white text-[9px] font-bold px-2 py-0.5 rounded-xs shadow-xs tracking-wider uppercase flex items-center gap-1">
               <Star size={10} className="fill-white" />
-              <span>BEST VALUE • SAVE ₹199</span>
+              <span>BEST VALUE • SAVE ₹{bundleSavings}</span>
             </div>
 
             {/* Product Thumbnail Container */}

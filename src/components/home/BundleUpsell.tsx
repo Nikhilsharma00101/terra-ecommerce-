@@ -55,15 +55,22 @@ export const BundleUpsell: React.FC = () => {
     products.find((p) => p.slug === 'terra-face-wash' || p.slug === 'face-wash' || p.category === 'Face') || products[0];
   const beardOil =
     products.find((p) => p.slug === 'terra-beard-oil' || p.slug === 'beard-oil' || p.category === 'Beard') || (products.length > 1 ? products[1] : products[0]);
+  const bundleProduct =
+    products.find((p) => p.isBundle || p.slug === 'terra-set');
 
   if (!faceWash || !beardOil) return null;
 
-  const bundlePrice = faceWash.price + beardOil.price - 399; // Explicit discount
-  const originalPrice = faceWash.price + beardOil.price;
+  const originalPrice = bundleProduct?.compareAtPrice || (faceWash.price + beardOil.price);
+  const bundlePrice = bundleProduct?.price || (originalPrice - 399);
+  const savings = originalPrice > bundlePrice ? originalPrice - bundlePrice : 399;
 
   const handleAddBundle = () => {
-    addItem(faceWash, 1);
-    addItem(beardOil, 1);
+    if (bundleProduct) {
+      addItem(bundleProduct, 1);
+    } else {
+      addItem(faceWash, 1);
+      addItem(beardOil, 1);
+    }
     showToast('The Complete Method added to cart.', 'success');
     openCart();
   };
@@ -159,7 +166,7 @@ export const BundleUpsell: React.FC = () => {
             {/* Savings Badge */}
             <div className="absolute -top-3 right-2 sm:-top-5 sm:-right-4 lg:-top-6 lg:-right-12 bg-[#DC143C] text-white w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full flex flex-col items-center justify-center border-4 sm:border-[5px] lg:border-[6px] border-[#121212] shadow-2xl rotate-12 transform hover:rotate-0 transition-transform duration-500 z-20">
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">SAVE</span>
-              <span className="text-2xl sm:text-3xl font-serif">₹399</span>
+              <span className="text-2xl sm:text-3xl font-serif">₹{savings}</span>
             </div>
           </div>
 
