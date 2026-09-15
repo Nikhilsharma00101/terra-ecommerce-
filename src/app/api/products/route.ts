@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 import { requireAdmin } from '@/lib/auth';
@@ -178,6 +179,10 @@ export async function POST(req: NextRequest) {
       pairingProductSlug,
       isBundle: Boolean(isBundle),
     });
+
+    // Revalidate paths so changes reflect immediately
+    revalidatePath('/shop');
+    revalidatePath('/');
 
     return NextResponse.json(
       { message: 'Product created successfully', product: newProduct },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
@@ -96,6 +97,11 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
+    // Revalidate paths so changes reflect immediately
+    revalidatePath('/shop');
+    revalidatePath('/');
+    revalidatePath(`/shop/${updated.slug}`);
+
     return NextResponse.json({
       message: 'Product updated successfully',
       product: updated,
@@ -127,6 +133,11 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     if (!deleted) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+
+    // Revalidate paths so changes reflect immediately
+    revalidatePath('/shop');
+    revalidatePath('/');
+    revalidatePath(`/shop/${deleted.slug}`);
 
     return NextResponse.json({
       message: 'Product deleted successfully',
