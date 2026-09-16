@@ -34,16 +34,19 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   theme = 'dark',
 }) => {
   const isLight = theme === 'light';
-  const [reviewsList, setReviewsList] = useState<Review[]>(() => {
-    // If there are too few reviews to form a 3D loop, duplicate them seamlessly
-    let list = [...initialReviews];
+  const [pendingReviews, setPendingReviews] = useState<Review[]>([]);
+
+  const reviewsList = useMemo(() => {
+    let list = [...pendingReviews, ...initialReviews];
     if (list.length > 0 && list.length < 5) {
+      const base = [...list];
       while (list.length < 5) {
-        list = [...list, ...initialReviews].map((r, i) => ({ ...r, id: `${r.id}-clone-${i}` }));
+        list = [...list, ...base].map((r, i) => ({ ...r, id: `${r.id}-clone-${i}` }));
       }
     }
     return list;
-  });
+  }, [initialReviews, pendingReviews]);
+
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -61,7 +64,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [helpfulCounts, setHelpfulCounts] = useState<Record<string, number>>(() => {
     const counts: Record<string, number> = {};
     initialReviews.forEach((r) => {
-      counts[r.id] = r.helpfulCount || Math.floor(Math.random() * 25) + 14;
+      counts[r.id] = r.helpfulCount || 0;
     });
     return counts;
   });
@@ -75,6 +78,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [formRating, setFormRating] = useState<number>(5);
   const [formHoverRating, setFormHoverRating] = useState<number>(0);
   const [formAuthor, setFormAuthor] = useState<string>('');
+  const [formEmail, setFormEmail] = useState<string>('');
   const [formLocation, setFormLocation] = useState<string>('');
   const [formSkinType, setFormSkinType] = useState<string>('Normal / Combination');
   const [formProductSlug, setFormProductSlug] = useState<string>('terra-set');
@@ -120,53 +124,77 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
     });
   };
 
-  // Submit Review Handler
-  const handleSubmitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formAuthor || !formTitle || !formContent) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const initials = formAuthor
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  // Submit Review Handler
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formAuthor || !formEmail || !formTitle || !formContent) return;
+
+    setIsSubmitting(true);
 
     const productNameMap: Record<string, string> = {
-      'face-wash': 'Terra Face Wash',
-      'beard-oil': 'Terra Beard Oil',
+      'terra-face-wash': 'Terra Face Wash',
+      'terra-beard-oil': 'Terra Beard Oil',
       'terra-set': 'The Complete Terra Method',
     };
 
-    const newRev: Review = {
-      id: `rev-user-${Date.now()}`,
-      author: formAuthor,
-      avatarInitials: initials || 'TP',
-      location: formLocation || 'Verified Practitioner',
-      skinType: formSkinType,
-      rating: formRating,
-      date: 'Just now',
-      title: formTitle,
-      content: formContent,
-      verified: true,
-      productName: productNameMap[formProductSlug] || 'The Complete Terra Method',
-      productSlug: formProductSlug,
-      helpfulCount: 1,
-    };
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: formAuthor,
+          email: formEmail,
+          location: formLocation,
+          skinType: formSkinType,
+          rating: formRating,
+          title: formTitle,
+          content: formContent,
+          productSlug: formProductSlug,
+          productName: productNameMap[formProductSlug] || 'The Complete Terra Method',
+        }),
+      });
 
-    setReviewsList((prev) => [newRev, ...prev]);
-    setHelpfulCounts((prev) => ({ ...prev, [newRev.id]: 1 }));
-    setSubmitSuccess(true);
+      if (!response.ok) throw new Error('Failed to submit');
 
-    setTimeout(() => {
-      setSubmitSuccess(false);
-      setIsWriteModalOpen(false);
-      setFormAuthor('');
-      setFormLocation('');
-      setFormTitle('');
-      setFormContent('');
-      setFormRating(5);
-    }, 1800);
+      // Optimistic UI update: instantly show the review locally
+      const initials = formAuthor.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const newRev: Review = {
+        id: `rev-pending-${Date.now()}`,
+        author: formAuthor,
+        avatarInitials: initials || 'TP',
+        location: formLocation || 'Verified Practitioner',
+        skinType: formSkinType,
+        rating: formRating,
+        date: 'Just now',
+        title: formTitle,
+        content: formContent,
+        verified: true,
+        productName: productNameMap[formProductSlug] || 'The Complete Terra Method',
+        productSlug: formProductSlug,
+        helpfulCount: 0,
+      };
+
+      setPendingReviews((prev) => [newRev, ...prev]);
+
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setIsWriteModalOpen(false);
+        setFormAuthor('');
+        setFormEmail('');
+        setFormLocation('');
+        setFormTitle('');
+        setFormContent('');
+        setFormRating(5);
+      }, 3500);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Active Center Review Item
@@ -226,7 +254,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
               isLight ? 'bg-white border border-[#E5E0D8] shadow-2xs' : 'bg-[#1A1A1A] border border-[#333333]'
             }`}>
               <span className={`font-serif text-2xl sm:text-3xl font-light ${isLight ? 'text-[#181817]' : 'text-white'}`}>
-                4.95
+                {initialReviews.length > 0 ? (initialReviews.reduce((acc, r) => acc + r.rating, 0) / initialReviews.length).toFixed(1) : '5.0'}
               </span>
               <div>
                 <div className="flex text-[#C4A482]">
@@ -235,7 +263,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                   ))}
                 </div>
                 <span className={`text-[10px] font-mono block mt-0.5 ${isLight ? 'text-[#77736C]' : 'text-gray-400'}`}>
-                  12,500+ Verified Accounts
+                  {initialReviews.length} Verified {initialReviews.length === 1 ? 'Review' : 'Reviews'}
                 </span>
               </div>
             </div>
@@ -264,8 +292,8 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
               </span>
               {[
                 { id: 'all', label: `ALL (${initialReviews.length})` },
-                { id: 'face-wash', label: 'FACE WASH' },
-                { id: 'beard-oil', label: 'BEARD OIL' },
+                { id: 'terra-face-wash', label: 'FACE WASH' },
+                { id: 'terra-beard-oil', label: 'BEARD OIL' },
                 { id: 'terra-set', label: 'THE METHOD' },
               ].map((f) => (
                 <button
@@ -754,8 +782,8 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                     <CheckCircle2 size={32} />
                   </div>
                   <h3 className={`font-serif text-2xl ${isLight ? 'text-[#181817]' : 'text-white'}`}>Account Registered</h3>
-                  <p className={`text-xs max-w-sm mx-auto font-light ${isLight ? 'text-[#55524D]' : 'text-gray-400'}`}>
-                    Thank you for contributing your real-world experience to the Terra practitioner database.
+                  <p className={`text-xs max-w-sm mx-auto font-light leading-relaxed ${isLight ? 'text-[#55524D]' : 'text-gray-400'}`}>
+                    Your account has been securely logged and is currently pending verification against your order history. It will be published shortly.
                   </p>
                 </div>
               ) : (
@@ -826,13 +854,13 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                       }`}
                     >
                       <option value="terra-set">The Complete Terra Method</option>
-                      <option value="face-wash">Terra Face Wash</option>
-                      <option value="beard-oil">Terra Beard Oil</option>
+                      <option value="terra-face-wash">Terra Face Wash</option>
+                      <option value="terra-beard-oil">Terra Beard Oil</option>
                     </select>
                   </div>
 
-                  {/* Name & Location Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Name, Email & Location Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className={`block text-[11px] font-mono uppercase tracking-wider mb-1 ${
                         isLight ? 'text-[#55524D]' : 'text-gray-300'
@@ -845,6 +873,26 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                         placeholder="e.g. Vikram Sharma"
                         value={formAuthor}
                         onChange={(e) => setFormAuthor(e.target.value)}
+                        className={`w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none ${
+                          isLight
+                            ? 'bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]'
+                            : 'bg-[#1A1A1A] border border-[#333333] text-white focus:border-[#8B0000]'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-[11px] font-mono uppercase tracking-wider mb-1 ${
+                        isLight ? 'text-[#55524D]' : 'text-gray-300'
+                      }`}>
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="For order verification"
+                        value={formEmail}
+                        onChange={(e) => setFormEmail(e.target.value)}
                         className={`w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none ${
                           isLight
                             ? 'bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]'
@@ -946,11 +994,12 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                     </button>
                     <button
                       type="submit"
-                      className={`text-white px-8 py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors cursor-pointer rounded-xl shadow-xs ${
-                        isLight ? 'bg-[#181817] hover:bg-[#2D4438]' : 'bg-[#8B0000] hover:bg-[#A50000]'
-                      }`}
+                      disabled={isSubmitting}
+                      className={`text-white px-8 py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors rounded-xl shadow-xs ${
+                        isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      } ${isLight ? 'bg-[#181817] hover:bg-[#2D4438]' : 'bg-[#8B0000] hover:bg-[#A50000]'}`}
                     >
-                      SUBMIT ACCOUNT FOR AUDIT
+                      {isSubmitting ? 'SUBMITTING...' : 'SUBMIT ACCOUNT FOR AUDIT'}
                     </button>
                   </div>
                 </form>

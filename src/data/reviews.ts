@@ -13,7 +13,7 @@ export const reviews: Review[] = [
     content: 'Living in Bangalore with daily bike commutes used to leave my face full of dust and grease. The Terra Face Wash cleans thoroughly, controls oil around the T-zone, and does not make the skin tight like regular soaps. Highly recommended.',
     verified: true,
     productName: 'Terra Face Wash',
-    productSlug: 'face-wash',
+    productSlug: 'terra-face-wash',
     helpfulCount: 34,
     isSpotlight: true
   },
@@ -29,7 +29,7 @@ export const reviews: Review[] = [
     content: 'In Mumbai’s humid weather, most beard oils feel like sticky cooking oil. Terra Beard Oil is genuinely lightweight, absorbs in a minute, and completely stopped my beard itching. The mild lavender scent is very classy.',
     verified: true,
     productName: 'Terra Beard Oil',
-    productSlug: 'beard-oil',
+    productSlug: 'terra-beard-oil',
     helpfulCount: 42,
     isSpotlight: true
   },
@@ -61,7 +61,7 @@ export const reviews: Review[] = [
     content: 'The packaging and bottle quality feel truly international. No loud synthetic perfumes—just pure cold-pressed botanicals that leave a healthy, natural matte finish on my beard.',
     verified: true,
     productName: 'Terra Beard Oil',
-    productSlug: 'beard-oil',
+    productSlug: 'terra-beard-oil',
     helpfulCount: 18,
     isSpotlight: false
   },
@@ -93,7 +93,7 @@ export const reviews: Review[] = [
     content: 'Most cleansers aggravate my sensitive skin with heavy artificial foam. Terra Face Wash has a rich natural lather from coconut glucoside and witch hazel that calms redness immediately.',
     verified: true,
     productName: 'Terra Face Wash',
-    productSlug: 'face-wash',
+    productSlug: 'terra-face-wash',
     helpfulCount: 21,
     isSpotlight: false
   },
