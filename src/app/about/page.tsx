@@ -14,17 +14,13 @@ import {
   ChevronDown,
   Droplets,
   Leaf,
-  Clock,
   CheckCircle2,
   Lock,
   XCircle,
   ShoppingBag,
-  Plus,
   Check,
   Star,
-  FlaskConical,
-  Award,
-  RefreshCw
+  FlaskConical
 } from 'lucide-react';
 
 function resolveProductImage(prod?: Product | null): string {
@@ -211,7 +207,7 @@ export default function AboutPage() {
               </h1>
 
               <blockquote className="font-serif text-xl sm:text-2xl text-[#8C6D46] font-light italic border-l-2 border-[#8C6D46] pl-4 py-1">
-                "Terra does not create a new man. Terra reveals the man within."
+                &quot;Terra does not create a new man. Terra reveals the man within.&quot;
               </blockquote>
 
               <p className="text-xs sm:text-sm text-[#55524D] leading-relaxed max-w-xl font-light">
@@ -252,7 +248,7 @@ export default function AboutPage() {
                     THE TERRA METHODOLOGY
                   </span>
                   <p className="text-xs text-[#181817] font-serif italic">
-                    "Purify the skin barrier. Nourish the hair follicle. Master the morning."
+                    &quot;Purify the skin barrier. Nourish the hair follicle. Master the morning.&quot;
                   </p>
                 </div>
               </div>
@@ -345,7 +341,7 @@ export default function AboutPage() {
                     </h3>
 
                     <p className="font-serif text-lg text-[#77736C] italic font-light leading-relaxed">
-                      "{current.excerpt}"
+                      &quot;{current.excerpt}&quot;
                     </p>
 
                     <p className="text-xs sm:text-sm text-[#55524D] leading-relaxed font-light">
@@ -600,6 +596,7 @@ export default function AboutPage() {
               
               <div className="flex items-center gap-6">
                 <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl bg-[#1A1918] overflow-hidden relative shrink-0 border border-[#E8E2D7] shadow-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={resolveProductImage(bundleProduct)}
                     alt={bundleProduct.name}

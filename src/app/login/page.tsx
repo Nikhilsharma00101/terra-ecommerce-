@@ -38,7 +38,7 @@ function LoginFormContent() {
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       const target = redirectPath || (user?.role === 'admin' ? '/admin' : '/account');
-      window.location.href = target;
+      router.push(target);
     }
   }, [isAuthenticated, isLoading, redirectPath, user]);
 
@@ -240,9 +240,12 @@ function LoginFormContent() {
                   Password *
                 </label>
                 {mode === 'login' && (
-                  <span className="text-xs text-[#57534E] hover:text-[#181817] cursor-pointer transition-colors">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-[#57534E] hover:text-[#181817] transition-colors"
+                  >
                     Forgot password?
-                  </span>
+                  </Link>
                 )}
               </div>
               <div className="relative">
@@ -283,44 +286,30 @@ function LoginFormContent() {
             </button>
           </form>
 
-          {/* Admin Credentials Info */}
-          {mode === 'login' && (
-            <div className="mt-6 p-4 bg-[#EAE5DC]/70 border border-[#DDD8CF]">
-              <div className="flex items-center justify-between font-bold text-xs text-[#2D4438] uppercase tracking-wider mb-2">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={15} />
-                  <span>Demo Admin Access</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      email: 'admin@terra.com',
-                      password: 'TerraAdmin2026!',
-                    });
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#181817] bg-[#FFFFFF] hover:bg-[#2D4438] hover:text-[#F6F3ED] border border-[#DDD8CF] transition-colors cursor-pointer"
-                >
-                  Auto Fill
-                </button>
-              </div>
-              <div className="space-y-1 text-xs text-[#44403C] font-mono">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#57534E] font-sans font-medium min-w-[70px]">Email ID:</span>
-                  <code className="bg-[#FFFFFF] px-2 py-0.5 border border-[#DDD8CF] text-[#181817] font-semibold select-all">
-                    admin@terra.com
-                  </code>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[#57534E] font-sans font-medium min-w-[70px]">Password:</span>
-                  <code className="bg-[#FFFFFF] px-2 py-0.5 border border-[#DDD8CF] text-[#181817] font-semibold select-all">
-                    TerraAdmin2026!
-                  </code>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="mt-8 flex items-center">
+            <div className="flex-1 border-t border-[#DDD8CF]"></div>
+            <span className="px-4 text-xs font-semibold text-[#8C887B] uppercase tracking-wider">or</span>
+            <div className="flex-1 border-t border-[#DDD8CF]"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              import('next-auth/react').then(({ signIn }) => signIn('google'));
+            }}
+            className="w-full mt-6 bg-[#FFFFFF] border border-[#DDD8CF] hover:bg-[#F6F3ED] text-[#181817] py-3.5 text-xs font-bold transition-all flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+
+
 
           {/* Privacy Note */}
           <div className="mt-8 pt-6 border-t border-[#DDD8CF] text-center text-xs text-[#57534E]">

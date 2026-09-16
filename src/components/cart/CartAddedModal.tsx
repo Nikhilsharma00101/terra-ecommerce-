@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Check,
   X,
@@ -26,6 +27,7 @@ export const CartAddedModal: React.FC = () => {
     remainingForFreeShipping,
     freeShippingProgress,
   } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const [isHovered, setIsHovered] = useState(false);
   const [progress, setProgress] = useState(100);
@@ -200,7 +202,7 @@ export const CartAddedModal: React.FC = () => {
 
                 <div className="flex items-center justify-between px-1 pt-1">
                   <Link
-                    href="/checkout"
+                    href={isAuthenticated ? "/checkout" : "/login?redirect=/checkout"}
                     onClick={closeAddedNotification}
                     className="text-xs font-bold uppercase tracking-[0.16em] text-[#2D4438] hover:text-[#181817] transition-colors flex items-center gap-1"
                   >

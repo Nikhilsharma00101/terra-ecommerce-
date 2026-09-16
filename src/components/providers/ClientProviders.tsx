@@ -37,8 +37,7 @@ export const ClientProviders: React.FC<{ children: React.ReactNode; initialProdu
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith('/admin');
-  const isComingSoonRoute = pathname === '/coming-soon';
-  const hideLayout = isAdminRoute || isComingSoonRoute;
+  const hideLayout = isAdminRoute;
 
   useEffect(() => {
     setMounted(true);

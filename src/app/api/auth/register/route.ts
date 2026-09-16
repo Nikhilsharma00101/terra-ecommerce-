@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { hashPassword, signToken, setAuthCookie } from '@/lib/auth';
+import { hashPassword } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // SECURITY: Prevent manual registration of admin emails
+    // If someone tries to register with an admin email, they must use Google Login to prove ownership
+    const adminEmails = ['nikhil18981@gmail.com', 'lavinlavi007@gmail.com'];
+    if (adminEmails.includes(email.toLowerCase().trim())) {
+      return NextResponse.json(
+        { error: 'An account with this email address already exists.' },
+        { status: 409 }
+      );
+    }
+
     // Secure password hashing with bcrypt
     const hashedPassword = await hashPassword(password);
 
@@ -51,17 +61,8 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       phone: phone ? phone.trim() : undefined,
-      role: 'user', // standard registration is always 'user'
+      role: 'user',
       tier: 'Terra Club Member',
-    });
-
-    // Create JWT Token
-    const token = await signToken({
-      userId: newUser._id.toString(),
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.role,
-      tier: newUser.tier,
     });
 
     const response = NextResponse.json(
@@ -78,9 +79,6 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-
-    // Set secure HTTP-only cookie
-    setAuthCookie(response, token);
 
     return response;
   } catch (error: any) {

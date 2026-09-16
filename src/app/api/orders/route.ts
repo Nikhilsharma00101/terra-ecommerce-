@@ -175,6 +175,15 @@ export async function POST(req: NextRequest) {
     if (couponCode && typeof couponCode === 'string') {
       const code = couponCode.trim().toUpperCase();
       if (code === 'TERRA10' || code === 'WELCOME10') {
+        const existingOrdersCount = await Order.countDocuments({
+          customerEmail: customerEmail.toLowerCase().trim()
+        });
+        if (existingOrdersCount > 0) {
+          return NextResponse.json(
+            { error: 'This coupon is only valid for your first order.' },
+            { status: 400 }
+          );
+        }
         discountAmount = Math.round(calculatedSubtotal * 0.10);
         appliedCoupon = code;
       } else if (code === 'METHOD20') {

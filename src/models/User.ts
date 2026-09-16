@@ -13,6 +13,11 @@ export interface IUserAddress {
   isDefault?: boolean;
 }
 
+export interface IUserCartItem {
+  productId: string;
+  quantity: number;
+}
+
 export interface IUserSubscription {
   status: 'active' | 'paused' | 'cancelled';
   frequency: '30d' | '60d' | '90d';
@@ -31,6 +36,9 @@ export interface IUser extends Document {
   wishlist: string[];
   subscription: IUserSubscription;
   addresses: IUserAddress[];
+  cart: IUserCartItem[];
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +65,14 @@ const SubscriptionSchema = new Schema<IUserSubscription>(
     frequency: { type: String, enum: ['30d', '60d', '90d'], default: '60d' },
     nextDispatchDate: { type: Date, default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
     productSlug: { type: String, default: 'terra-set' },
+  },
+  { _id: false }
+);
+
+const CartItemSchema = new Schema<IUserCartItem>(
+  {
+    productId: { type: String, required: true },
+    quantity: { type: Number, required: true, default: 1 },
   },
   { _id: false }
 );
@@ -113,6 +129,16 @@ const UserSchema = new Schema<IUser>(
       }),
     },
     addresses: [AddressSchema],
+    cart: {
+      type: [CartItemSchema],
+      default: [],
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { SessionProvider, useSession, signIn, signOut, getSession } from 'next-auth/react';
 
 export interface AuthUser {
   id: string;
@@ -10,17 +11,7 @@ export interface AuthUser {
   role: 'user' | 'admin';
   tier?: string;
   phone?: string;
-  addresses?: Array<{
-    firstName: string;
-    lastName: string;
-    address1: string;
-    address2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-    isDefault?: boolean;
-  }>;
+  addresses?: Array<any>;
   createdAt?: string;
 }
 
@@ -42,75 +33,41 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const user = useMemo(() => {
+    if (session?.user) {
+      return {
+        id: (session.user as any).id || '',
+        name: session.user.name || '',
+        email: session.user.email || '',
+        role: (session.user as any).role || 'user',
+        tier: (session.user as any).tier,
+      };
+    }
+    return null;
+  }, [session]);
 
   const refreshUser = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/me', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSession = async () => {
-      try {
-        const res = await fetch('/api/auth/me', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) setUser(data.user);
-        } else {
-          if (isMounted) setUser(null);
-        }
-      } catch {
-        if (isMounted) setUser(null);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchSession();
-    return () => {
-      isMounted = false;
-    };
+    // Force a re-fetch of the session from the server
+    await getSession();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const res = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to sign in.' };
+      if (res?.error) {
+        return { success: false, error: res.error };
       }
 
-      setUser(data.user);
-      return { success: true, role: data.user.role };
+      // session will automatically update via useSession, but we return true immediately
+      return { success: true };
     } catch (err: unknown) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       return {
@@ -139,7 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: data.error || 'Failed to register.' };
       }
 
-      setUser(data.user);
+      // After successful registration, automatically log them in
+      await login(email, password);
       return { success: true };
     } catch (err: unknown) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
@@ -151,19 +109,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      router.push('/login');
-      router.refresh();
-    }
+    localStorage.removeItem('terra_cart');
+    localStorage.removeItem('terra_coupon');
+    signOut({ callbackUrl: '/login' });
   };
 
   const isAdmin = user?.role === 'admin';
   const isAuthenticated = !!user;
+  const isLoading = status === 'loading';
 
   return (
     <AuthContext.Provider
@@ -180,6 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     >
       {children}
     </AuthContext.Provider>
+  );
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <SessionProvider>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </SessionProvider>
   );
 };
 

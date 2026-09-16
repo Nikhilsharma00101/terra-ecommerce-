@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { ProductImage } from '@/types';
-import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, X } from 'lucide-react';
 
 interface ProductGalleryProps {
   images: ProductImage[];
@@ -15,6 +16,12 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
   productName,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Filter out invalid/empty images and fallback to safe default if needed
   const validImages = (images && images.length > 0)
@@ -56,17 +63,21 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
   return (
     <div className="flex flex-col gap-3.5 select-none w-full">
       {/* Main Presentation Stage — Controlled vertical height */}
-      <div className="relative w-full h-[360px] sm:h-[440px] lg:h-[480px] bg-white border border-[#E5E0D8] rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.03)] overflow-hidden group flex items-center justify-center">
+      <div 
+        className="relative w-full bg-white border border-[#E5E0D8] rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.03)] overflow-hidden group flex items-center justify-center cursor-pointer"
+        onClick={() => setIsZoomed(true)}
+      >
         {/* Ambient subtle warm gradient in image canvas */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#FBF9F5] via-white to-[#F6F3ED]/40 pointer-events-none" />
 
-        <div className="relative w-full h-full p-4 sm:p-6 flex items-center justify-center">
+        <div className="relative w-full p-4 sm:p-6 flex items-center justify-center">
           <Image
             src={currentImage.url}
             alt={currentImage.alt || productName}
-            fill
+            width={1200}
+            height={1200}
             priority
-            className="object-contain sm:object-cover p-2 transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-auto max-h-[70vh] object-contain transition-transform duration-700 group-hover:scale-105"
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
         </div>
@@ -88,7 +99,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
           <>
             <button
               type="button"
-              onClick={handlePrev}
+              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white text-[#181817] backdrop-blur-md transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md z-10 rounded-full flex items-center justify-center group/btn active:scale-95"
               aria-label="Previous Image"
             >
@@ -97,7 +108,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
             <button
               type="button"
-              onClick={handleNext}
+              onClick={(e) => { e.stopPropagation(); handleNext(); }}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white text-[#181817] backdrop-blur-md transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md z-10 rounded-full flex items-center justify-center group/btn active:scale-95"
               aria-label="Next Image"
             >
@@ -140,6 +151,52 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
             </button>
           ))}
         </div>
+      )}
+
+      {/* Full Screen Zoom Modal via Portal */}
+      {isZoomed && isMounted && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#181817]/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-200"
+          onClick={() => setIsZoomed(false)}
+        >
+          <button
+            type="button"
+            className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors p-2 z-50 bg-white/10 hover:bg-white/20 rounded-full"
+            onClick={() => setIsZoomed(false)}
+          >
+            <X size={24} />
+          </button>
+          
+          <div className="relative w-full max-w-5xl h-full max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={currentImage.url}
+              alt={currentImage.alt || productName}
+              fill
+              className="object-contain"
+              sizes="100vw"
+            />
+          </div>
+          
+          {displayImages.length > 1 && (
+             <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                  className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full flex items-center justify-center group/btn active:scale-95 z-50"
+                >
+                  <ChevronLeft size={24} className="group-hover/btn:-translate-x-0.5 transition-transform" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                  className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full flex items-center justify-center group/btn active:scale-95 z-50"
+                >
+                  <ChevronRight size={24} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                </button>
+             </>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );

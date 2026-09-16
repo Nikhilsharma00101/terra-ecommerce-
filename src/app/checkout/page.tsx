@@ -31,8 +31,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clearCart, updateQuantity, removeItem, freeShippingThreshold } = useCart();
-  const { user } = useAuth();
+  const { 
+    items, subtotal, clearCart, updateQuantity, removeItem, freeShippingThreshold,
+    appliedCoupon, discountAmount, applyCoupon, removeCoupon
+  } = useCart();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Active Checkout Step: 1 = Contact & Shipping, 2 = Payment Method
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -51,10 +60,8 @@ export default function CheckoutPage() {
     paymentMethod: 'razorpay',
   });
 
-  // Promo code discount state
+  // Promo code state
   const [couponInput, setCouponInput] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [appliedCoupon, setAppliedCoupon] = useState('');
   const [couponError, setCouponError] = useState('');
 
   // Auto-fill logged in user info
@@ -74,7 +81,6 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Financial calculations
-  const discountAmount = Math.round((subtotal * discountPercent) / 100);
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const shippingCost = discountedSubtotal >= freeShippingThreshold ? 0 : 75;
   const total = discountedSubtotal + shippingCost;
@@ -85,21 +91,14 @@ export default function CheckoutPage() {
   };
 
   // Coupon apply handler
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     setCouponError('');
-    const code = couponInput.trim().toUpperCase();
-
-    if (code === 'TERRA10' || code === 'WELCOME10') {
-      setDiscountPercent(10);
-      setAppliedCoupon(code);
-      setCouponInput('');
-    } else if (code === 'METHOD20') {
-      setDiscountPercent(20);
-      setAppliedCoupon(code);
-      setCouponInput('');
+    const res = await applyCoupon(couponInput, formData.email || user?.email);
+    if (!res.success) {
+      setCouponError(res.error || 'Invalid coupon code. Try TERRA10.');
     } else {
-      setCouponError('Invalid coupon code. Try TERRA10 for 10% off.');
+      setCouponInput('');
     }
   };
 
@@ -179,9 +178,13 @@ export default function CheckoutPage() {
                 if (res.ok) {
                   const data = await res.json();
                   if (data.orderNumber) orderNumber = data.orderNumber;
+                  clearCart();
+                  router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+                } else {
+                  const data = await res.json();
+                  alert('Order creation failed: ' + (data.error || 'Unknown error'));
+                  setIsProcessing(false);
                 }
-                clearCart();
-                router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
               } else {
                 alert('Payment verification failed: ' + verifyData.error);
                 setIsProcessing(false);
@@ -226,19 +229,20 @@ export default function CheckoutPage() {
           if (data.orderNumber) {
             orderNumber = data.orderNumber;
           }
+          clearCart();
+          router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+        } else {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to place order');
         }
-
-        clearCart();
-        router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Order creation error:', err);
       if (formData.paymentMethod === 'cod') {
-        const orderNum = 'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
-        clearCart();
-        router.push(`/checkout/success?order=${orderNum}&total=${total}`);
+        alert(err.message || 'An error occurred during order placement.');
+        setIsProcessing(false);
       } else {
-        alert('An error occurred during payment initialization.');
+        alert(err.message || 'An error occurred during payment initialization.');
         setIsProcessing(false);
       }
     } finally {
@@ -247,6 +251,16 @@ export default function CheckoutPage() {
       }
     }
   };
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#F6F3ED] py-24 flex items-center justify-center">
+        <div className="text-sm font-semibold text-[#57534E]">
+          Loading secure checkout...
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -799,15 +813,12 @@ export default function CheckoutPage() {
                 <div className="bg-[#2D4438]/10 border border-[#2D4438] p-3 flex items-center justify-between text-xs text-[#2D4438] font-mono">
                   <div className="flex items-center gap-1.5">
                     <Tag size={13} />
-                    <span>COUPON {appliedCoupon} ({discountPercent}% OFF)</span>
+                    <span>COUPON {appliedCoupon} APPLIED</span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setAppliedCoupon('');
-                      setDiscountPercent(0);
-                    }}
-                    className="text-[10px] underline text-[#77736C] hover:text-[#181817] cursor-pointer"
+                    onClick={() => removeCoupon()}
+                    className="text-[10px] uppercase font-bold text-[#8B0000] hover:underline cursor-pointer"
                   >
                     Remove
                   </button>
@@ -841,7 +852,7 @@ export default function CheckoutPage() {
 
               {discountAmount > 0 && (
                 <div className="flex items-center justify-between text-[#2D4438] font-semibold">
-                  <span>Coupon Discount ({discountPercent}%)</span>
+                  <span>Coupon Discount</span>
                   <span className="font-mono">- ₹{discountAmount}</span>
                 </div>
               )}

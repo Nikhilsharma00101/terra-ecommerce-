@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useProducts } from '@/context/ProductContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Plus,
   Minus,
@@ -31,12 +32,15 @@ export default function CartPage() {
     remainingForFreeShipping,
     freeShippingProgress,
     addItem,
+    appliedCoupon,
+    discountAmount,
+    applyCoupon,
+    removeCoupon,
   } = useCart();
   const { products, getProductBySlug } = useProducts();
+  const { isAuthenticated, user } = useAuth();
 
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoError, setPromoError] = useState('');
 
   // Complementary recommendations logic
@@ -48,22 +52,19 @@ export default function CartPage() {
 
   const suggestedCompanion = !hasBeardOil && beardOil ? beardOil : !hasFaceWash && faceWash ? faceWash : null;
 
-  const handleApplyPromo = (e: React.FormEvent) => {
+  const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     setPromoError('');
-    if (promoCode.trim().toUpperCase() === 'TERRA100') {
-      setPromoApplied(true);
-      setDiscountAmount(100);
-      setPromoCode('TERRA100');
+    const res = await applyCoupon(promoCodeInput, user?.email);
+    if (!res.success) {
+      setPromoError(res.error || 'Invalid coupon.');
     } else {
-      setPromoError('Invalid coupon. Try "TERRA100" for ₹100 off.');
+      setPromoCodeInput('');
     }
   };
 
   const handleRemovePromo = () => {
-    setPromoApplied(false);
-    setDiscountAmount(0);
-    setPromoCode('');
+    removeCoupon();
     setPromoError('');
   };
 
@@ -368,11 +369,11 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  {promoApplied && (
+                  {appliedCoupon && (
                     <div className="flex items-center justify-between text-[#2D4438] bg-[#2D4438]/8 px-3 py-2 rounded-lg border border-[#2D4438]/15">
                       <div className="flex items-center gap-1.5 font-medium">
                         <Tag size={13} />
-                        <span>Welcome Privilege (TERRA100)</span>
+                        <span>Welcome Privilege ({appliedCoupon})</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold">-₹{discountAmount}</span>
@@ -414,27 +415,25 @@ export default function CartPage() {
                 </div>
 
                 {/* Promo Code Input Field */}
-                {!promoApplied && (
+                {!appliedCoupon && (
                   <form onSubmit={handleApplyPromo} className="pt-2">
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <input
                           type="text"
-                          value={promoCode}
+                          value={promoCodeInput}
                           onChange={(e) => {
-                            setPromoCode(e.target.value);
+                            setPromoCodeInput(e.target.value);
                             setPromoError('');
                           }}
                           placeholder="PROMO CODE"
                           className="w-full bg-[#FAF8F5] border border-[#DDD8CF] px-3.5 py-3 text-xs text-[#181817] placeholder-[#99948D] uppercase tracking-wider rounded-xl focus:outline-none focus:border-[#181817] transition-colors"
                         />
-                        {!promoCode && (
+                        {!promoCodeInput && (
                           <button
                             type="button"
                             onClick={() => {
-                              setPromoCode('TERRA100');
-                              setPromoApplied(true);
-                              setDiscountAmount(100);
+                              applyCoupon('TERRA100');
                             }}
                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold text-[#2D4438] bg-[#2D4438]/10 hover:bg-[#2D4438]/20 px-2 py-0.5 rounded cursor-pointer transition-colors"
                           >
@@ -458,7 +457,7 @@ export default function CartPage() {
                 {/* Primary Proceed to Checkout CTA */}
                 <div className="space-y-3 pt-2">
                   <Link
-                    href="/checkout"
+                    href={isAuthenticated ? "/checkout" : "/login?redirect=/checkout"}
                     className="w-full bg-[#181817] hover:bg-[#2D4438] text-white py-4 text-xs font-bold uppercase tracking-[0.2em] rounded-xl shadow-md hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                   >
                     <Lock size={14} className="opacity-80" />

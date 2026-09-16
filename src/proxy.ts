@@ -1,61 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { getToken } from 'next-auth/jwt';
 
-const COOKIE_NAME = 'terra_token';
-const JWT_SECRET_STRING =
-  process.env.JWT_SECRET || 'terra-botanical-luxury-secret-key-2026-secure-token';
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'terra-botanical-luxury-secret-key-2026-secure-token';
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   
-  // --- COMING SOON LOCK LOGIC ---
-  const adminBypassParam = req.nextUrl.searchParams.get('admin');
-  
-  if (adminBypassParam === 'unlock') {
-    req.nextUrl.searchParams.delete('admin');
-    const response = NextResponse.redirect(new URL('/', req.url));
-    response.cookies.set('terra_admin_bypass', 'true', {
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-    });
-    return response;
-  }
-  
-  if (adminBypassParam === 'lock') {
-    req.nextUrl.searchParams.delete('admin');
-    const response = NextResponse.redirect(new URL('/coming-soon', req.url));
-    response.cookies.delete('terra_admin_bypass');
-    return response;
-  }
 
-  const hasBypassCookie = req.cookies.has('terra_admin_bypass');
-  const isStaticOrApi = 
-    pathname.startsWith('/_next/') || 
-    pathname.startsWith('/images/') || 
-    pathname.startsWith('/api/') || 
-    pathname === '/coming-soon' || 
-    pathname.includes('.');
 
-  // If not bypassed and not static, force coming soon page
-  if (!hasBypassCookie && !isStaticOrApi) {
-    return NextResponse.redirect(new URL('/coming-soon', req.url));
-  }
-  // --- END COMING SOON LOCK LOGIC ---
-
-  const token = req.cookies.get(COOKIE_NAME)?.value;
-
-  // Verify JWT on protected routes
+  // Verify NextAuth JWT on protected routes
+  const token = await getToken({ req, secret: JWT_SECRET });
   let userPayload: { role?: string; userId?: string; email?: string } | null = null;
+  
   if (token) {
-    try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
-      userPayload = payload as { role?: string; userId?: string; email?: string };
-    } catch {
-      userPayload = null;
-    }
+    userPayload = {
+      role: token.role as string,
+      userId: token.id as string,
+      email: token.email as string,
+    };
   }
 
   // 1. Guard Admin Portal: Strictly Admin-Only

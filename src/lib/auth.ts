@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './auth-options';
+import { User as NextAuthUser } from 'next-auth';
 
+// Define the payload type correctly
 export interface UserJwtPayload {
   userId: string;
   email: string;
@@ -10,13 +12,6 @@ export interface UserJwtPayload {
   role: 'user' | 'admin';
   tier?: string;
 }
-
-const JWT_SECRET_STRING =
-  process.env.JWT_SECRET || 'terra-botanical-luxury-secret-key-2026-secure-token';
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
-export const COOKIE_NAME = 'terra_token';
-export const TOKEN_EXPIRATION = '7d'; // 7 days
-export const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
 /**
  * Securely hashes a plain text password using bcrypt with salt rounds = 12
@@ -37,70 +32,24 @@ export async function verifyPassword(
 }
 
 /**
- * Generates an encrypted JWT signed with HMAC-SHA256
- */
-export async function signToken(payload: UserJwtPayload): Promise<string> {
-  return new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(TOKEN_EXPIRATION)
-    .sign(JWT_SECRET);
-}
-
-/**
- * Verifies a JWT token and returns the decoded payload
- */
-export async function verifyJwtToken(token: string): Promise<UserJwtPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as unknown as UserJwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Extracts and verifies the authenticated user from cookies in Next.js Server Components or Route Handlers
+ * Extracts and verifies the authenticated user from cookies in Next.js Server Components or Route Handlers using NextAuth
  */
 export async function getAuthUser(): Promise<UserJwtPayload | null> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
-    if (!token) return null;
-    return await verifyJwtToken(token);
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) return null;
+    
+    // Map NextAuth user to our legacy UserJwtPayload format for compatibility
+    return {
+      userId: (session.user as NextAuthUser).id,
+      email: session.user.email || '',
+      name: session.user.name || '',
+      role: (session.user as NextAuthUser).role,
+      tier: (session.user as NextAuthUser).tier,
+    };
   } catch {
     return null;
   }
-}
-
-/**
- * Attaches the auth cookie to a NextResponse
- */
-export function setAuthCookie(response: NextResponse, token: string): void {
-  response.cookies.set({
-    name: COOKIE_NAME,
-    value: token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: COOKIE_MAX_AGE,
-  });
-}
-
-/**
- * Clears the auth cookie from a NextResponse
- */
-export function clearAuthCookie(response: NextResponse): void {
-  response.cookies.set({
-    name: COOKIE_NAME,
-    value: '',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  });
 }
 
 /**

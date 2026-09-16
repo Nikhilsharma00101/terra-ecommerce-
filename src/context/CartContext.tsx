@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Product, CartItem } from '@/types';
 import { useProducts } from '@/context/ProductContext';
+import { useAuth } from '@/context/AuthContext';
 
 export interface AddedCartItem {
   product: Product;
@@ -29,6 +30,10 @@ interface CartContextType {
   isAddedNotificationOpen: boolean;
   closeAddedNotification: () => void;
   openAddedNotification: (product: Product, quantity?: number) => void;
+  appliedCoupon: string | null;
+  discountAmount: number;
+  applyCoupon: (code: string, email?: string) => Promise<{ success: boolean; error?: string }>;
+  removeCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -42,6 +47,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoaded, setIsLoaded] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<AddedCartItem | null>(null);
   const [isAddedNotificationOpen, setIsAddedNotificationOpen] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+
+  const { isAuthenticated, user } = useAuth();
+  const hasSyncedOnce = useRef(false);
+  const [dbSyncComplete, setDbSyncComplete] = useState(false);
+
+  // Reset sync state when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      hasSyncedOnce.current = false;
+      setDbSyncComplete(false);
+    }
+  }, [isAuthenticated]);
+
+  // Helper to match IDs
+  const matchesId = (product: Product, targetId: string) => {
+    return (
+      product.id === targetId ||
+      product._id === targetId ||
+      product.slug === targetId
+    );
+  };
 
   // Load from local storage
   useEffect(() => {
@@ -49,6 +76,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem('terra_cart');
       if (saved) {
         setItems(JSON.parse(saved));
+      }
+      const savedCoupon = localStorage.getItem('terra_coupon');
+      if (savedCoupon) {
+        setAppliedCoupon(savedCoupon);
       }
     } catch (e) {
       console.error('Failed to parse cart from local storage', e);
@@ -95,12 +126,73 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [products, isLoaded]);
 
+  // Sync DB cart on login
+  useEffect(() => {
+    if (isAuthenticated && isLoaded && products.length > 0 && !hasSyncedOnce.current) {
+      hasSyncedOnce.current = true;
+      fetch('/api/user/cart')
+        .then((res) => (res.ok ? res.json() : { cart: [] }))
+        .then((data) => {
+          if (data.cart && Array.isArray(data.cart) && data.cart.length > 0) {
+            setItems((prevItems) => {
+              const merged = [...prevItems];
+              let hasChanges = false;
+              
+              data.cart.forEach((dbItem: any) => {
+                const existingIndex = merged.findIndex((i) => matchesId(i.product, dbItem.productId));
+                if (existingIndex > -1) {
+                  // Merge: take the max quantity to preserve guest items safely
+                  if (merged[existingIndex].quantity < dbItem.quantity) {
+                    merged[existingIndex].quantity = dbItem.quantity;
+                    hasChanges = true;
+                  }
+                } else {
+                  // Add from DB
+                  const p = products.find((prod) => matchesId(prod, dbItem.productId));
+                  if (p) {
+                    merged.push({ product: p, quantity: dbItem.quantity });
+                    hasChanges = true;
+                  }
+                }
+              });
+              return hasChanges ? merged : prevItems;
+            });
+          }
+        })
+        .catch((err) => console.error('Failed to fetch initial DB cart', err))
+        .finally(() => {
+          setDbSyncComplete(true);
+        });
+    }
+  }, [isAuthenticated, isLoaded, products.length]);
+
   // Persist to local storage
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('terra_cart', JSON.stringify(items));
+      if (appliedCoupon) {
+        localStorage.setItem('terra_coupon', appliedCoupon);
+      } else {
+        localStorage.removeItem('terra_coupon');
+      }
     }
-  }, [items, isLoaded]);
+  }, [items, appliedCoupon, isLoaded]);
+
+  // Sync to DB
+  useEffect(() => {
+    if (isLoaded && isAuthenticated && dbSyncComplete) {
+      const payload = items.map((i) => ({
+        productId: i.product._id || i.product.id || i.product.slug,
+        quantity: i.quantity,
+      }));
+
+      fetch('/api/user/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart: payload }),
+      }).catch((err) => console.error('Failed to sync cart to DB', err));
+    }
+  }, [items, isLoaded, isAuthenticated, dbSyncComplete]);
 
   const addItem = (product: Product, quantity: number = 1) => {
     // Resolve product against latest DB product
@@ -134,13 +226,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsCartOpen(true);
   };
 
-  const matchesId = (product: Product, targetId: string) => {
-    return (
-      product.id === targetId ||
-      product._id === targetId ||
-      product.slug === targetId
-    );
-  };
+
 
   const removeItem = (productId: string) => {
     setItems((prev) => prev.filter((item) => !matchesId(item.product, productId)));
@@ -175,6 +261,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (subtotal / FREE_SHIPPING_THRESHOLD) * 100
   );
 
+  const applyCoupon = async (code: string, email?: string) => {
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppliedCoupon(data.code);
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Invalid coupon code.' };
+    } catch (e) {
+      return { success: false, error: 'Failed to validate coupon.' };
+    }
+  };
+
+  const removeCoupon = () => setAppliedCoupon(null);
+
+  let discountAmount = 0;
+  if (appliedCoupon === 'TERRA10' || appliedCoupon === 'WELCOME10') {
+    discountAmount = Math.round(subtotal * 0.1);
+  } else if (appliedCoupon === 'METHOD20') {
+    discountAmount = Math.round(subtotal * 0.2);
+  } else if (appliedCoupon === 'TERRA100') {
+    discountAmount = 100;
+  }
+  discountAmount = Math.min(discountAmount, subtotal);
+
   return (
     <CartContext.Provider
       value={{
@@ -199,6 +315,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLastAddedItem({ product, quantity, timestamp: Date.now() });
           setIsAddedNotificationOpen(true);
         },
+        appliedCoupon,
+        discountAmount,
+        applyCoupon,
+        removeCoupon,
       }}
     >
       {children}
