@@ -10,31 +10,19 @@ import { ProductInfoPanel } from '@/components/products/ProductInfoPanel';
 import { IngredientStory } from '@/components/products/IngredientStory';
 import { RitualSteps } from '@/components/products/RitualSteps';
 import { ReviewSection } from '@/components/products/ReviewSection';
-import { getReviewsByProduct } from '@/data/reviews';
 import { ArrowRight } from 'lucide-react';
 import { products as fallbackProducts } from '@/data/products';
-import { Product } from '@/types';
+import { Product, Review } from '@/types';
+import { Review as ReviewModel } from '@/models/Review';
 
-// ISR: revalidate this page every 60 seconds
-export const revalidate = 60;
+// Force dynamic rendering to guarantee live review data
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Pre-render the known product slugs at build time
-export async function generateStaticParams() {
-  try {
-    await connectToDatabase();
-    const dbProducts = await ProductModel.find({ isPublished: { $ne: false } })
-      .select('slug')
-      .lean();
-    return dbProducts.map((p: any) => ({ slug: p.slug }));
-  } catch {
-    // Fall back to static data slugs if DB is unavailable at build time
-    return fallbackProducts.map((p) => ({ slug: p.slug }));
-  }
-}
+// Removed generateStaticParams so that 'force-dynamic' can take effect on all product routes
 
 // Dynamic metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -128,7 +116,27 @@ export default async function DynamicProductPage({ params }: PageProps) {
     ? await fetchPairingProduct(product.pairingProductSlug)
     : null;
 
-  const reviews = getReviewsByProduct(product.slug);
+  let reviews: Review[] = [];
+  try {
+    await connectToDatabase();
+    // Defaulting to terra-set if no slug or all products (mimicking old getReviewsByProduct fallback)
+    const productSlugQuery = (!product.slug || product.slug === 'terra-set') ? {} : { productSlug: product.slug };
+    const dbReviews = await ReviewModel.find({ ...productSlugQuery, status: 'approved' }).sort({ createdAt: -1 }).lean();
+    reviews = dbReviews.map((r: any) => ({
+      ...r,
+      _id: r._id.toString(),
+      createdAt: r.createdAt?.toISOString(),
+      updatedAt: r.updatedAt?.toISOString()
+    })) as Review[];
+
+    // Override static product stats with dynamic DB stats
+    if (reviews.length > 0) {
+      product.reviewCount = reviews.length;
+      product.rating = Number((reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1));
+    }
+  } catch (error) {
+    console.error('Failed to fetch reviews:', error);
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com';
   const primaryImage = product.featuredImage || product.images?.[0]?.url || '/images/og/og-image.jpeg';
@@ -175,6 +183,31 @@ export default async function DynamicProductPage({ params }: PageProps) {
     },
   };
 
+  // HowTo JSON-LD for ritual steps — enables Google HowTo rich snippets
+  const howToJsonLd = product.ritual && product.ritual.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'HowTo',
+        name: `How to Use ${product.name}`,
+        description: `Step-by-step application ritual for ${product.name} by TERRA MEN'S CO.`,
+        image: productImageUrl,
+        totalTime: 'PT2M',
+        supply: [
+          {
+            '@type': 'HowToSupply',
+            name: product.name,
+          },
+        ],
+        step: product.ritual.map((step: { title?: string; instruction?: string; step?: string; description?: string }, i: number) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          name: step.title || step.step || `Step ${i + 1}`,
+          text: step.instruction || step.description || '',
+          image: productImageUrl,
+        })),
+      }
+    : null;
+
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -211,6 +244,12 @@ export default async function DynamicProductPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {howToJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+        />
+      )}
 
       {/* Breadcrumb row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3 text-[10px] uppercase tracking-[0.25em] text-[#77736C] flex items-center flex-wrap">
@@ -231,12 +270,12 @@ export default async function DynamicProductPage({ params }: PageProps) {
                 product.images && product.images.length > 0
                   ? product.images
                   : [
-                      {
-                        url: product.featuredImage,
-                        alt: product.name,
-                        caption: product.tagline,
-                      },
-                    ]
+                    {
+                      url: product.featuredImage,
+                      alt: product.name,
+                      caption: product.tagline,
+                    },
+                  ]
               }
               productName={product.name}
             />

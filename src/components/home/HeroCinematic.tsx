@@ -1,19 +1,14 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, ArrowDown } from 'lucide-react';
-import { useProducts } from '@/context/ProductContext';
 
-export const HeroCinematic: React.FC = () => {
-  const { products, getProductBySlug } = useProducts();
+interface HeroProps {
+  faceWash?: any;
+  beardOil?: any;
+}
 
-  const faceWash =
-    products.find(p => p.slug === 'terra-face-wash' || p.slug === 'face-wash' || p.category === 'Face') || products[0];
-  const beardOil =
-    products.find(p => p.slug === 'terra-beard-oil' || p.slug === 'beard-oil' || p.category === 'Beard') || (products.length > 1 ? products[1] : products[0]);
-
+export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
   return (
     <section className="relative min-h-[100dvh] lg:min-h-[80vh] lg:h-[85vh] w-full overflow-hidden bg-[#121212] pt-[100px] lg:pt-[120px] flex flex-col">
 
@@ -25,6 +20,8 @@ export const HeroCinematic: React.FC = () => {
           muted
           playsInline
           preload="metadata"
+          poster="/images/home/hero-campaign.jpg"
+          style={{ backgroundColor: '#121212' }}
           className="w-full h-full object-cover pointer-events-none"
         >
           <source src="/videos/hero/hero-section.mp4" type="video/mp4" />
@@ -109,7 +106,7 @@ export const HeroCinematic: React.FC = () => {
                     <span className="block text-white text-[9px] tracking-[0.2em] uppercase font-bold">{faceWash.name}</span>
                     <span className="block text-[#DC143C] text-[8px] uppercase tracking-widest mt-1">Step 01</span>
                   </div>
-                  
+
                   {/* Glowing Progressive Circular Bar */}
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full relative flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(220,20,60,0.4)] transition-shadow duration-500">
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
@@ -133,7 +130,7 @@ export const HeroCinematic: React.FC = () => {
                     <span className="block text-white text-[9px] tracking-[0.2em] uppercase font-bold">{beardOil.name}</span>
                     <span className="block text-[#DC143C] text-[8px] uppercase tracking-widest mt-1">Step 02</span>
                   </div>
-                  
+
                   {/* Glowing Progressive Circular Bar */}
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full relative flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(220,20,60,0.4)] transition-shadow duration-500">
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" style={{ animationDelay: '-1.5s' }} />

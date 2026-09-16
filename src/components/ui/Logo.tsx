@@ -32,7 +32,7 @@ export const Logo: React.FC<LogoProps> = ({
   const logoSrc = isDarkTheme ? '/images/logo/logo-white.png' : '/images/logo/logo-dark.png';
   const textColor = color ? color : isDarkTheme ? '#F6F3ED' : '#181817';
 
-  const LogoImage = () => (
+  const renderLogoImage = () => (
     <div className="relative group/emblem flex items-center justify-center">
       {/* Soft Champagne Gold Ambient Backdrop Halo */}
       <div className="absolute -inset-2.5 rounded-full bg-radial from-[#C4A482]/25 via-[#E5D7C5]/15 to-transparent blur-lg opacity-0 group-hover/logo:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -54,7 +54,7 @@ export const Logo: React.FC<LogoProps> = ({
     </div>
   );
 
-  const Wordmark = ({ isHorizontal = false }: { isHorizontal?: boolean }) => (
+  const renderWordmark = (isHorizontal = false) => (
     <div className={`flex flex-col ${isHorizontal ? 'items-start text-left' : 'items-center text-center'} leading-none select-none group/wordmark`}>
       {/* Main Brand Title: TERRA */}
       <div className="relative overflow-hidden">
@@ -88,19 +88,19 @@ export const Logo: React.FC<LogoProps> = ({
 
   const content = (
     <>
-      {variant === 'mark' && <LogoImage />}
-      {variant === 'wordmark' && <Wordmark />}
+      {variant === 'mark' && renderLogoImage()}
+      {variant === 'wordmark' && renderWordmark()}
       {variant === 'full' && (
         <div className="flex flex-col items-center gap-1.5">
-          <LogoImage />
-          <Wordmark />
+          {renderLogoImage()}
+          {renderWordmark()}
         </div>
       )}
       {variant === 'horizontal' && (
         <div className="flex items-center gap-3">
-          <LogoImage />
+          {renderLogoImage()}
           <div className="h-6 w-[1px] bg-gradient-to-b from-transparent via-[#C4A482]/60 to-transparent group-hover/logo:via-[#C4A482] transition-colors duration-500" />
-          <Wordmark isHorizontal />
+          {renderWordmark(true)}
         </div>
       )}
     </>

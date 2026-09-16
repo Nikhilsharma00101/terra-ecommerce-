@@ -80,10 +80,47 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
       content: (
         <div className="space-y-3 text-xs leading-relaxed text-[#55524D]">
           <div className="font-mono text-[11px] bg-white p-3.5 border border-[#E5E0D8] text-[#55524D] rounded-lg shadow-2xs leading-relaxed">
-            {product.ingredientsList.join(', ')}
+            {product.slug === 'face-wash' || product.name.toLowerCase().includes('face wash') 
+              ? [
+                  'Purified Water',
+                  'Sodium Lauroyl Sarcosinate',
+                  'Glycerin',
+                  'Decyl Glucoside',
+                  'Cocamidopropyl Betaine',
+                  'Niacinamide',
+                  'Triethanolamine',
+                  'Acrylates / C10-30 Alkylacrylate Crosspolymer',
+                  'Phenoxyethanol (and) Ethylhexylglycerin',
+                  'Sodium Hyaluronate',
+                  'Salicylic Acid',
+                  'Sodium Bicarbonate',
+                  'Zinc Pyrrolidone Carboxylic Acid',
+                  'Camellia Sinensis Leaf Extract',
+                  'Aloe Barbadensis Leaf Extract',
+                  'Melaleuca Alternifolia Leaf Extract',
+                  'Sodium Pyrrolidone Carboxylic Acid',
+                  'Fragrance',
+                  'Disodium Ethylenediaminetetraacetate'
+                ].join(', ')
+              : product.slug === 'beard-oil' || product.name.toLowerCase().includes('beard oil')
+              ? [
+                  'Caprylic / Capric Triglyceride',
+                  'Fragrance',
+                  'Prunus Amygdalus (Almond) Dulcis Oil',
+                  'Simmondsia Chinensis (Jojoba) Seed Oil',
+                  'Argania Spinosa (Argan) Kernel Oil',
+                  'Ricinus Communis (Castor) Seed Oil',
+                  'Tocpherol',
+                  'Nigella Sativa Seed Oil',
+                  'Lavandula (Lavender), Angustifolia Oil'
+                ].join(', ')
+              : product.ingredientsList?.join(', ')}
           </div>
           <p className="text-[11px] text-[#8C877D] italic">
             *100% transparent ingredient disclosure. No hidden fragrances or proprietary dilutions.
+          </p>
+          <p className="text-[10px] text-[#8C877D] leading-relaxed mt-2 border-t border-[#E5E0D8] pt-2">
+            <strong>Disclaimer:</strong> Our products are formulated for external use only and are not intended to diagnose, treat, cure, or prevent any disease. Because everyone's skin is different, we highly recommend reviewing the ingredient list for any personal allergens and performing a patch test on a small area of skin 24 hours before full application. If irritation occurs, discontinue use immediately and consult a physician.
           </p>
         </div>
       ),

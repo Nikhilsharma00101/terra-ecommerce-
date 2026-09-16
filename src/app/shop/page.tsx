@@ -69,11 +69,41 @@ export default async function ShopPage() {
     description: 'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil.',
     mainEntity: {
       '@type': 'ItemList',
+      numberOfItems: allProducts.length,
       itemListElement: allProducts.map((p, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        url: `${baseUrl}/shop/${p.slug}`,
-        name: p.name,
+        item: {
+          '@type': 'Product',
+          name: p.name,
+          url: `${baseUrl}/shop/${p.slug}`,
+          image: p.featuredImage
+            ? (p.featuredImage.startsWith('http') ? p.featuredImage : `${baseUrl}${p.featuredImage}`)
+            : `${baseUrl}/images/og/og-image.jpeg`,
+          description: p.shortDescription || p.tagline,
+          brand: {
+            '@type': 'Brand',
+            name: "TERRA MEN'S CO.",
+          },
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'INR',
+            price: p.price,
+            availability: 'https://schema.org/InStock',
+            url: `${baseUrl}/shop/${p.slug}`,
+          },
+          ...(p.rating && p.reviewCount
+            ? {
+                aggregateRating: {
+                  '@type': 'AggregateRating',
+                  ratingValue: p.rating,
+                  reviewCount: p.reviewCount,
+                  bestRating: '5',
+                  worstRating: '1',
+                },
+              }
+            : {}),
+        },
       })),
     },
   };
