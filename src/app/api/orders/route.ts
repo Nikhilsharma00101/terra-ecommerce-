@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Order } from '@/models/Order';
 import { Product } from '@/models/Product';
 import { getAuthUser } from '@/lib/auth';
+import nodemailer from 'nodemailer';
 
 export async function GET(req: NextRequest) {
   try {
@@ -230,6 +231,80 @@ export async function POST(req: NextRequest) {
         country: shippingAddress.country || 'India',
       },
     });
+
+    // --- NODEMAILER ORDER CONFIRMATION ---
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT) || 465,
+        secure: Number(process.env.EMAIL_SERVER_PORT) === 465 || true,
+        auth: {
+          user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      });
+
+      const itemsHtml = validatedItems.map(item => `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E0D8;">${item.name} x ${item.quantity}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E0D8; text-align: right;">₹${item.price * item.quantity}</td>
+        </tr>
+      `).join('');
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'Info@terramensco.com',
+        to: customerEmail.toLowerCase().trim(),
+        subject: `Terra Men's Co - Order Confirmation ${orderNumber}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #DDD8CF; background-color: #FBF9F5;">
+            <h2 style="color: #181817; text-align: center;">Order Confirmed</h2>
+            <p style="color: #181817;">Hi ${customerName},</p>
+            <p style="color: #181817;">Thank you for your order! We're preparing it for shipment. Your order number is <strong>${orderNumber}</strong>.</p>
+            
+            <h3 style="color: #2D4438; margin-top: 30px; border-bottom: 1px solid #DDD8CF; padding-bottom: 10px;">Order Summary</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; color: #181817; font-size: 14px;">
+              ${itemsHtml}
+              <tr>
+                <td style="padding: 10px; font-weight: bold; text-align: right;">Subtotal:</td>
+                <td style="padding: 10px; text-align: right;">₹${calculatedSubtotal}</td>
+              </tr>
+              ${discountAmount > 0 ? `
+              <tr>
+                <td style="padding: 10px; font-weight: bold; text-align: right; color: #2D4438;">Discount (${appliedCoupon}):</td>
+                <td style="padding: 10px; text-align: right; color: #2D4438;">-₹${discountAmount}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td style="padding: 10px; font-weight: bold; text-align: right;">Shipping:</td>
+                <td style="padding: 10px; text-align: right;">${shippingCost === 0 ? 'Free' : `₹${shippingCost}`}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; font-weight: bold; text-align: right; font-size: 16px; border-top: 2px solid #181817;">Total:</td>
+                <td style="padding: 10px; font-weight: bold; text-align: right; font-size: 16px; border-top: 2px solid #181817;">₹${calculatedTotal}</td>
+              </tr>
+            </table>
+
+            <h3 style="color: #2D4438; margin-top: 30px; border-bottom: 1px solid #DDD8CF; padding-bottom: 10px;">Shipping Details</h3>
+            <p style="color: #181817; font-size: 14px; line-height: 1.6;">
+              ${shippingAddress.firstName} ${shippingAddress.lastName}<br/>
+              ${shippingAddress.address1} ${shippingAddress.address2 ? `<br/>${shippingAddress.address2}` : ''}<br/>
+              ${shippingAddress.city}, ${shippingAddress.state || 'Maharashtra'} - ${shippingAddress.postalCode}<br/>
+              ${shippingAddress.country || 'India'}
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #DDD8CF; margin: 30px 0;" />
+            <p style="color: #57534E; font-size: 12px; text-align: center;">If you have any questions, reply to this email or contact us at <a href="mailto:info@terramensco.com" style="color: #2D4438;">info@terramensco.com</a>.</p>
+            <p style="color: #8C887B; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} Terra Men's Co.</p>
+          </div>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
+    } catch (emailError) {
+      console.error('Failed to send order confirmation email:', emailError);
+      // We deliberately do not throw here, so the order still successfully completes for the user.
+    }
+    // --- END NODEMAILER ---
 
     return NextResponse.json(
       {
