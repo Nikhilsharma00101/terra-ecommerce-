@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '@/components/providers/ClientProviders';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 
@@ -163,6 +164,9 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <ClientProviders initialProducts={initialProducts}>{children}</ClientProviders>
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        )}
       </body>
     </html>
   );
