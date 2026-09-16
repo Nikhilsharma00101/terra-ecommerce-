@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@terramensco',
     title: "The Terra Journal | TERRA MEN'S CO.",
     description:
       'Evidence-based skin science, beard care guides, and routine breakdowns.',

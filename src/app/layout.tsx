@@ -77,6 +77,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@terramensco',
     title: "TERRA MEN'S CO. — Because Men Deserve Better",
     description:
       'Disciplined luxury grooming fundamentals for skin and beard. Cleanse. Nourish. Nothing unnecessary.',

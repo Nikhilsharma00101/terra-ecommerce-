@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@terramensco',
     title: "About The Terra Method | TERRA MEN'S CO.",
     description:
       'Disciplined luxury grooming fundamentals. Two steps. No unnecessary steps.',
