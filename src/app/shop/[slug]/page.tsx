@@ -10,6 +10,12 @@ import { ProductInfoPanel } from '@/components/products/ProductInfoPanel';
 import { IngredientStory } from '@/components/products/IngredientStory';
 import { RitualSteps } from '@/components/products/RitualSteps';
 import { ReviewSection } from '@/components/products/ReviewSection';
+import { BeardOilBenefits } from '@/components/products/BeardOilBenefits';
+import { BeardOilIngredients } from '@/components/products/BeardOilIngredients';
+import { BeardOilRitual } from '@/components/products/BeardOilRitual';
+import { FaceWashBenefits } from '@/components/products/FaceWashBenefits';
+import { FaceWashIngredients } from '@/components/products/FaceWashIngredients';
+import { FaceWashRitual } from '@/components/products/FaceWashRitual';
 import { ArrowRight } from 'lucide-react';
 import { products as fallbackProducts } from '@/data/products';
 import { Product, Review } from '@/types';
@@ -288,21 +294,38 @@ export default async function DynamicProductPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Ingredient Storytelling */}
-      {product.keyIngredients && product.keyIngredients.length > 0 && (
-        <IngredientStory
-          ingredients={product.keyIngredients}
-          productName={product.name}
-        />
-      )}
+      {/* Conditionally Render Custom Beard Oil UI, Face Wash UI, or Generic UI */}
+      {product.slug === 'beard-oil' || product.slug === 'terra-beard-oil' ? (
+        <>
+          <BeardOilBenefits />
+          <BeardOilIngredients />
+          <BeardOilRitual />
+        </>
+      ) : product.slug === 'face-wash' || product.slug === 'terra-face-wash' ? (
+        <>
+          <FaceWashBenefits />
+          <FaceWashIngredients />
+          <FaceWashRitual />
+        </>
+      ) : (
+        <>
+          {/* Ingredient Storytelling */}
+          {product.keyIngredients && product.keyIngredients.length > 0 && (
+            <IngredientStory
+              ingredients={product.keyIngredients}
+              productName={product.name}
+            />
+          )}
 
-      {/* Application Ritual */}
-      {product.ritual && product.ritual.length > 0 && (
-        <RitualSteps
-          steps={product.ritual}
-          title={`${product.name.toUpperCase()} RITUAL`}
-          subtitle="Disciplined daily application instructions."
-        />
+          {/* Application Ritual */}
+          {product.ritual && product.ritual.length > 0 && (
+            <RitualSteps
+              steps={product.ritual}
+              title={`${product.name.toUpperCase()} RITUAL`}
+              subtitle="Disciplined daily application instructions."
+            />
+          )}
+        </>
       )}
 
       {/* Pairing Banner */}

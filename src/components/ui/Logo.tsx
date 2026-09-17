@@ -64,7 +64,7 @@ export const Logo: React.FC<LogoProps> = ({
             compact ? 'text-sm sm:text-base' : 'text-base sm:text-xl'
           }`}
         >
-          TERRA
+          TERRA<sup className="inline-block -translate-y-[8px] text-[0.45em] tracking-normal font-sans -ml-[0.3em] opacity-70">&trade;</sup>
         </span>
         {/* Subtle Luxury Shimmer Reflection Wave */}
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C4A482]/50 to-transparent -translate-x-full group-hover/logo:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />

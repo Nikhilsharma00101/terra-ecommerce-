@@ -7,11 +7,11 @@ export const products: Product[] = [
     name: 'Terra Face Wash',
     category: 'Face',
     purpose: 'Cleanse',
-    tagline: 'THE DAILY CLEANSE',
-    shortDescription: 'A gentle, daily gel cleanser with Salicylic Acid and Green Tea to clear deep dirt, control excess oil, and keep your skin fresh without dryness.',
-    fullDescription: 'The first step of the Terra Routine. Specially crafted for men whose skin faces daily city dust, pollution, and sweat. Terra Face Wash gently cleans deep inside pores, removes sticky excess oil, and softens beard hair without making your face feel dry or stretchy.',
+    tagline: 'Cleanse. Purify. Balance. Refresh.',
+    shortDescription: 'A gentle, daily gel cleanser formulated with Salicylic Acid, Green Tea, and Aloe Vera to wash away deep dirt, control excess oil, and keep your skin fresh without leaving it feeling dry or stretchy.',
+    fullDescription: 'Why your skin will love it: Washes away trapped city dust, sweat, and pollution from deep within the pores. Helps clear away sticky, greasy buildup and uncomfortable mid-day shine while preventing breakouts. Leaves your skin feeling refreshed, cool, and comfortably moisturized—never tight or dry.',
     price: 699,
-    size: '100ml / 3.4 fl oz',
+    size: '100ml | Premium Skincare',
     rating: 4.9,
     reviewCount: 248,
     images: [
@@ -30,7 +30,7 @@ export const products: Product[] = [
     secondaryImage: '/images/home/hero-campaign.jpg',
     heroColor: '#2D4438',
     accentColor: '#3B5947',
-    badge: 'Step 01 — Cleanse',
+    badge: 'Sulfate-Free Formula',
     ingredientsList: [
       'Aqua (Purified Water)',
       'Cocamidopropyl Betaine (Coconut Derived)',
@@ -47,25 +47,29 @@ export const products: Product[] = [
     ],
     keyIngredients: [
       {
-        name: 'Salicylic Acid',
-        botanicalName: 'Beta Hydroxy Acid',
-        origin: 'Willow Bark',
+        name: 'Salicylic Acid (BHA)',
         role: 'Deep Pore Cleanser',
-        description: 'Penetrates into oily pores to wash away trapped dust, sweat, and pollution. Helps prevent pimples and ingrown beard hairs.'
+        description: 'Penetrates deep into pores to clear away oil, sweat, and impurities while helping to prevent breakouts.'
       },
       {
         name: 'Green Tea Extract',
-        botanicalName: 'Camellia Sinensis',
-        origin: 'Assam / Nilgiri Hills',
-        role: 'Skin Soother & Cooling',
-        description: 'Calms redness, shields skin from daily sun and pollution stress, and keeps your face cool and comfortable.'
+        role: 'Skin Soother',
+        description: 'A soothing botanical that calms redness and shields your skin from daily pollution stress.'
       },
       {
-        name: 'Pro-Vitamin B5 & Aloe',
-        botanicalName: 'Panthenol & Aloe Vera',
-        origin: 'Natural Plant Source',
+        name: 'Aloe Vera & Pro-Vitamin B5',
         role: 'Hydration Lock',
-        description: 'Ensures your skin retains essential moisture so your face never feels tight or dry after washing.'
+        description: 'Hydrating ingredients that lock in essential moisture so your face never feels stretchy after washing.'
+      },
+      {
+        name: 'Coconut-Derived Cleansers',
+        role: 'Gentle Cleansing',
+        description: 'Gentle, natural cleansers that create a rich lather without stripping the skin of its natural oils.'
+      },
+      {
+        name: 'Bergamot Essential Oil',
+        role: 'Aroma',
+        description: 'Adds a fresh, mild, and natural herbal aroma to your morning and evening routine.'
       }
     ],
     ritual: [
@@ -73,30 +77,23 @@ export const products: Product[] = [
         number: '01',
         title: 'Pump & Lather',
         timing: 'Morning & Night',
-        action: 'Take 1 to 2 pumps on wet palms and rub gently to work up a light, refreshing lather.',
+        action: 'Take 1 to 2 pumps of Terra Men’s Co. Face Wash onto wet palms and rub gently to work up a light lather.',
         tip: 'Use normal or lukewarm water. Avoid hot water as it dries out facial skin.'
       },
       {
         number: '02',
-        title: 'Massage Face & Beard',
-        timing: '30 to 45 Seconds',
-        action: 'Massage over cheeks, forehead, neck, and right through your beard to lift accumulated oil and dust.',
-        tip: 'Pay special attention to your jawline and chin area.'
-      },
-      {
-        number: '03',
-        title: 'Rinse Clean',
-        timing: 'Post-Cleanse',
-        action: 'Rinse thoroughly with clean water and gently pat dry with a soft towel, leaving skin slightly damp.',
-        tip: 'Follow immediately with Terra Beard Oil to lock in hydration.'
+        title: 'Massage & Rinse',
+        timing: '30 Seconds',
+        action: 'Massage over your face, neck, and right through your beard. Rinse thoroughly with clean water and gently pat dry.',
+        tip: 'Follow immediately with Terra Beard Oil while your beard is slightly damp to lock in maximum hydration.'
       }
     ],
     specs: [
-      { label: 'Texture', value: 'Light foaming gel' },
-      { label: 'Fragrance', value: 'Mild natural bergamot & fresh herbs' },
-      { label: 'Skin Feel', value: 'Fresh, clean, non-greasy, zero tightness' },
-      { label: 'Suitability', value: 'All skin types (Oily, Combination, Dry, Sensitive)' },
-      { label: 'Packaging', value: 'UV-safe recyclable bottle with precise pump' }
+      { label: 'Benefit', value: 'Deeply Cleanses Pores' },
+      { label: 'Benefit', value: 'Controls Excess Oil & Breakouts' },
+      { label: 'Benefit', value: 'Hydrates & Calms' },
+      { label: 'Formula', value: 'Sulfate-Free Formula' },
+      { label: 'Skin Feel', value: 'Fresh, clean, non-greasy, zero tightness' }
     ],
     shippingInfo: 'Free delivery across India on orders above ₹999. Dispatched within 24 hours via express courier.',
     pairingProductSlug: 'beard-oil'
@@ -107,98 +104,99 @@ export const products: Product[] = [
     name: 'Terra Beard Oil',
     category: 'Beard',
     purpose: 'Nourish',
-    tagline: 'THE DAILY NOURISH',
-    shortDescription: 'A premium blend of 7 cold-pressed natural oils to soften rough beard hair, stop beard itch, and keep the skin underneath healthy.',
-    fullDescription: 'The second essential step in the Terra Routine. A lightweight, non-sticky beard oil made with pure Sweet Almond, Jojoba, Argan, Castor, Black Seed (Kalonji), Lavender, and Vitamin E. It absorbs quickly into beard strands to give a natural smooth feel, while calming dry skin and beard dandruff.',
+    tagline: 'Nourish. Soften. Smooth. Groom.',
+    shortDescription: 'A premium beard conditioning oil formulated with nourishing oils and Vitamin E to help reduce dryness, soften rough beard hair and keep your beard smooth, manageable and well-groomed.',
+    fullDescription: 'Why your beard will love it: Helps nourish and condition beard hair, leaving it feeling softer and smoother. It helps moisturise dry-feeling beard hair and improve its overall feel, while soothing the uncomfortable itchy feeling associated with a dry beard. Leaves your beard looking groomed with a natural-looking shine.',
     price: 899,
-    size: '30ml / 1.0 fl oz',
+    size: '30ml | Premium Beard Care',
     rating: 4.95,
     reviewCount: 312,
     images: [
       {
         url: '/images/home/hero-campaign.jpg',
         alt: 'Terra Beard Oil 30ml amber glass bottle with glass dropper',
-        caption: 'The Daily Nourish in amber apothecary glass'
+        caption: 'Premium Beard Oil in amber apothecary glass'
       },
       {
         url: '/images/home/hero-campaign.jpg',
         alt: 'Terra Daily Grooming Routine in studio setting',
-        caption: 'Pure 7-oil cold-pressed formula'
+        caption: 'Formulated with nourishing oils and Vitamin E'
       }
     ],
     featuredImage: '/images/home/hero-campaign.jpg',
     secondaryImage: '/images/home/hero-campaign.jpg',
     heroColor: '#8C6D46',
     accentColor: '#A88B63',
-    badge: 'Step 02 — Nourish',
+    badge: 'BHT-Free Formula',
     ingredientsList: [
-      'Sweet Almond Oil (Badam)',
-      'Golden Jojoba Seed Oil',
-      'Pure Moroccan Argan Oil',
-      'Cold-Pressed Castor Oil (Arandi)',
-      'Black Seed Oil (Kalonji)',
-      'French Lavender Essential Oil',
-      'Natural Vitamin E (Tocopherol)'
+      'Argan Oil',
+      'Castor Oil',
+      'Jojoba Oil',
+      'Almond Oil',
+      'Black Seed Oil',
+      'Vitamin E (Tocopherol)',
+      'Lavender Oil',
+      'Fragrance'
     ],
     keyIngredients: [
       {
-        name: 'Sweet Almond Oil (Badam)',
-        botanicalName: 'Prunus Amygdalus Dulcis',
-        origin: 'Pure Cold-Pressed',
-        role: 'Softener & Shine',
-        description: 'Rich in natural vitamins, it softens hard, rough beard hair and makes it easily manageable throughout the day.'
+        name: 'Argan Oil',
+        role: 'Nourish',
+        description: 'Helps nourish and condition beard hair for a softer, smoother feel.'
       },
       {
-        name: 'Golden Jojoba Oil',
-        botanicalName: 'Simmondsia Chinensis',
-        origin: 'Natural Seed Extract',
-        role: 'Quick Absorption & Non-Sticky',
-        description: 'Matches the natural oils of your skin. It absorbs in seconds without leaving any sticky or shiny film.'
+        name: 'Castor Oil',
+        role: 'Condition',
+        description: 'Helps condition and soften rough-feeling beard hair.'
       },
       {
-        name: 'Pure Argan & Castor Oil',
-        botanicalName: 'Argania & Ricinus',
-        origin: 'Cold-Pressed',
-        role: 'Root Strength & Thickness',
-        description: 'Nourishes hair roots, prevents split ends, and helps your beard look fuller and well-groomed.'
+        name: 'Jojoba Oil',
+        role: 'Moisturise',
+        description: 'Helps moisturise and smooth the beard for a more manageable feel.'
       },
       {
-        name: 'Black Seed (Kalonji) & Lavender',
-        botanicalName: 'Nigella Sativa & Lavandula',
-        origin: 'Traditional Botanical',
-        role: 'Stops Itch & Calms Skin',
-        description: 'Known for powerful skin soothing, it stops under-beard itching, reduces dry flakes, and provides a subtle, calm scent.'
+        name: 'Almond Oil',
+        role: 'Condition',
+        description: 'Helps nourish and condition dry-feeling beard hair.'
+      },
+      {
+        name: 'Black Seed Oil',
+        role: 'Nourish Skin',
+        description: 'Helps nourish the beard and the skin underneath.'
+      },
+      {
+        name: 'Vitamin E',
+        role: 'Antioxidant',
+        description: 'An antioxidant ingredient that helps support the conditioning properties of the formula.'
+      },
+      {
+        name: 'Lavender Oil',
+        role: 'Aroma',
+        description: 'Adds a pleasant aromatic experience to your beard-care routine.'
       }
     ],
     ritual: [
       {
         number: '01',
-        title: 'Take Drops in Dropper',
-        timing: 'Morning or Evening',
-        action: 'Take 3 to 5 drops using the precision glass dropper (for light stubble: 2-3 drops, medium beard: 4-6 drops).',
-        tip: 'Best applied on a clean, towel-damp beard right after face wash.'
+        title: 'Take Drops',
+        timing: 'Daily',
+        action: 'Take a few drops of Terra Men’s Co. Beard Oil onto your palm.',
+        tip: 'Apply after washing your face or beard for a smooth, conditioned feel.'
       },
       {
         number: '02',
-        title: 'Rub in Palms',
-        timing: '5 Seconds',
-        action: 'Rub between your palms to warm the natural oils evenly.',
-        tip: 'Enjoy the subtle, fresh herbal aroma.'
-      },
-      {
-        number: '03',
-        title: 'Apply from Roots to Tips',
-        timing: '30 Seconds',
-        action: 'Massage with fingers down to the skin beneath your beard first, then smooth through the length of your beard.',
-        tip: 'Use a wooden beard comb to spread evenly and shape your beard.'
+        title: 'Rub & Massage',
+        timing: 'As Needed',
+        action: 'Rub between your palms and gently massage through your beard, from roots to ends.',
+        tip: 'Use daily or whenever your beard feels dry or rough.'
       }
     ],
     specs: [
-      { label: 'Texture', value: 'Light, fast-absorbing natural oil' },
-      { label: 'Fragrance', value: 'Subtle woody lavender & natural botanicals' },
-      { label: 'Finish', value: 'Soft, well-groomed, natural matte (non-greasy)' },
-      { label: 'Skin Benefit', value: 'Stops beard itch, eliminates dry flakes' },
-      { label: 'Bottle', value: 'Amber UV glass with graduated dropper' }
+      { label: 'Benefit', value: 'Nourishes & Conditions' },
+      { label: 'Benefit', value: 'Helps Reduce Dryness & Soothes Itch' },
+      { label: 'Benefit', value: 'Makes Beard Smooth & Manageable' },
+      { label: 'Finish', value: 'Natural-Looking Shine' },
+      { label: 'Formula', value: 'BHT-Free Formula for everyday care' }
     ],
     shippingInfo: 'Free delivery across India on orders above ₹999. Dispatched within 24 hours via express courier.',
     pairingProductSlug: 'face-wash'

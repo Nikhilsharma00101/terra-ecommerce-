@@ -22,9 +22,9 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
           preload="metadata"
           poster="/images/home/hero-campaign.jpg"
           style={{ backgroundColor: '#121212' }}
-          className="w-full h-full object-cover pointer-events-none"
+          className="absolute w-full h-full lg:h-[150%] lg:-top-[15%] lg:scale-y-[0.8] object-cover pointer-events-none"
         >
-          <source src="/videos/hero/hero-section.mp4" type="video/mp4" />
+          <source src="/videos/hero/hero-section-video.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 

@@ -6,7 +6,7 @@ import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { Accordion } from '@/components/ui/Accordion';
-import { Star, Plus, Minus, Heart, Truck, ShieldCheck, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Star, Plus, Minus, Heart, Truck, ShieldCheck, RefreshCw, CheckCircle2, Droplet, Leaf, Shield, Feather } from 'lucide-react';
 
 interface ProductInfoPanelProps {
   product: Product;
@@ -119,9 +119,9 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
           <p className="text-[11px] text-[#8C877D] italic">
             *100% transparent ingredient disclosure. No hidden fragrances or proprietary dilutions.
           </p>
-          <p className="text-[10px] text-[#8C877D] leading-relaxed mt-2 border-t border-[#E5E0D8] pt-2">
-            <strong>Disclaimer:</strong> Our products are formulated for external use only and are not intended to diagnose, treat, cure, or prevent any disease. Because everyone's skin is different, we highly recommend reviewing the ingredient list for any personal allergens and performing a patch test on a small area of skin 24 hours before full application. If irritation occurs, discontinue use immediately and consult a physician.
-          </p>
+          <div className="mt-8 p-4 bg-black/5 rounded-lg border border-black/10">
+            <strong className="text-gray-900 font-medium">Disclaimer:</strong> Our products are formulated for external use only and are not intended to diagnose, treat, cure, or prevent any disease. Because everyone&apos;s skin is different, we highly recommend reviewing the ingredient list for any personal allergens and performing a patch test on a small area of skin 24 hours before full application. If irritation occurs, discontinue use immediately and consult a physician.
+          </div>
         </div>
       ),
     },
@@ -129,13 +129,20 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
       id: 'specs',
       title: 'SPECIFICATIONS & DESIGN',
       content: (
-        <div className="divide-y divide-[#E5E0D8] text-xs">
-          {product.specs.map((spec, i) => (
-            <div key={i} className="py-2.5 flex items-center justify-between">
-              <span className="text-[#77736C] font-mono text-[11px] uppercase tracking-wider">{spec.label}</span>
-              <span className="text-[#181817] font-medium text-right max-w-[60%]">{spec.value}</span>
-            </div>
-          ))}
+        <div className="text-xs">
+          <div className="divide-y divide-[#E5E0D8]">
+            {product.specs.map((spec, i) => (
+              <div key={i} className="py-2.5 flex items-center justify-between">
+                <span className="text-[#77736C] font-mono text-[11px] uppercase tracking-wider">{spec.label}</span>
+                <span className="text-[#181817] font-medium text-right max-w-[60%]">{spec.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-[#E5E0D8] text-[#55524D] leading-relaxed">
+            <p className="italic text-[11px]">
+              Engineered with uncompromising precision. Our packaging utilizes sustainable, premium materials designed to protect the integrity of our botanical formulations while delivering a tactile, luxurious experience in your daily routine. All Terra products are TSA travel-friendly.
+            </p>
+          </div>
         </div>
       ),
     },
@@ -205,6 +212,28 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
       <p className="text-xs sm:text-sm text-[#55524D] leading-relaxed font-light">
         {product.shortDescription}
       </p>
+
+      {/* Product Specific Badges - Beard Oil */}
+      {(product.slug === 'beard-oil' || product.name.toLowerCase().includes('beard oil')) && (
+        <div className="grid grid-cols-2 gap-2 pt-2 pb-1">
+          <div className="flex items-center gap-2 bg-[#F5F2EA] px-3 py-2 rounded-lg border border-[#E5E0D8] shadow-2xs">
+            <Droplet size={14} className="text-[#C4A482] shrink-0" />
+            <span className="text-[9.5px] font-bold tracking-wider text-[#44413D] uppercase">Non Sticky</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[#F5F2EA] px-3 py-2 rounded-lg border border-[#E5E0D8] shadow-2xs">
+            <Shield size={14} className="text-[#C4A482] shrink-0" />
+            <span className="text-[9.5px] font-bold tracking-wider text-[#44413D] uppercase">Paraben Free</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[#F5F2EA] px-3 py-2 rounded-lg border border-[#E5E0D8] shadow-2xs">
+            <Feather size={14} className="text-[#C4A482] shrink-0" />
+            <span className="text-[9.5px] font-bold tracking-wider text-[#44413D] uppercase">Sulphate Free</span>
+          </div>
+          <div className="flex items-center gap-2 bg-[#F5F2EA] px-3 py-2 rounded-lg border border-[#E5E0D8] shadow-2xs">
+            <Leaf size={14} className="text-[#C4A482] shrink-0" />
+            <span className="text-[9.5px] font-bold tracking-wider text-[#44413D] uppercase">100% Natural</span>
+          </div>
+        </div>
+      )}
 
       {/* Quantity & CTA Buttons */}
       <div className="space-y-3 pt-2">

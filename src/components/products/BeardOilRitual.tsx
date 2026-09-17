@@ -1,0 +1,95 @@
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+
+export const BeardOilRitual = () => {
+  return (
+    <section className="py-24 bg-[#181817] text-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(140,109,70,0.15)_0%,_transparent_70%)] pointer-events-none" />
+      
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+        
+        <span className="text-[10px] uppercase tracking-[0.3em] text-[#A88B63] font-bold block mb-4">
+          How to Use
+        </span>
+        <h2 className="text-4xl md:text-5xl font-serif mb-16 font-light text-[#F9F8F5]">
+          Your Daily Beard Ritual
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left mb-20 relative">
+          {/* Vertical divider on desktop */}
+          <div className="hidden md:block absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/10 -translate-x-1/2" />
+          
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="flex gap-6"
+          >
+            <span className="text-4xl font-serif text-white/20 italic">01</span>
+            <div>
+              <h3 className="text-xl font-medium mb-3 text-[#F9F8F5]">Apply Drops</h3>
+              <p className="text-white/60 font-light leading-relaxed text-sm mb-3">
+                Take a few drops of Terra Men’s Co. Beard Oil onto your palm.
+              </p>
+              <div className="inline-flex items-start gap-2 mt-2 bg-gradient-to-r from-[#A88B63]/20 to-transparent border-l-2 border-[#A88B63] pl-3 py-1">
+                <span className="text-[#D1B894] text-[10px] uppercase tracking-widest font-bold mt-[2px]">Tip:</span>
+                <span className="text-[#F9F8F5]/90 text-xs font-light leading-relaxed">
+                  Apply after washing your face or beard for a smooth, conditioned feel.
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="flex gap-6"
+          >
+            <span className="text-4xl font-serif text-white/20 italic">02</span>
+            <div>
+              <h3 className="text-xl font-medium mb-3 text-[#F9F8F5]">Rub & Massage</h3>
+              <p className="text-white/60 font-light leading-relaxed text-sm mb-3">
+                Rub between your palms and gently massage through your beard, from roots to ends.
+              </p>
+              <p className="text-[#D1B894] text-xs uppercase tracking-wider font-semibold mt-2">
+                Use daily or whenever your beard feels dry or rough.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Philosophy Sign-off */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="pt-16 border-t border-white/10"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-[#A88B63] font-serif text-xl md:text-2xl italic mb-10">
+            <span>Nourish</span>
+            <span className="hidden md:inline text-white/20">→</span>
+            <span>Soften</span>
+            <span className="hidden md:inline text-white/20">→</span>
+            <span>Smooth</span>
+            <span className="hidden md:inline text-white/20">→</span>
+            <span>Groom</span>
+          </div>
+          
+          <p className="text-white/80 font-light mb-8 max-w-lg mx-auto text-sm">
+            Give your beard the care it deserves with Terra Men’s Co. Premium Beard Oil.
+          </p>
+
+          <div className="inline-flex flex-col items-center">
+            <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-white">TERRA MEN’S CO.™</span>
+            <span className="text-xs text-white/40 italic font-serif mt-2">Men’s Grooming, Refined.</span>
+          </div>
+        </motion.div>
+
+      </div>
+    </section>
+  );
+};

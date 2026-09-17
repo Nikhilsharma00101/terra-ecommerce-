@@ -18,6 +18,9 @@ const DirectOrderStrip = dynamic(() =>
 const ReviewSection = dynamic(() =>
   import('@/components/products/ReviewSection').then((m) => m.ReviewSection)
 );
+const ProblemsSolved = dynamic(() =>
+  import('@/components/home/ProblemsSolved').then((m) => m.ProblemsSolved)
+);
 
 // Minimal skeleton placeholders shown while lazy chunks load
 const SectionSkeleton = () => (
@@ -88,6 +91,11 @@ export default async function HomePage() {
           title="What Our Customers Say"
           subtitle="Real feedback from guys using our products every day."
         />
+      </Suspense>
+
+      {/* 05 — Problems Solved */}
+      <Suspense fallback={<SectionSkeleton />}>
+        <ProblemsSolved />
       </Suspense>
     </div>
   );
