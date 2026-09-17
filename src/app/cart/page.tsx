@@ -416,42 +416,59 @@ export default function CartPage() {
 
                 {/* Promo Code Input Field */}
                 {!appliedCoupon && (
-                  <form onSubmit={handleApplyPromo} className="pt-2">
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          value={promoCodeInput}
-                          onChange={(e) => {
-                            setPromoCodeInput(e.target.value);
-                            setPromoError('');
-                          }}
-                          placeholder="PROMO CODE"
-                          className="w-full bg-[#FAF8F5] border border-[#DDD8CF] px-3.5 py-3 text-xs text-[#181817] placeholder-[#99948D] uppercase tracking-wider rounded-xl focus:outline-none focus:border-[#181817] transition-colors"
-                        />
-                        {!promoCodeInput && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              applyCoupon('TERRA100');
+                  <div className="space-y-4 pt-2">
+                    <form onSubmit={handleApplyPromo}>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            value={promoCodeInput}
+                            onChange={(e) => {
+                              setPromoCodeInput(e.target.value);
+                              setPromoError('');
                             }}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold text-[#2D4438] bg-[#2D4438]/10 hover:bg-[#2D4438]/20 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                          >
-                            Use TERRA100
-                          </button>
-                        )}
+                            placeholder="PROMO CODE"
+                            className="w-full bg-[#FAF8F5] border border-[#DDD8CF] px-3.5 py-3 text-xs text-[#181817] placeholder-[#99948D] uppercase tracking-wider rounded-xl focus:outline-none focus:border-[#181817] transition-colors"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="bg-[#181817] hover:bg-[#2D4438] text-white px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-colors cursor-pointer"
+                        >
+                          APPLY
+                        </button>
                       </div>
-                      <button
-                        type="submit"
-                        className="bg-[#181817] hover:bg-[#2D4438] text-white px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl transition-colors cursor-pointer"
-                      >
-                        APPLY
-                      </button>
+                      {promoError && (
+                        <p className="text-[11px] text-[#8B0000] mt-1.5 font-medium">{promoError}</p>
+                      )}
+                    </form>
+                    
+                    {/* High-End Available Offers Display */}
+                    <div className="bg-[#FAF8F5] border border-[#DDD8CF] border-dashed rounded-xl p-4 transition-colors hover:border-[#2D4438]/40 group">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex gap-3 items-start">
+                          <div className="mt-0.5 bg-[#2D4438]/10 p-1.5 rounded-full text-[#2D4438]">
+                            <Sparkles size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold text-[#181817] uppercase tracking-wider mb-1">
+                              Welcome Offer <span className="ml-1.5 text-[9px] bg-[#EAE5DC] px-1.5 py-0.5 rounded text-[#55524D] font-mono border border-[#DDD8CF]">WELCOME10</span>
+                            </p>
+                            <p className="text-[10px] text-[#55524D] leading-relaxed">
+                              Enjoy 10% off your complimentary first order with us.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => applyCoupon('WELCOME10')}
+                          className="shrink-0 text-[10px] font-bold text-[#2D4438] uppercase tracking-wider hover:underline underline-offset-4 cursor-pointer mt-1"
+                        >
+                          APPLY
+                        </button>
+                      </div>
                     </div>
-                    {promoError && (
-                      <p className="text-[11px] text-[#8B0000] mt-1.5 font-medium">{promoError}</p>
-                    )}
-                  </form>
+                  </div>
                 )}
 
                 {/* Primary Proceed to Checkout CTA */}

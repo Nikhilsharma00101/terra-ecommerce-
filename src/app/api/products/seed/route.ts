@@ -2,9 +2,18 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 import { products } from '@/data/products';
+import { requireAdmin } from '@/lib/auth';
 
 export async function POST() {
   try {
+    // SECURITY: Require admin in production
+    if (process.env.NODE_ENV === 'production') {
+      const authCheck = await requireAdmin();
+      if (authCheck.errorResponse) {
+        return authCheck.errorResponse;
+      }
+    }
+
     await connectToDatabase();
 
     let createdCount = 0;

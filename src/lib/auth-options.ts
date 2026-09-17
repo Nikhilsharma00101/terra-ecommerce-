@@ -113,5 +113,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login', // Adjust if login page is at a different path
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'terra-botanical-luxury-secret-key-2026-secure-token',
+  secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
 };

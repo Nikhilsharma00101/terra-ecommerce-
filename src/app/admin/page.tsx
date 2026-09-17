@@ -27,6 +27,7 @@ import {
   DollarSign,
   Box,
   ChevronRight,
+  ChevronLeft,
   UploadCloud,
   ArrowLeft as MoveLeft,
   ArrowRight as MoveRight,
@@ -48,6 +49,8 @@ import {
   Menu,
   ChevronDown,
   Activity,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 
 interface AdminSelectOption<T extends string = string> {
@@ -213,7 +216,7 @@ export default function AdminPage() {
   const router = useRouter();
 
   const [activeSection, setActiveSection] = useState<
-    'overview' | 'products' | 'orders' | 'users' | 'database'
+    'overview' | 'products' | 'orders' | 'users' | 'database' | 'reviews'
   >('overview');
 
   // Navigation & UI State
@@ -265,6 +268,27 @@ export default function AdminPage() {
 
   // Users
   const [usersList, setUsersList] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+
+  // Reviews
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [updatingReviewStatus, setUpdatingReviewStatus] = useState<string | null>(null);
+  const [isReviewEditModalOpen, setIsReviewEditModalOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [reviewForm, setReviewForm] = useState({
+    title: '',
+    content: '',
+    rating: 5,
+    author: '',
+    date: '',
+    location: '',
+  });
+  const [reviewCurrentPage, setReviewCurrentPage] = useState(1);
+  const reviewsPerPage = 5;
+  
+  const indexOfLastReview = reviewCurrentPage * reviewsPerPage;
+  const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
+  const currentReviews = reviewsList.slice(indexOfFirstReview, indexOfLastReview);
+  const totalReviewPages = Math.ceil(reviewsList.length / reviewsPerPage);
 
   // Database feedback
   const [dbActionMessage, setDbActionMessage] = useState('');
@@ -353,6 +377,22 @@ export default function AdminPage() {
     }
   }, []);
 
+  const fetchReviews = useCallback(async () => {
+    try {
+      // Pass status=all to fetch pending, approved, and rejected reviews (assuming backend supports it or we just fetch without status to get all)
+      // Actually backend defaults to approved. We need to pass status='all' if we want all, wait, looking at `api/reviews/route.ts`...
+      // It sets `status = searchParams.get('status') || 'approved'`. So passing `status=` fetches all, wait, let me use `status=` (empty string).
+      // Ah wait, `api/reviews/route.ts` does: `if (status) { query.status = status; }` so if we pass `status=` it won't filter by status!
+      const res = await fetch('/api/reviews?status=all');
+      if (res.ok) {
+        const data = await res.json();
+        setReviewsList(data.reviews || []);
+      }
+    } catch (e) {
+      console.error('Reviews error:', e);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
       router.push('/login?redirect=/admin&error=admin_required');
@@ -365,8 +405,9 @@ export default function AdminPage() {
       fetchProducts();
       fetchOrders();
       fetchUsers();
+      fetchReviews();
     }
-  }, [user, isAdmin, isLoading, router, fetchStats, fetchProducts, fetchOrders, fetchUsers]);
+  }, [user, isAdmin, isLoading, router, fetchStats, fetchProducts, fetchOrders, fetchUsers, fetchReviews]);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -604,6 +645,70 @@ export default function AdminPage() {
       }
     } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
       alert(e.message || 'Failed to delete');
+    }
+  };
+  // Review Updates
+  const handleUpdateReviewStatus = async (reviewId: string, status: 'pending' | 'approved' | 'rejected') => {
+    setUpdatingReviewStatus(reviewId);
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        fetchReviews();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update review status');
+      }
+    } catch (e) {
+      console.error('Update review status error:', e);
+    } finally {
+      setUpdatingReviewStatus(null);
+    }
+  };
+  const handleOpenEditReview = (r: any) => {
+    setEditingReviewId(r._id);
+    
+    // Extract local YYYY-MM-DD safely to avoid UTC timezone shifts
+    let localDateStr = '';
+    if (r.createdAt || r.date) {
+      const d = new Date(r.createdAt || r.date);
+      if (!isNaN(d.getTime())) {
+        localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+    }
+
+    setReviewForm({
+      title: r.title || '',
+      content: r.content || '',
+      rating: r.rating || 5,
+      author: r.author || '',
+      location: r.location || '',
+      date: localDateStr,
+    });
+    setIsReviewEditModalOpen(true);
+  };
+
+  const handleSaveReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReviewId) return;
+    try {
+      const res = await fetch(`/api/reviews/${editingReviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewForm),
+      });
+      if (res.ok) {
+        fetchReviews();
+        setIsReviewEditModalOpen(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update review');
+      }
+    } catch (e) {
+      console.error('Save review error:', e);
     }
   };
 
@@ -1137,6 +1242,39 @@ export default function AdminPage() {
                   }`}
                 >
                   {usersList.length || stats.usersCount}
+                </span>
+              </button>
+
+              {/* Reviews */}
+              <button
+                onClick={() => {
+                  setActiveSection('reviews');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs uppercase font-bold tracking-wider transition-all cursor-pointer ${
+                  activeSection === 'reviews'
+                    ? 'bg-[#2D4438] text-[#FAF8F5] shadow-xs'
+                    : 'text-[#44403C] hover:bg-[#EAE5DC] hover:text-[#181817]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Star size={16} strokeWidth={2} />
+                  <span>Reviews</span>
+                </div>
+                <span
+                  className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-xs ${
+                    activeSection === 'reviews'
+                      ? 'bg-white/20 text-[#FAF8F5]'
+                      : 'bg-[#EAE5DC] text-[#44403C]'
+                  }`}
+                >
+                  {reviewsList.filter(r => r.status === 'pending').length > 0 ? (
+                    <span className="text-amber-600 bg-amber-100 px-1 py-0.5 animate-pulse">
+                      {reviewsList.filter(r => r.status === 'pending').length} pending
+                    </span>
+                  ) : (
+                    reviewsList.length
+                  )}
                 </span>
               </button>
             </div>
@@ -2538,6 +2676,167 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= SECTION 4.5: REVIEWS ================= */}
+          {activeSection === 'reviews' && (
+            <div className="space-y-6">
+              <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-[#181817]">Product Reviews</h3>
+                  <p className="text-xs text-[#77736C]">
+                    Manage customer feedback and ratings
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#FAF8F5] border border-[#DDD8CF] overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-[#EAE5DC] border-b border-[#DDD8CF] text-[#44403C] uppercase font-bold tracking-wider">
+                        <th className="p-4 pl-5">Product</th>
+                        <th className="p-4">Customer</th>
+                        <th className="p-4">Rating</th>
+                        <th className="p-4">Review Content</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 pr-5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#DDD8CF]">
+                      {currentReviews.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-[#77736C]">
+                            No reviews found.
+                          </td>
+                        </tr>
+                      ) : (
+                        currentReviews.map((r) => (
+                          <tr key={r.id || r._id} className="hover:bg-[#F6F3ED] transition-colors">
+                            <td className="p-4 pl-5 font-bold text-[#181817]">
+                              {r.productName}
+                              <div className="text-[10px] text-[#77736C] font-normal mt-0.5">
+                                {r.date}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="font-bold text-[#181817] block">{r.author}</span>
+                              <div className="text-[10px] text-[#77736C]">
+                                {r.location && <span className="block mb-0.5">{r.location}</span>}
+                                {r.email}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex text-amber-500">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    size={14}
+                                    className={i < r.rating ? 'fill-current' : 'text-[#DDD8CF]'}
+                                  />
+                                ))}
+                              </div>
+                            </td>
+                            <td className="p-4 max-w-xs">
+                              <span className="font-bold text-[#181817] block mb-1">{r.title}</span>
+                              <p className="text-[#57534E] line-clamp-2" title={r.content}>
+                                {r.content}
+                              </p>
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`px-2.5 py-0.5 text-[10px] uppercase font-bold border ${
+                                  r.status === 'approved'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                    : r.status === 'rejected'
+                                    ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                    : 'bg-amber-50 text-amber-900 border-amber-300'
+                                }`}
+                              >
+                                {r.status || 'pending'}
+                              </span>
+                            </td>
+                            <td className="p-4 pr-5 text-right space-x-2">
+                              {r.status !== 'approved' && (
+                                <button
+                                  onClick={() => handleUpdateReviewStatus(r._id, 'approved')}
+                                  disabled={updatingReviewStatus === r._id}
+                                  className="px-3 py-1 bg-[#2D4438] hover:bg-[#181817] text-white text-[10px] uppercase font-bold transition-colors disabled:opacity-50"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                              {r.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handleUpdateReviewStatus(r._id, 'rejected')}
+                                  disabled={updatingReviewStatus === r._id}
+                                  className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[10px] uppercase font-bold transition-colors disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleOpenEditReview(r)}
+                                className="px-3 py-1 bg-[#EAE5DC] hover:bg-[#DDD8CF] text-[#181817] border border-[#DDD8CF] text-[10px] uppercase font-bold transition-colors"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {totalReviewPages > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t border-[#DDD8CF] bg-[#F6F3ED]">
+                    <div className="text-xs text-[#77736C]">
+                      Showing <span className="font-bold text-[#181817]">{indexOfFirstReview + 1}</span> to{' '}
+                      <span className="font-bold text-[#181817]">
+                        {Math.min(indexOfLastReview, reviewsList.length)}
+                      </span>{' '}
+                      of <span className="font-bold text-[#181817]">{reviewsList.length}</span> reviews
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setReviewCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={reviewCurrentPage === 1}
+                        className="p-1.5 border border-[#DDD8CF] bg-white text-[#181817] disabled:opacity-50 disabled:bg-[#F6F3ED] hover:bg-[#EAE5DC] transition-colors"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      
+                      <div className="flex items-center gap-1 px-2">
+                        {Array.from({ length: totalReviewPages }).map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setReviewCurrentPage(i + 1)}
+                            className={`w-7 h-7 flex items-center justify-center text-xs font-bold transition-colors ${
+                              reviewCurrentPage === i + 1
+                                ? 'bg-[#2D4438] text-white'
+                                : 'text-[#77736C] hover:bg-[#EAE5DC] hover:text-[#181817]'
+                            }`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setReviewCurrentPage((prev) => Math.min(prev + 1, totalReviewPages))}
+                        disabled={reviewCurrentPage === totalReviewPages}
+                        className="p-1.5 border border-[#DDD8CF] bg-white text-[#181817] disabled:opacity-50 disabled:bg-[#F6F3ED] hover:bg-[#EAE5DC] transition-colors"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           )}
@@ -4284,6 +4583,139 @@ export default function AdminPage() {
           </>
         );
       })()}
+
+      {/* Review Edit Modal */}
+      {isReviewEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-[#FAF8F5] border-2 border-[#DDD8CF] w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#DDD8CF] bg-[#F6F3ED]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[#2D4438] rounded-full flex items-center justify-center text-white">
+                  <Star size={16} className="fill-current" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-[#181817]">
+                    Edit Review
+                  </h3>
+                  <p className="text-[11px] text-[#77736C]">
+                    Modify customer review details
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsReviewEditModalOpen(false)}
+                className="p-1.5 text-[#8C887B] hover:text-[#181817] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+              <form id="review-edit-form" onSubmit={handleSaveReview} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Author Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={reviewForm.author}
+                    onChange={(e) => setReviewForm({ ...reviewForm, author: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={reviewForm.location}
+                    onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
+                    placeholder="e.g. Verified Practitioner"
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Rating (1-5)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    required
+                    value={reviewForm.rating}
+                    onChange={(e) => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Review Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={reviewForm.date}
+                    onChange={(e) => setReviewForm({ ...reviewForm, date: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Review Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={reviewForm.title}
+                    onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-1.5">
+                    Review Content
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={reviewForm.content}
+                    onChange={(e) => setReviewForm({ ...reviewForm, content: e.target.value })}
+                    className="w-full bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-2 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438] resize-none"
+                  />
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-[#DDD8CF] bg-[#F6F3ED] flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsReviewEditModalOpen(false)}
+                className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#57534E] hover:text-[#181817] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="review-edit-form"
+                className="px-6 py-2.5 bg-[#2D4438] hover:bg-[#181817] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-xs"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

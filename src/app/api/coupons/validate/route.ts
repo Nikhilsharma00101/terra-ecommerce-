@@ -12,16 +12,13 @@ export async function POST(req: NextRequest) {
     }
 
     const c = code.trim().toUpperCase();
-    const validCoupons = ['TERRA10', 'WELCOME10', 'METHOD20', 'TERRA100'];
+    const validCoupons = ['WELCOME10'];
 
     if (!validCoupons.includes(c)) {
-      return NextResponse.json({ success: false, error: 'Invalid coupon code. Try TERRA100 or TERRA10.' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid coupon code. Try WELCOME10.' }, { status: 400 });
     }
 
-    // 10% off coupons are only valid on the first order
-    const isFirstOrderCoupon = c === 'TERRA10' || c === 'WELCOME10';
-
-    if (isFirstOrderCoupon && email) {
+    if (c === 'WELCOME10' && email) {
       await connectToDatabase();
       const existingOrdersCount = await Order.countDocuments({
         customerEmail: email.toLowerCase().trim()

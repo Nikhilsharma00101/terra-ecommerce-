@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
 
-    let query: any = {};
+    const query: any = {};
 
     // If admin, can see all orders or filter by status
     if (user.role === 'admin') {
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
 
     if (couponCode && typeof couponCode === 'string') {
       const code = couponCode.trim().toUpperCase();
-      if (code === 'TERRA10' || code === 'WELCOME10') {
+      if (code === 'WELCOME10') {
         const existingOrdersCount = await Order.countDocuments({
           customerEmail: customerEmail.toLowerCase().trim()
         });
@@ -187,22 +187,16 @@ export async function POST(req: NextRequest) {
         }
         discountAmount = Math.round(calculatedSubtotal * 0.10);
         appliedCoupon = code;
-      } else if (code === 'METHOD20') {
-        discountAmount = Math.round(calculatedSubtotal * 0.20);
-        appliedCoupon = code;
-      } else if (code === 'TERRA100') {
-        discountAmount = 100;
-        appliedCoupon = code;
       }
     }
 
-    const freeShippingThreshold = 999;
+    const freeShippingThreshold = 0;
     const shippingCost = (calculatedSubtotal - discountAmount) >= freeShippingThreshold ? 0 : 75;
     const calculatedTotal = Math.max(0, calculatedSubtotal - discountAmount + shippingCost);
 
     // Generate unique order number
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    const orderNumber = `TR-IN-${randomDigits}`;
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const orderNumber = `TR-IN-${Date.now()}-${randomDigits}`;
 
     const newOrder = await Order.create({
       orderNumber,
@@ -237,7 +231,7 @@ export async function POST(req: NextRequest) {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
         port: Number(process.env.EMAIL_SERVER_PORT) || 465,
-        secure: Number(process.env.EMAIL_SERVER_PORT) === 465 || true,
+        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
         auth: {
           user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
           pass: process.env.EMAIL_SERVER_PASSWORD,

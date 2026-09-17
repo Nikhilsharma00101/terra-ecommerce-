@@ -60,7 +60,7 @@ export function ShopFilters({ products }: ShopFiltersProps) {
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    let result =
+    const result =
       filter === 'ALL'
         ? [...products]
         : products.filter((p) => p.category === filter);

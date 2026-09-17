@@ -33,6 +33,8 @@ import {
   Award,
   AlertCircle,
   Loader2,
+  Star,
+  X,
 } from 'lucide-react';
 
 function AccountPageContent() {
@@ -98,6 +100,59 @@ function AccountPageContent() {
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
   const [profileErrorMsg, setProfileErrorMsg] = useState('');
+
+  // Review Modal State
+  const [reviewModalItem, setReviewModalItem] = useState<any | null>(null);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    title: '',
+    content: '',
+    skinType: 'Normal / Combination',
+    author: user?.name || '',
+    location: '',
+  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  const openReviewModal = (item: any) => {
+    setReviewModalItem(item);
+    setReviewForm({ rating: 5, title: '', content: '', skinType: 'Normal / Combination', author: user?.name || '', location: '' });
+    setReviewSuccess(false);
+  };
+  
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewModalItem) return;
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: reviewForm.author || user?.name,
+          email: user?.email,
+          location: reviewForm.location,
+          skinType: reviewForm.skinType,
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          content: reviewForm.content,
+          productSlug: reviewModalItem.productId,
+          productName: reviewModalItem.name,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to submit');
+      setReviewSuccess(true);
+      setTimeout(() => {
+        setReviewModalItem(null);
+        setReviewSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to submit review');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // 1. Fetch Real Products from MongoDB Database
   useEffect(() => {
@@ -873,27 +928,39 @@ function AccountPageContent() {
                             {order.items?.map((item: any, idx: number) => {
                               const itemImgSrc = getOrderItemImage(item);
                               return (
-                                <div key={idx} className="flex items-center gap-4">
-                                  <div className="relative w-14 h-14 bg-[#1A1918] rounded-xl shrink-0 overflow-hidden border border-[#EAE6DF]">
-                                    <Image
-                                      src={itemImgSrc}
-                                      alt={item.name}
-                                      fill
-                                      className="object-cover"
-                                      sizes="56px"
-                                    />
+                                <div key={idx} className="flex items-center justify-between gap-4">
+                                  <div className="flex items-center gap-4">
+                                    <div className="relative w-14 h-14 bg-[#1A1918] rounded-xl shrink-0 overflow-hidden border border-[#EAE6DF]">
+                                      <Image
+                                        src={itemImgSrc}
+                                        alt={item.name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="56px"
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-xs font-bold text-[#181817] truncate">
+                                        {item.name}
+                                      </h4>
+                                      <p className="text-[11px] text-[#77736C] font-mono mt-0.5">
+                                        Quantity: {item.quantity} • ₹{item.price} each
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="text-xs font-bold text-[#181817] truncate">
-                                      {item.name}
-                                    </h4>
-                                    <p className="text-[11px] text-[#77736C] font-mono mt-0.5">
-                                      Quantity: {item.quantity} • ₹{item.price} each
-                                    </p>
+                                  <div className="flex flex-col items-end gap-2 shrink-0">
+                                    <span className="font-mono text-xs font-semibold text-[#181817]">
+                                      ₹{item.price * item.quantity}
+                                    </span>
+                                    {isDelivered && (
+                                      <button
+                                        onClick={() => openReviewModal(item)}
+                                        className="text-[10px] uppercase font-mono tracking-widest font-bold text-[#2D4438] underline cursor-pointer hover:text-[#181817]"
+                                      >
+                                        Leave a Review
+                                      </button>
+                                    )}
                                   </div>
-                                  <span className="font-mono text-xs font-semibold text-[#181817]">
-                                    ₹{item.price * item.quantity}
-                                  </span>
                                 </div>
                               );
                             })}
@@ -1550,6 +1617,128 @@ function AccountPageContent() {
 
         </div>
       </div>
+
+      {/* Review Modal */}
+      <AnimatePresence>
+        {reviewModalItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReviewModalItem(null)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 0 }}
+              className="bg-white border border-[#E5E0D8] text-[#181817] shadow-2xl max-w-xl w-full p-5 sm:p-10 relative z-10 my-auto max-h-[90vh] overflow-y-auto rounded-2xl"
+            >
+              <button
+                onClick={() => setReviewModalItem(null)}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 p-1 cursor-pointer z-20 text-[#77736C] hover:text-[#181817]"
+              >
+                <X size={20} />
+              </button>
+              {reviewSuccess ? (
+                <div className="py-12 text-center space-y-4">
+                  <div className="w-14 h-14 text-white bg-[#2D4438] rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h3 className="font-serif text-2xl text-[#181817]">Review Submitted</h3>
+                  <p className="text-xs max-w-sm mx-auto font-light leading-relaxed text-[#55524D]">
+                    Thank you! Your verified review is pending admin approval and will be published shortly.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={submitReview} className="space-y-6">
+                  <div>
+                    <span className="text-[10px] uppercase font-mono tracking-widest block mb-1 text-[#2D4438]">
+                      VERIFIED PRACTITIONER REVIEW
+                    </span>
+                    <h3 className="font-serif text-2xl text-[#181817]">Review {reviewModalItem.name}</h3>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase tracking-wider mb-2 text-[#55524D]">Efficacy Rating</label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                          className="p-1 cursor-pointer transition-transform hover:scale-110"
+                        >
+                          <Star size={24} className={star <= reviewForm.rating ? 'fill-[#C4A482] text-[#C4A482]' : 'fill-transparent text-[#DDD8CF]'} />
+                        </button>
+                      ))}
+                      <span className="font-mono text-xs font-semibold ml-2 text-[#2D4438]">{reviewForm.rating}.0 / 5.0</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Skin / Hair Profile</label>
+                      <input
+                        type="text"
+                        value={reviewForm.skinType}
+                        onChange={(e) => setReviewForm({ ...reviewForm, skinType: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Display Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={reviewForm.author}
+                        onChange={(e) => setReviewForm({ ...reviewForm, author: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Location (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Delhi"
+                        value={reviewForm.location}
+                        onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Headline Title *</label>
+                      <input
+                        type="text"
+                        required
+                        value={reviewForm.title}
+                        onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Detailed Experience *</label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={reviewForm.content}
+                        onChange={(e) => setReviewForm({ ...reviewForm, content: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-2 flex items-center justify-end gap-3">
+                    <button type="button" onClick={() => setReviewModalItem(null)} className="px-5 py-3 text-xs uppercase tracking-widest font-medium text-[#77736C] hover:text-[#181817] cursor-pointer">Cancel</button>
+                    <button type="submit" disabled={isSubmittingReview} className={`text-white px-8 py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors rounded-xl shadow-xs ${isSubmittingReview ? 'opacity-50' : 'cursor-pointer'} bg-[#181817] hover:bg-[#2D4438]`}>
+                      {isSubmittingReview ? 'SUBMITTING...' : 'SUBMIT REVIEW'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

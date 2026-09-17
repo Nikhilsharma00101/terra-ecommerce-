@@ -38,7 +38,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const FREE_SHIPPING_THRESHOLD = 999;
+const FREE_SHIPPING_THRESHOLD = 0;
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { products } = useProducts();
@@ -258,7 +258,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const freeShippingProgress = Math.min(
     100,
-    (subtotal / FREE_SHIPPING_THRESHOLD) * 100
+    FREE_SHIPPING_THRESHOLD === 0 ? 100 : (subtotal / FREE_SHIPPING_THRESHOLD) * 100
   );
 
   const applyCoupon = async (code: string, email?: string) => {
@@ -282,12 +282,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const removeCoupon = () => setAppliedCoupon(null);
 
   let discountAmount = 0;
-  if (appliedCoupon === 'TERRA10' || appliedCoupon === 'WELCOME10') {
+  if (appliedCoupon === 'WELCOME10') {
     discountAmount = Math.round(subtotal * 0.1);
-  } else if (appliedCoupon === 'METHOD20') {
-    discountAmount = Math.round(subtotal * 0.2);
-  } else if (appliedCoupon === 'TERRA100') {
-    discountAmount = 100;
   }
   discountAmount = Math.min(discountAmount, subtotal);
 

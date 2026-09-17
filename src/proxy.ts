@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'terra-botanical-luxury-secret-key-2026-secure-token';
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  
-
 
   // Verify NextAuth JWT on protected routes
   const token = await getToken({ req, secret: JWT_SECRET });

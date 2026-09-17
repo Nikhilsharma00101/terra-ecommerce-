@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, requireAdmin } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: Only allow in development, or require existing admin auth
+    if (process.env.NODE_ENV === 'production') {
+      const authCheck = await requireAdmin();
+      if (authCheck.errorResponse) {
+        return authCheck.errorResponse;
+      }
+    }
+
     await connectToDatabase();
 
     const body = await req.json().catch(() => ({}));

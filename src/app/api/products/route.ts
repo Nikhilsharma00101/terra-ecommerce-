@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
 
       // Check total products count in MongoDB
       const totalCount = await Product.countDocuments();
-      if (totalCount === 0) {
-        console.log('MongoDB products collection empty. Seeding initial catalog...');
+      if (totalCount === 0 && process.env.NODE_ENV !== 'production') {
         await Product.insertMany(
           initialSeedProducts.map((p) => ({
             ...p,

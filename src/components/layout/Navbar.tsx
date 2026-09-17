@@ -142,7 +142,7 @@ export const Navbar: React.FC = () => {
                 {/* HUD Cargo Badge */}
                 {totalItems > 0 && (
                   <div className="absolute -top-1.5 -right-2 sm:-right-2.5 flex items-center h-[17px] px-1.5 rounded-[4px] bg-[#0A0A0A] border border-[#DC143C]/70 shadow-[0_0_12px_rgba(220,20,60,0.5)] backdrop-blur-md transition-all duration-300 group-hover:border-[#DC143C] group-hover:shadow-[0_0_18px_rgba(220,20,60,0.7)] pointer-events-none">
-                    <span className="text-[7.5px] font-mono text-[#DC143C] font-black mr-0.5 tracking-tighter select-none">//</span>
+                    <span className="text-[7.5px] font-mono text-[#DC143C] font-black mr-0.5 tracking-tighter select-none">{'//'}</span>
                     <span className="text-[9px] font-mono font-black tracking-tight text-white leading-none">
                       {totalItems < 10 ? `0${totalItems}` : totalItems > 99 ? '99+' : totalItems}
                     </span>

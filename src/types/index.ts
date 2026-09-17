@@ -116,7 +116,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   date: string;
-  status: 'Processing' | 'Shipped' | 'Delivered';
+  status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   items: OrderItem[];
   subtotal: number;
   shipping: number;

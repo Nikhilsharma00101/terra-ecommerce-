@@ -13,8 +13,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET as string;
-    
+    const secret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+
+    if (!secret) {
+      return NextResponse.json(
+        { error: 'Payment verification is not configured. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     // Create HMAC SHA256 digest
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);

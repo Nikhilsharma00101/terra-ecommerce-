@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: 'Please enter a valid email address.' },
