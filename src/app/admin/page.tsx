@@ -883,7 +883,7 @@ export default function AdminPage() {
       return { image: item.image, slug, category, productName };
     }
 
-    return { image: '/images/home/hero-campaign.jpg', slug, category, productName };
+    return { image: '/images/home/hero-products.jpeg', slug, category, productName };
   };
 
   const amountToWords = (amount: number): string => {
@@ -1908,7 +1908,7 @@ export default function AdminPage() {
                               <div className="flex items-center gap-3.5">
                                 <div className="relative w-13 h-13 bg-[#EAE5DC] border border-[#DDD8CF] shrink-0 overflow-hidden shadow-2xs">
                                   <Image
-                                    src={prod.featuredImage || '/images/home/hero-campaign.jpg'}
+                                    src={prod.featuredImage || '/images/home/hero-products.jpeg'}
                                     alt={prod.name}
                                     fill
                                     className="object-cover"
@@ -2314,8 +2314,8 @@ export default function AdminPage() {
                                             className="object-cover transition-transform duration-300 group-hover:scale-110"
                                             onError={(e) => {
                                               const target = e.target as HTMLImageElement;
-                                              if (target.src !== '/images/home/hero-campaign.jpg') {
-                                                target.src = '/images/home/hero-campaign.jpg';
+                                              if (target.src !== '/images/home/hero-products.jpeg') {
+                                                target.src = '/images/home/hero-products.jpeg';
                                               }
                                             }}
                                           />
@@ -3295,7 +3295,7 @@ export default function AdminPage() {
 
                         <div className="relative w-full aspect-square bg-[#EAE5DC] overflow-hidden mt-5 mb-2">
                           <Image
-                            src={img.url || '/images/home/hero-campaign.jpg'}
+                            src={img.url || '/images/home/hero-products.jpeg'}
                             alt={img.alt || `Image ${idx + 1}`}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -3690,8 +3690,8 @@ export default function AdminPage() {
                                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                                         onError={(e) => {
                                           const target = e.target as HTMLImageElement;
-                                          if (target.src !== '/images/home/hero-campaign.jpg') {
-                                            target.src = '/images/home/hero-campaign.jpg';
+                                          if (target.src !== '/images/home/hero-products.jpeg') {
+                                            target.src = '/images/home/hero-products.jpeg';
                                           }
                                         }}
                                       />

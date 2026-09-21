@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       shortDescription: shortDescription || '',
       fullDescription: fullDescription || '',
       featuredImage: featuredImage || (Array.isArray(body.images) && body.images[0]?.url),
-      secondaryImage: secondaryImage || (Array.isArray(body.images) && body.images[1]?.url) || '/images/home/hero-campaign.jpg',
+      secondaryImage: secondaryImage || (Array.isArray(body.images) && body.images[1]?.url) || '/images/home/hero-products.jpeg',
       images: Array.isArray(body.images) && body.images.length > 0
         ? body.images
         : [

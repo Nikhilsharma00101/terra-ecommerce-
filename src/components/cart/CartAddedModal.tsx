@@ -128,7 +128,7 @@ export const CartAddedModal: React.FC = () => {
               <div className="bg-white/90 border border-[#E5E0D8] rounded-xl p-3 flex items-center gap-3.5 shadow-2xs">
                 <div className="w-16 h-20 bg-[#F4F1EB] rounded-lg border border-[#DDD8CF] relative overflow-hidden shrink-0 p-1">
                   <Image
-                    src={product.featuredImage || '/images/home/hero-campaign.jpg'}
+                    src={product.featuredImage || '/images/home/hero-products.jpeg'}
                     alt={product.name}
                     fill
                     className="object-contain"

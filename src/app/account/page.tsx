@@ -246,7 +246,7 @@ function AccountPageContent() {
     if (p?.secondaryImage && typeof p.secondaryImage === 'string' && p.secondaryImage.trim() !== '') {
       return p.secondaryImage;
     }
-    return '/images/home/hero-campaign.jpg';
+    return '/images/home/hero-products.jpeg';
   };
 
   // Robust Order Item Image Resolver — Always matches against live MongoDB products first
@@ -297,7 +297,7 @@ function AccountPageContent() {
       return getProductImage(products[0]);
     }
 
-    return '/images/home/hero-campaign.jpg';
+    return '/images/home/hero-products.jpeg';
   };
 
   // Matched wishlist products from DB

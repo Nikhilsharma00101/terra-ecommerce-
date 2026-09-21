@@ -16,18 +16,18 @@ export const products: Product[] = [
     reviewCount: 248,
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/home/hero-products.jpeg',
         alt: 'Terra Face Wash 100ml bottle on stone plinth',
         caption: 'The Daily Cleanse in matte forest green bottle'
       },
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/home/hero-products.jpeg',
         alt: 'Terra Daily Grooming Routine in studio setting',
         caption: 'Made for everyday morning and evening use'
       }
     ],
-    featuredImage: '/images/home/hero-campaign.jpg',
-    secondaryImage: '/images/home/hero-campaign.jpg',
+    featuredImage: '/images/home/hero-products.jpeg',
+    secondaryImage: '/images/home/hero-products.jpeg',
     heroColor: '#2D4438',
     accentColor: '#3B5947',
     badge: 'Sulfate-Free Formula',
@@ -113,18 +113,18 @@ export const products: Product[] = [
     reviewCount: 312,
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/home/hero-products.jpeg',
         alt: 'Terra Beard Oil 30ml amber glass bottle with glass dropper',
         caption: 'Premium Beard Oil in amber apothecary glass'
       },
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/home/hero-products.jpeg',
         alt: 'Terra Daily Grooming Routine in studio setting',
         caption: 'Formulated with nourishing oils and Vitamin E'
       }
     ],
-    featuredImage: '/images/home/hero-campaign.jpg',
-    secondaryImage: '/images/home/hero-campaign.jpg',
+    featuredImage: '/images/home/hero-products.jpeg',
+    secondaryImage: '/images/home/hero-products.jpeg',
     heroColor: '#8C6D46',
     accentColor: '#A88B63',
     badge: 'BHT-Free Formula',
@@ -217,7 +217,7 @@ export const products: Product[] = [
     reviewCount: 520,
     images: [
       {
-        url: '/images/home/hero-campaign.jpg',
+        url: '/images/home/hero-products.jpeg',
         alt: 'The Complete Terra Method Set with Face Wash and Beard Oil',
         caption: 'The Daily Cleanse + The Daily Nourish together'
       },
@@ -232,7 +232,7 @@ export const products: Product[] = [
         caption: 'Step 02 — Nourish'
       }
     ],
-    featuredImage: '/images/home/hero-campaign.jpg',
+    featuredImage: '/images/home/hero-products.jpeg',
     secondaryImage: '',
     heroColor: '#202A24',
     accentColor: '#C4A482',

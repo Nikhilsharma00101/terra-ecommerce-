@@ -20,7 +20,7 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
           muted
           playsInline
           preload="metadata"
-          poster="/images/home/hero-campaign.jpg"
+          poster="/images/home/hero-products.jpeg"
           style={{ backgroundColor: '#121212' }}
           className="absolute w-full h-full lg:h-[150%] lg:-top-[15%] lg:scale-y-[0.8] object-cover pointer-events-none"
         >
@@ -112,7 +112,7 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="absolute inset-[2px] rounded-full overflow-hidden bg-[#121212]">
                       <Image
-                        src={faceWash?.featuredImage || faceWash?.images?.[0]?.url || '/images/home/hero-campaign.jpg'}
+                        src={faceWash?.featuredImage || faceWash?.images?.[0]?.url || '/images/home/hero-products.jpeg'}
                         alt={`Terra Men's Co. ${faceWash?.name || 'Face Wash'}`}
                         fill
                         sizes="(max-width: 640px) 64px, 80px"
@@ -136,7 +136,7 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_75%,#DC143C_100%)] animate-[spin_3s_linear_infinite] opacity-70 group-hover:opacity-100 transition-opacity duration-500" style={{ animationDelay: '-1.5s' }} />
                     <div className="absolute inset-[2px] rounded-full overflow-hidden bg-[#121212]">
                       <Image
-                        src={beardOil?.featuredImage || beardOil?.images?.[0]?.url || '/images/home/hero-campaign.jpg'}
+                        src={beardOil?.featuredImage || beardOil?.images?.[0]?.url || '/images/home/hero-products.jpeg'}
                         alt={`Terra Men's Co. ${beardOil?.name || 'Beard Oil'}`}
                         fill
                         sizes="(max-width: 640px) 64px, 80px"

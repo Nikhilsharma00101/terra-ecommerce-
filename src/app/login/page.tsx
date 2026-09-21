@@ -330,7 +330,7 @@ function LoginFormContent() {
           <div>
             <div className="relative aspect-4/3 w-full bg-[#EAE5DC] border border-[#DDD8CF] mb-8 overflow-hidden">
               <Image
-                src="/images/home/hero-campaign.jpg"
+                src="/images/home/hero-products.jpeg"
                 alt="Terra Botanical Grooming"
                 fill
                 className="object-cover"

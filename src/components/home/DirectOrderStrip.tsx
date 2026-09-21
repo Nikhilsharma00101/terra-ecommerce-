@@ -16,7 +16,7 @@ export const DirectOrderStrip: React.FC = () => {
   const [addedSlug, setAddedSlug] = useState<string | null>(null);
 
   // Helper to dynamically extract image from DB product record
-  const resolveProductImage = (prod?: Product | null, fallback = '/images/home/hero-campaign.jpg'): string => {
+  const resolveProductImage = (prod?: Product | null, fallback = '/images/home/hero-products.jpeg'): string => {
     if (!prod) return fallback;
     if (prod.featuredImage && typeof prod.featuredImage === 'string' && prod.featuredImage.trim() !== '') {
       return prod.featuredImage;

@@ -45,7 +45,7 @@ export default function WishlistPage() {
     if (p?.secondaryImage && typeof p.secondaryImage === 'string' && p.secondaryImage.trim() !== '') {
       return p.secondaryImage;
     }
-    return '/images/home/hero-campaign.jpg';
+    return '/images/home/hero-products.jpeg';
   };
 
   return (

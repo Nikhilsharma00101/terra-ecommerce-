@@ -48,7 +48,7 @@ export const ProductMarquee: React.FC = () => {
             {/* Dynamic Product Image */}
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 group-hover:border-[#DC143C] transition-colors duration-500 shrink-0">
               <img 
-                src={product.featuredImage || product.images?.[0]?.url || '/images/home/hero-campaign.jpg'} 
+                src={product.featuredImage || product.images?.[0]?.url || '/images/home/hero-products.jpeg'} 
                 alt={product.name} 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" 
               />

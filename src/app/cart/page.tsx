@@ -199,7 +199,7 @@ export default function CartPage() {
                         {/* Product Specs */}
                         <div className="sm:col-span-7 flex gap-4 sm:gap-6 w-full">
                           <Link href={`/shop/${product.slug}`} className="relative w-20 h-20 sm:w-28 sm:h-28 bg-[#E9EDF3] shrink-0 overflow-hidden border border-[#D8DEE6]">
-                            <Image alt={product.name} className="w-full h-full object-cover object-center" src={product.featuredImage || '/images/home/hero-campaign.jpg'} fill />
+                            <Image alt={product.name} className="w-full h-full object-cover object-center" src={product.featuredImage || '/images/home/hero-products.jpeg'} fill />
                             {product.badge && <span className="absolute top-1 left-1 bg-[#111620]/90 text-white text-[8px] uppercase px-1.5 py-0.5 tracking-wider font-semibold">{product.badge}</span>}
                           </Link>
                           <div className="flex flex-col justify-between flex-1 min-w-0">
@@ -429,7 +429,7 @@ export default function CartPage() {
                   <div className="bg-white border border-[#D8DEE6] p-6 flex flex-col justify-between group hover:border-[#A81323] transition-all duration-300 shadow-sm">
                     <div className="flex flex-col gap-6">
                       <div className="relative w-full h-48 bg-[#E9EDF3] overflow-hidden border border-[#D8DEE6]">
-                        <Image alt={suggestedCompanion.name} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" src={suggestedCompanion.featuredImage || '/images/home/hero-campaign.jpg'} fill />
+                        <Image alt={suggestedCompanion.name} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" src={suggestedCompanion.featuredImage || '/images/home/hero-products.jpeg'} fill />
                         <span className="absolute top-2 left-2 bg-[#111620]/90 text-white text-[9px] uppercase px-2 py-0.5 tracking-wider font-semibold">Recommended</span>
                       </div>
                       <div className="flex flex-col">

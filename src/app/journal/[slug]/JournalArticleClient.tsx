@@ -34,7 +34,7 @@ const BOOKMARK_STORAGE_KEY = 'terra_journal_bookmarks';
 
 // Safe image resolver from live MongoDB Product instance
 function resolveProductImage(prod?: Product | null, index = 0): string {
-  if (!prod) return '/images/home/hero-campaign.jpg';
+  if (!prod) return '/images/home/hero-products.jpeg';
   if (prod.images && Array.isArray(prod.images) && prod.images.length > index && prod.images[index]?.url) {
     return prod.images[index].url;
   }
@@ -48,7 +48,7 @@ function resolveProductImage(prod?: Product | null, index = 0): string {
   if (prod.secondaryImage && typeof prod.secondaryImage === 'string' && prod.secondaryImage.trim() !== '') {
     return prod.secondaryImage;
   }
-  return '/images/home/hero-campaign.jpg';
+  return '/images/home/hero-products.jpeg';
 }
 
 // Resolver to match article's related product from dynamic DB catalog

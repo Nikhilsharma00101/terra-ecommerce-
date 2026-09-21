@@ -36,7 +36,7 @@ export const ProductShowcase: React.FC = () => {
 
   // Robust resolver for live database product images (Cloudinary / DB images / fallback)
   const resolveProductImage = (prod?: Product | null): string => {
-    if (!prod) return '/images/home/hero-campaign.jpg';
+    if (!prod) return '/images/home/hero-products.jpeg';
     if (prod.featuredImage && typeof prod.featuredImage === 'string' && prod.featuredImage.trim() !== '') {
       return prod.featuredImage;
     }
@@ -46,7 +46,7 @@ export const ProductShowcase: React.FC = () => {
     if (prod.secondaryImage && typeof prod.secondaryImage === 'string' && prod.secondaryImage.trim() !== '') {
       return prod.secondaryImage;
     }
-    return '/images/home/hero-campaign.jpg';
+    return '/images/home/hero-products.jpeg';
   };
 
   // Find foundational essential products from live MongoDB catalog

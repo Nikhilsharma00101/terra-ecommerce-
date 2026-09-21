@@ -33,7 +33,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const mainImage =
     product.featuredImage ||
     (product.images && product.images.length > 0 ? product.images[0].url : '') ||
-    '/images/home/hero-campaign.jpg';
+    '/images/home/hero-products.jpeg';
 
   const secondaryHoverImage =
     product.images && product.images.length > 1 && product.images[1]?.url

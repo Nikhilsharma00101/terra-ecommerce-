@@ -32,7 +32,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
     ? validImages.slice(0, 6)
     : [
         {
-          url: '/images/home/hero-campaign.jpg',
+          url: '/images/home/hero-products.jpeg',
           alt: productName,
           caption: 'Terra Essential Formulation',
         },

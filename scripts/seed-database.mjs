@@ -85,7 +85,7 @@ async function seed() {
       stock: 100,
       isPublished: true,
       featuredImage: '/images/products/face-wash-main.jpg',
-      secondaryImage: '/images/hero/hero-campaign.jpg',
+      secondaryImage: '/images/hero/hero-products.jpeg',
       images: [
         {
           url: '/images/products/face-wash-main.jpg',
@@ -126,11 +126,11 @@ async function seed() {
       reviewCount: 184,
       stock: 75,
       isPublished: true,
-      featuredImage: '/images/hero/hero-campaign.jpg',
+      featuredImage: '/images/hero/hero-products.jpeg',
       secondaryImage: '/images/products/face-wash-main.jpg',
       images: [
         {
-          url: '/images/hero/hero-campaign.jpg',
+          url: '/images/hero/hero-products.jpeg',
           alt: 'Terra Conditioning Beard Oil with dropper',
           caption: 'Weightless botanical hydration'
         }
@@ -166,10 +166,10 @@ async function seed() {
       stock: 50,
       isPublished: true,
       isBundle: true,
-      featuredImage: '/images/hero/hero-campaign.jpg',
+      featuredImage: '/images/hero/hero-products.jpeg',
       images: [
         {
-          url: '/images/hero/hero-campaign.jpg',
+          url: '/images/hero/hero-products.jpeg',
           alt: 'The Complete Terra Method 2-piece set',
           caption: 'Full 2-step daily ritual set'
         }
