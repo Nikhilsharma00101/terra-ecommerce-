@@ -28,9 +28,13 @@ The platform provides a comprehensive end-to-end shopping journey including dyna
 - **Editorial Journal**: Dedicated brand editorial and grooming guides (`/journal`).
 
 ### 🔐 Authentication & Accounts
-- **Secure Authentication**: Built with JSON Web Tokens (`jose`), bcrypt password hashing, and secure HTTP-Only cookies.
+- **Secure Authentication**: Powered by NextAuth.js, featuring secure Credentials login (bcrypt) and seamless **Google OAuth** integration.
 - **Customer Portal**: Order history tracking, address management, and profile settings (`/account`).
 - **Route Protection**: Automated route security guarding sensitive client and admin paths.
+
+### 💳 Payments & Notifications
+- **Razorpay Integration**: Secure, robust Indian payment gateway integration with webhook support for order confirmation.
+- **Real-Time Notifications**: Instant Telegram bot alerts to admins upon new orders, plus automated email notifications (Nodemailer/SMTP).
 
 ### ⚙️ Admin Control Panel (`/admin`)
 - **Real-Time Analytics**: Visual KPI metrics for revenue, order volume, customer growth, and top-performing products.
@@ -47,12 +51,13 @@ The platform provides a comprehensive end-to-end shopping journey including dyna
 | **Framework** | [Next.js 16](https://nextjs.org/) (App Router, Turbopack, Server Actions & Route Handlers) |
 | **Frontend Library** | [React 19](https://react.dev/) |
 | **Language** | [TypeScript 5](https://www.typescriptlang.org/) |
-| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) + PostCSS |
+| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/) + PostCSS, `nextjs-toploader`, `react-confetti` |
 | **Database & ODM** | [MongoDB Atlas](https://www.mongodb.com/) with [Mongoose 9](https://mongoosejs.com/) |
 | **Animations** | [Framer Motion 13](https://www.framer.com/motion/) |
-| **Icons** | [Lucide React](https://lucide.dev/) |
 | **Media & Assets** | [Cloudinary](https://cloudinary.com/) (`next-cloudinary`) |
-| **Auth & Security** | `jose` (JWT) + `bcryptjs` + HTTP-Only Cookies |
+| **Auth & Security** | [NextAuth.js](https://next-auth.js.org/) + Google OAuth + `bcryptjs` |
+| **Payments** | [Razorpay](https://razorpay.com/) |
+| **Notifications** | Telegram Bot API, [Nodemailer](https://nodemailer.com/) (SMTP) |
 
 ---
 
@@ -136,16 +141,41 @@ cp .env.example .env.local
 Fill in your configuration details in `.env.local`:
 
 ```env
-# Cloudinary Media Configuration
+# Site Configuration
+NEXT_PUBLIC_SITE_URL=https://www.terramensco.com
+
+# Cloudinary Media
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 
-# MongoDB Connection
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/terra?retryWrites=true&w=majority
+# Database
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/...
 
-# Authentication Secret (Minimum 32 characters)
-JWT_SECRET=your_super_secret_jwt_encryption_key_here
+# Authentication (NextAuth & Google OAuth)
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_key
+JWT_SECRET=your_jwt_encryption_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Payments (Razorpay)
+NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+
+# Email & Notifications (SMTP & Telegram)
+EMAIL_SERVER_HOST=smtp.your-email-provider.com
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=your_email@domain.com
+EMAIL_SERVER_PASSWORD=your_email_password
+EMAIL_FROM=your_email@domain.com
+ADMIN_EMAILS=admin1@domain.com,admin2@domain.com
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_CHAT_ID=your_telegram_chat_id
+
+# Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 ### 4. Seed the Database

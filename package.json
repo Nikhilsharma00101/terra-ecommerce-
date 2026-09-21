@@ -11,7 +11,9 @@
   "dependencies": {
     "@next/third-parties": "^16.3.5",
     "@types/bcryptjs": "^2.4.6",
+    "@types/canvas-confetti": "^1.9.0",
     "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.1",
@@ -21,11 +23,14 @@
     "next": "16.3.3",
     "next-auth": "^4.24.15",
     "next-cloudinary": "^6.18.8",
+    "nextjs-toploader": "^3.9.17",
     "nodemailer": "^7.0.13",
     "razorpay": "^2.9.8",
     "react": "19.2.8",
+    "react-confetti": "^6.4.0",
     "react-dom": "19.2.8",
     "react-error-boundary": "^6.1.5",
+    "react-use": "^17.6.1",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
