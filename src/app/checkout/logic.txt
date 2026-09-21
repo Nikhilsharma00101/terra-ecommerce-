@@ -1,0 +1,383 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import Script from 'next/script';
+import { useRouter } from 'next/navigation';
+import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { Logo } from '@/components/ui/Logo';
+import {
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  ArrowRight,
+  Truck,
+  Plus,
+  Minus,
+  Trash2,
+  Tag,
+  Gift,
+  Banknote,
+  Sparkles
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const StandardInput = ({
+  label,
+  type = 'text',
+  name,
+  value,
+  onChange,
+  required = false,
+  maxLength,
+  error,
+}: {
+  label: string;
+  type?: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  required?: boolean;
+  maxLength?: number;
+  error?: string;
+}) => (
+  <div className="w-full">
+    <label htmlFor={name} className="block text-[10px] uppercase tracking-wider text-[#181817] font-bold mb-2">
+      {label}
+    </label>
+    <input
+      type={type}
+      name={name}
+      id={name}
+      value={value}
+      onChange={onChange}
+      required={required}
+      maxLength={maxLength}
+      className={`w-full bg-[#FAF8F5] border ${error ? 'border-[#8B0000]' : 'border-[#DDD8CF]'} px-3.5 py-3 text-xs text-[#181817] placeholder-[#99948D] focus:outline-none focus:border-[#2D4438] transition-colors`}
+    />
+    {error && <p className="text-[10px] text-[#8B0000] mt-1.5 font-medium">{error}</p>}
+  </div>
+);
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const {
+    items,
+    subtotal,
+    clearCart,
+    updateQuantity,
+    removeItem,
+    freeShippingThreshold,
+    appliedCoupon,
+    discountAmount,
+    applyCoupon,
+    removeCoupon,
+  } = useCart();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Active Checkout Step: 1 = Contact & Shipping, 2 = Payment Method
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Form State
+  const [formData, setFormData] = useState({
+    phone: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    address1: '',
+    address2: '',
+    city: '',
+    state: 'Maharashtra',
+    postalCode: '',
+    paymentMethod: 'razorpay',
+  });
+
+  // Promo code state
+  const [couponInput, setCouponInput] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Saved Address States
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(true);
+
+  // Auto-fill logged in user info
+  useEffect(() => {
+    if (user) {
+      const names = (user.name || '').split(' ');
+      setFormData((prev) => ({
+        ...prev,
+        email: user.email || prev.email,
+        firstName: names[0] || prev.firstName,
+        lastName: names.slice(1).join(' ') || prev.lastName,
+        phone: user.phone || prev.phone,
+      }));
+
+      // Fetch precise saved addresses
+      fetch('/api/user/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.user?.addresses?.length > 0) {
+            setSavedAddresses(data.user.addresses);
+            
+            const defaultAddr = data.user.addresses.find((a: any) => a.isDefault) || data.user.addresses[0];
+            setSelectedAddressId(defaultAddr.id);
+            setIsAddingNewAddress(false);
+            
+            const defaultNames = defaultAddr.fullName ? defaultAddr.fullName.split(' ') : names;
+            setFormData(prev => ({
+              ...prev,
+              firstName: defaultNames[0] || prev.firstName,
+              lastName: defaultNames.slice(1).join(' ') || prev.lastName,
+              address1: defaultAddr.street || prev.address1,
+              city: defaultAddr.city || prev.city,
+              state: defaultAddr.state || prev.state,
+              postalCode: defaultAddr.postalCode || prev.postalCode,
+              phone: defaultAddr.phone || prev.phone,
+            }));
+          }
+        })
+        .catch(err => console.error('Error fetching addresses:', err));
+    }
+  }, [user]);
+
+  const handleAddressSelect = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setIsAddingNewAddress(false);
+    
+    const names = addr.fullName ? addr.fullName.split(' ') : (user?.name || '').split(' ');
+    
+    setFormData(prev => ({
+      ...prev,
+      firstName: names[0] || prev.firstName,
+      lastName: names.slice(1).join(' ') || prev.lastName,
+      address1: addr.street || '',
+      city: addr.city || '',
+      state: addr.state || 'Maharashtra',
+      postalCode: addr.postalCode || '',
+      phone: addr.phone || user?.phone || prev.phone,
+    }));
+    
+    setErrors({});
+  };
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Financial calculations
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const shippingCost = discountedSubtotal >= freeShippingThreshold ? 0 : 75;
+  const total = discountedSubtotal + shippingCost;
+  const amountToFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user types
+    if (errors[e.target.name]) {
+      setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
+    }
+  };
+
+  const validateStep1 = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (!formData.phone || formData.phone.replace(/\D/g, '').length < 10) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
+    }
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.address1.trim()) newErrors.address1 = 'Street address is required';
+    if (!formData.city.trim()) newErrors.city = 'City is required';
+    if (!formData.postalCode || formData.postalCode.length !== 6 || !/^\d{6}$/.test(formData.postalCode)) {
+      newErrors.postalCode = 'Enter a valid 6-digit PIN code';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Coupon apply handler
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError('');
+    setIsApplyingCoupon(true);
+    try {
+      const res = await applyCoupon(couponInput, formData.email || user?.email);
+      if (!res.success) {
+        setCouponError(res.error || 'Invalid coupon code. Try WELCOME10.');
+      } else {
+        setCouponInput('');
+      }
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  // Order submission
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+
+    try {
+      const orderPayload = {
+        customerEmail: formData.email,
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        customerPhone: formData.phone,
+        items: items.map((i) => ({
+          productId: i.product.id || i.product.slug,
+          name: i.product.name,
+          price: i.product.price,
+          quantity: i.quantity,
+          image:
+            i.product.featuredImage ||
+            (i.product.images && i.product.images.length > 0
+              ? i.product.images[0].url
+              : '') ||
+            '',
+        })),
+        couponCode: appliedCoupon || undefined,
+        paymentMethod: formData.paymentMethod,
+        shippingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          address1: formData.address1,
+          address2: formData.address2,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          country: 'India',
+        },
+      };
+
+      // 0. Auto-Save New Address if requested
+      if (user && isAddingNewAddress) {
+        try {
+          await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'add_address',
+              address: {
+                title: 'Home',
+                street: formData.address1,
+                city: formData.city,
+                state: formData.state,
+                postalCode: formData.postalCode,
+                phone: formData.phone,
+                isDefault: savedAddresses.length === 0, // Make default if it's their first
+              }
+            })
+          });
+        } catch (e) {
+          console.error('Failed to auto-save address', e);
+          // Non-blocking error, we still want to place the order
+        }
+      }
+
+      // 1. Pre-emptively create the DB Order first
+      const createOrderRes = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const createOrderData = await createOrderRes.json();
+      if (!createOrderRes.ok) {
+        throw new Error(createOrderData.error || 'Failed to create order');
+      }
+
+      const { orderNumber, razorpayOrderId, amount, currency } = createOrderData;
+
+      if (formData.paymentMethod !== 'cod') {
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: amount,
+          currency: currency,
+          name: 'Terra',
+          description: 'Purchase from Terra',
+          order_id: razorpayOrderId,
+          handler: async function (response: any) {
+            try {
+              // 2. Snappy Frontend Verification
+              const verifyRes = await fetch('/api/orders/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+
+              if (verifyRes.ok) {
+                clearCart();
+                router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+              } else {
+                const verifyData = await verifyRes.json();
+                alert('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
+                setIsProcessing(false);
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Payment processing error.');
+              setIsProcessing(false);
+            }
+          },
+          prefill: {
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email,
+            contact: formData.phone,
+          },
+          theme: {
+            color: '#181817',
+          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessing(false);
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (response: any) {
+          alert('Payment Failed: ' + response.error.description);
+          setIsProcessing(false);
+        });
+        rzp.open();
+      } else {
+        // COD logic: order is already created, just redirect
+        clearCart();
+        router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
+      }
+    } catch (err: any) {
+      console.error('Order creation error:', err);
+      if (formData.paymentMethod === 'cod') {
+        alert(err.message || 'An error occurred during order placement.');
+        setIsProcessing(false);
+      } else {
+        alert(err.message || 'An error occurred during payment initialization.');
+        setIsProcessing(false);
+      }
+    } finally {
+      if (formData.paymentMethod === 'cod') {
+        setIsProcessing(false);
+      }
+    }
+  };
+
+  if (isLoading || !isAuthenticated) {
+    
