@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Truck,
   Search,
@@ -36,6 +37,7 @@ import {
   Star,
   X,
 } from 'lucide-react';
+import { ErrorBoundary } from 'react-error-boundary';
 
 function AccountPageContent() {
   const { user, isAdmin, isLoading, logout, refreshUser } = useAuth();
@@ -46,6 +48,7 @@ function AccountPageContent() {
   const [activeTab, setActiveTab] = useState<
     'orders' | 'profile' | 'addresses' | 'wishlist' | 'replenishment'
   >('orders');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(true);
 
   useEffect(() => {
     if (tabParam && ['orders', 'profile', 'addresses', 'wishlist', 'replenishment'].includes(tabParam)) {
@@ -113,13 +116,14 @@ function AccountPageContent() {
   });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [userReviews, setUserReviews] = useState<any[]>([]);
 
   const openReviewModal = (item: any) => {
     setReviewModalItem(item);
     setReviewForm({ rating: 5, title: '', content: '', skinType: 'Normal / Combination', author: user?.name || '', location: '' });
     setReviewSuccess(false);
   };
-  
+
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewModalItem) return;
@@ -142,6 +146,7 @@ function AccountPageContent() {
       });
       if (!res.ok) throw new Error('Failed to submit');
       setReviewSuccess(true);
+      setUserReviews(prev => [...prev, { productSlug: reviewModalItem.productId, productName: reviewModalItem.name }]);
       setTimeout(() => {
         setReviewModalItem(null);
         setReviewSuccess(false);
@@ -213,8 +218,20 @@ function AccountPageContent() {
         })
         .catch((err) => console.error('Failed to load orders from DB:', err))
         .finally(() => setLoadingOrders(false));
+
+      // Fetch user's submitted reviews
+      if (user.email) {
+        fetch(`/api/reviews?email=${encodeURIComponent(user.email)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.reviews) {
+              setUserReviews(data.reviews);
+            }
+          })
+          .catch((err) => console.error('Failed to load user reviews from DB:', err));
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, isLoading]);
 
   // Robust DB Product Image Resolver
@@ -248,7 +265,7 @@ function AccountPageContent() {
       if (itemPid && (pId === itemPid || pSlug === itemPid)) return true;
       if (item?.slug && pSlug === item.slug.toLowerCase()) return true;
       if (itemName && (pName === itemName || pSlug === itemName)) return true;
-      
+
       // Keyword matching for Face Wash, Beard Oil, The Method Set
       if ((itemName.includes('face') || itemName.includes('wash') || itemPid.includes('face')) && (p.category === 'Face' || pSlug.includes('face'))) {
         return true;
@@ -529,1258 +546,1117 @@ function AccountPageContent() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#F9F8F5] text-[#181817] font-sans antialiased pb-24 select-none">
+    <div className="min-h-screen bg-[#FAF9F5] text-[#1A1C1A] font-sans antialiased pb-24">
       
-      {/* ========================================================================= */}
-      {/* 1. MEMBER HERO HEADER (Matching Terra Luxury Dispensary Aesthetic)       */}
-      {/* ========================================================================= */}
-      <section className="bg-[#121212] text-white border-b border-white/10 relative overflow-hidden">
-        {/* Ambient Subtle Botanical Glow */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#2D4438]/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-72 h-72 bg-[#8B0000]/10 rounded-full blur-2xl pointer-events-none" />
+      {/* Mobile Back Button (Only visible on mobile when a tab is active) */}
+      <div className={`lg:hidden ${mobileMenuOpen ? 'hidden' : 'flex'} bg-[#F4F4F0] sticky top-0 z-40 border-b border-[#E2E3DF] px-4 py-4 items-center gap-3 shadow-sm`}>
+        <button 
+          onClick={() => setMobileMenuOpen(true)} 
+          className="p-1 -ml-1 text-[#45464C] hover:text-[#1A1C1A] transition-colors rounded-md hover:bg-[#E2E3DF]"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <span className="font-serif text-lg text-[#1A1C1A]">
+          {activeTab === 'orders' ? 'Order History' : 
+           activeTab === 'wishlist' ? 'Saved Wishlist' : 
+           activeTab === 'replenishment' ? 'Auto-Replenish' : 
+           activeTab === 'addresses' ? 'Delivery Addresses' : 'Profile & Security'}
+        </span>
+      </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
-          
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-gray-400 mb-6">
-            <Link href="/" className="hover:text-white transition-colors">
-              Home
-            </Link>
-            <span className="opacity-40">/</span>
-            <span className="text-white font-semibold">Client Portal</span>
-          </div>
+      <div className={`w-full max-w-[1440px] mx-auto px-0 pt-0 ${!mobileMenuOpen ? 'hidden lg:block' : 'block'}`}>
 
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            
-            {/* User Identity & Avatar */}
-            <div className="flex items-center gap-5 sm:gap-6">
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#1E1E1E] to-[#121212] border border-white/15 flex items-center justify-center shadow-xl shrink-0">
-                <span className="font-serif text-2xl sm:text-3xl font-normal tracking-widest text-[#C4A482]">
-                  {userInitials}
-                </span>
-                <span className="absolute -bottom-1 -right-1 bg-[#2D4438] text-white p-1 rounded-full text-[10px] shadow-sm" title="Verified Member">
-                  <Check size={11} strokeWidth={3} />
-                </span>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-                  <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-[#C4A482] font-semibold bg-[#2D4438]/40 px-2.5 py-0.5 rounded-full border border-[#2D4438]/60">
+        {/* Top Welcome & Tier Header Area */}
+        <div className="bg-[#F4F4F0] rounded-none p-6 md:p-8 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div className="flex flex-col gap-2 min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#baebd1] text-[#3e6b57] text-[11px] font-semibold uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#3A6753]"></span>
                     {user.tier || 'Terra Member'}
                   </span>
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="inline-flex items-center gap-1.5 text-[9px] bg-white text-[#181817] hover:bg-[#8B0000] hover:text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider transition-colors shadow-sm"
-                    >
-                      <ShieldCheck size={11} />
-                      <span>Executive Admin</span>
-                    </Link>
-                  )}
-                </div>
 
-                <h1 className="font-serif text-2xl sm:text-4xl text-white font-light tracking-tight">
-                  Welcome, {user.name}
-                </h1>
-                <p className="text-xs text-gray-400 font-mono mt-1 flex items-center gap-2 flex-wrap">
-                  <span>{user.email}</span>
-                  {user.phone && (
-                    <>
-                      <span>•</span>
-                      <span>{user.phone}</span>
-                    </>
+                </div>
+                <div className="flex items-center gap-3 sm:gap-4 mt-1 min-w-0 w-full">
+                  {user.image && (
+                    <div className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full overflow-hidden shrink-0 border-2 border-[#FFFFFF]">
+                      <Image src={user.image} alt={user.name} fill className="object-cover" />
+                    </div>
                   )}
-                  <span>•</span>
-                  <span>Member Since {user.createdAt ? new Date(user.createdAt).getFullYear() : new Date().getFullYear()}</span>
-                </p>
-              </div>
+                  <h1 className="font-serif text-xl sm:text-5xl text-[#1A1C1A] tracking-tight font-normal truncate w-full">
+                    Welcome back, <span className="italic font-light text-[#8B0000]">{user.name.split(' ')[0]}</span>
+                  </h1>
+                </div>
+              <p className="hidden sm:block text-[13px] text-[#45464C] max-w-xl mt-2 leading-relaxed">
+                Welcome to your private Terra sanctuary. Manage your artisanal skincare formulations, curate future acquisitions, and oversee your customized replenish cadence.
+              </p>
             </div>
 
-            {/* Quick Metrics Bar & Sign Out */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-center sm:text-left shadow-2xs backdrop-blur-xs">
-                <span className="text-[9px] font-mono uppercase tracking-widest text-gray-400 block">
-                  Orders Placed
-                </span>
-                <span className="font-serif text-xl sm:text-2xl text-white font-normal">
-                  {orders.length}
-                </span>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-center sm:text-left shadow-2xs backdrop-blur-xs">
-                <span className="text-[9px] font-mono uppercase tracking-widest text-gray-400 block">
-                  Saved Wishlist
-                </span>
-                <span className="font-serif text-xl sm:text-2xl text-[#C4A482] font-normal">
-                  {wishlist.length}
-                </span>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-center sm:text-left shadow-2xs backdrop-blur-xs">
-                <span className="text-[9px] font-mono uppercase tracking-widest text-gray-400 block">
-                  Shipping Status
-                </span>
-                <span className="text-xs font-mono font-bold text-white block mt-0.5">
-                  Complimentary Express
-                </span>
-              </div>
-
+            <div className="flex items-center gap-3 w-full lg:w-auto mt-4 lg:mt-0">
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="flex-1 lg:flex-none justify-center inline-flex items-center gap-2 px-2 sm:px-4 py-2 rounded-lg bg-[#8B0000]/10 text-[#8B0000] hover:bg-[#8B0000]/20 transition-colors text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-center"
+                >
+                  <ShieldCheck size={16} className="shrink-0" />
+                  <span className="truncate">Admin Console</span>
+                </Link>
+              )}
               <button
                 onClick={() => logout()}
-                className="inline-flex items-center gap-2 text-xs uppercase tracking-widest font-mono text-gray-400 hover:text-white border border-white/15 hover:border-white/40 hover:bg-white/10 px-4 py-3 rounded-xl transition-all cursor-pointer"
+                className="flex-1 lg:flex-none justify-center inline-flex items-center gap-2 px-2 sm:px-4 py-2 rounded-lg bg-[#E2E3DF] text-[#45464C] hover:text-[#1A1C1A] hover:bg-[#dadad6] transition-colors text-[11px] sm:text-[12px] font-medium uppercase tracking-wider text-center"
               >
-                <LogOut size={14} />
+                <LogOut size={16} className="shrink-0" />
                 <span>Sign Out</span>
               </button>
             </div>
-
           </div>
+
+
         </div>
-      </section>
+      </div>
 
-      {/* ========================================================================= */}
-      {/* 2. MAIN LAYOUT (SIDEBAR + ACTIVE TAB)                                    */}
-      {/* ========================================================================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10">
+        {/* ========================================================================= */}
+        {/* 2. MAIN LAYOUT (SIDEBAR + ACTIVE TAB)                                    */}
+        {/* ========================================================================= */}
+      <div className="max-w-7xl mx-auto px-0 pt-0 lg:pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-          
-          {/* LEFT SIDEBAR: TAB SWITCHER (4 COLS) */}
-          <div className="lg:col-span-4 space-y-5">
-            <div className="bg-white border border-[#E8E4DC] rounded-2xl p-2.5 space-y-1 shadow-xs">
-              {[
-                {
-                  id: 'orders',
-                  label: 'Order History',
-                  subtitle: 'Tracking & past purchases',
-                  icon: Package,
-                  badge: orders.length,
-                },
-                {
-                  id: 'wishlist',
-                  label: 'Saved Wishlist',
-                  subtitle: 'Botanical favorites',
-                  icon: Heart,
-                  badge: wishlist.length,
-                },
-                {
-                  id: 'replenishment',
-                  label: 'Auto-Replenishment',
-                  subtitle: 'Routine cycle & 10% privilege',
-                  icon: RefreshCw,
-                  badge: isReplenishPaused ? 'Paused' : 'Active',
-                },
-                {
-                  id: 'addresses',
-                  label: 'Delivery Addresses',
-                  subtitle: 'Shipping destinations',
-                  icon: MapPin,
-                  badge: savedAddresses.length,
-                },
-                {
-                  id: 'profile',
-                  label: 'Profile & Security',
-                  subtitle: 'Personal info & encryption',
-                  icon: UserIcon,
-                },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full flex items-center justify-between p-3.5 sm:p-4 text-left transition-all cursor-pointer rounded-xl ${
-                      isActive
-                        ? 'bg-[#181817] text-white shadow-sm'
-                        : 'text-[#55524D] hover:bg-[#F9F8F5] hover:text-[#181817]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                          isActive
-                            ? 'bg-white/10 text-white'
-                            : 'bg-[#F4F1EB] text-[#55524D]'
+          {/* ASYMMETRIC 3-COLUMN SIDEBAR */}
+          <div className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 ${!mobileMenuOpen ? 'hidden lg:flex' : 'flex'}`}>
+            {/* Navigation Card */}
+            <div className="bg-[#FFFFFF] rounded-xl p-2 shadow-sm flex flex-col gap-1">
+                {[
+                  { id: 'orders', label: 'Order History', icon: Package, badge: orders.length > 0 ? `${orders.length} Active` : undefined },
+                  { id: 'wishlist', label: 'Saved Wishlist', icon: Heart, badge: wishlist.length > 0 ? wishlist.length : undefined },
+                  { id: 'replenishment', label: 'Auto-Replenish', icon: RefreshCw, badge: !isReplenishPaused ? 'Active' : undefined },
+                  { id: 'addresses', label: 'Delivery Addresses', icon: MapPin, badge: savedAddresses.length > 0 ? savedAddresses.length : undefined },
+                  { id: 'profile', label: 'Profile & Security', icon: ShieldCheck, badge: 'Verified' },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-all ${isActive
+                        ? 'bg-[#000000] text-[#FFFFFF] font-medium'
+                        : 'text-[#45464C] hover:bg-[#F4F4F0] hover:text-[#1A1C1A]'
                         }`}
-                      >
-                        <Icon size={16} />
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon size={20} className={isActive ? 'text-[#FFFFFF]' : 'text-[#45464C]'} />
+                        <span className="text-[15px] font-medium">{tab.label}</span>
                       </div>
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider block font-sans">
-                          {tab.label}
+                      {tab.badge && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${isActive ? 'bg-[#2f312e] text-[#FFFFFF]' : 'bg-[#EEEEEA] text-[#45464C]'
+                          }`}>
+                          {tab.badge}
                         </span>
-                        <span
-                          className={`text-[11px] block mt-0.5 ${
-                            isActive ? 'text-gray-300' : 'text-[#88847D]'
-                          }`}
-                        >
-                          {tab.subtitle}
-                        </span>
-                      </div>
-                    </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                    {tab.badge !== undefined && (
-                      <span
-                        className={`text-[10px] font-mono px-2 py-0.5 font-bold rounded-full ${
-                          isActive
-                            ? 'bg-white/20 text-white'
-                            : 'bg-[#F4F1EB] text-[#181817]'
-                        }`}
-                      >
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* Curated Additions Section */}
+            <div className="mt-6 mb-8 lg:mb-0 px-2 block">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-mono text-[#77736C] mb-4">Curated Additions</h3>
+              <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {products.map((product, i) => (
+                  <Link href={`/products/${product.slug}`} key={product.slug || i} className="group flex gap-3 p-3 bg-[#FFFFFF] rounded-xl border border-[#E5E0D8]/50 shadow-xs hover:border-[#D5D0C8] transition-colors">
+                    <div className="relative w-16 h-20 bg-[#F4F4F0] rounded-lg overflow-hidden shrink-0">
+                      <Image src={getProductImage(product)} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#77736C] mb-0.5">{product.category}</span>
+                      <h4 className="font-serif text-[15px] text-[#181817] group-hover:text-[#3A6753] transition-colors leading-tight">{product.name}</h4>
+                      <span className="text-[11px] font-medium text-[#181817] mt-1.5">₹{product.price.toLocaleString('en-IN')}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            {/* Admin Panel Quick Link Card (if Admin) */}
-            {isAdmin && (
-              <div className="bg-[#181817] text-white p-5 rounded-2xl border border-white/10 shadow-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#C4A482] font-bold">
-                    Executive Access
-                  </span>
-                  <Crown size={15} className="text-[#C4A482]" />
-                </div>
-                <h4 className="font-serif text-lg text-white">Terra Admin Portal</h4>
-                <p className="text-xs text-gray-400 leading-relaxed font-light">
-                  Manage inventory catalog, review global orders, monitor revenue, and inspect database.
+              {/* Curatorial Quote Accent */}
+              <div className="p-4 bg-[#EEEEEA] rounded-xl hidden lg:block">
+                <p className="font-serif text-lg italic text-[#1A1C1A] font-normal leading-relaxed">
+                  "Skincare is not vanity; it is the quiet ritual of self-preservation."
                 </p>
-                <Link
-                  href="/admin"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-[#2D4438] hover:bg-white hover:text-[#181817] text-white py-2.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mt-1"
-                >
-                  <span>Open Admin Portal</span>
-                  <ArrowRight size={13} />
-                </Link>
-              </div>
-            )}
-
-            {/* Concierge Support Callout */}
-            <div className="bg-white border border-[#E8E4DC] rounded-2xl p-5 text-xs space-y-2.5 shadow-xs">
-              <div className="flex items-center gap-2 text-[#2D4438] font-bold uppercase tracking-wider text-[11px]">
-                <Award size={15} />
-                <span>Concierge Client Support</span>
-              </div>
-              <p className="text-[#66625C] leading-relaxed font-light">
-                Questions regarding formulation layering or skin compatibility? Our specialists are available 7 days a week.
-              </p>
-              <div className="pt-2 border-t border-[#EAE6DF] flex items-center justify-between font-mono text-[10px] text-[#77736C]">
-                <span>support@terra.com</span>
-                <span className="text-[#2D4438] font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2D4438] animate-pulse" />
-                  Active
+                <span className="text-[11px] uppercase tracking-widest text-[#45464C] block mt-3 font-medium">
+                  — Terra Pharmacopoeia Notes
                 </span>
               </div>
             </div>
 
-          </div>
-
-          {/* RIGHT CONTENT DISPLAY AREA (8 COLS) */}
-          <div className="lg:col-span-8">
+            {/* RIGHT CONTENT DISPLAY AREA (9 COLS) */}
+          <div className={`lg:col-span-9 lg:pl-6 ${mobileMenuOpen ? 'hidden lg:block' : 'block'}`}>
             <AnimatePresence mode="wait">
-              
-              {/* ===================================================================== */}
-              {/* TAB 1: ORDER HISTORY                                                  */}
-              {/* ===================================================================== */}
-              {activeTab === 'orders' && (
-                <motion.div
-                  key="orders-tab"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  {/* Top Bar Header & Controls */}
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="font-serif text-2xl text-[#181817] font-medium">Order History</h2>
-                      <p className="text-xs text-[#77736C] font-mono mt-1">
-                        Track live courier dispatches and view complete purchase history
-                      </p>
+
+                {/* ===================================================================== */}
+                {/* TAB 1: ORDER HISTORY                                                  */}
+                {/* ===================================================================== */}
+                {activeTab === 'orders' && (
+                  <motion.div
+                    key="orders-tab"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-6"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-serif text-2xl text-[#1A1C1A]">Order Archives</h2>
+                        <p className="text-[13px] text-[#45464C]">Review lifetime deliveries, track packages in formulation, and download archival invoices.</p>
+                      </div>
                     </div>
 
-                    {/* Filter Pills */}
-                    <div className="flex items-center gap-1 bg-[#F4F1EB] p-1 rounded-xl self-start sm:self-auto">
-                      {(['all', 'Processing', 'Shipped', 'Delivered'] as const).map((st) => (
-                        <button
-                          key={st}
-                          onClick={() => setOrderFilter(st)}
-                          className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
-                            orderFilter === st
-                              ? 'bg-[#181817] text-white shadow-xs'
-                              : 'text-[#66625C] hover:text-[#181817]'
-                          }`}
-                        >
-                          {st}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Search Bar */}
-                  {orders.length > 0 && (
-                    <div className="relative">
-                      <Search size={15} className="absolute left-3.5 top-3.5 text-[#8C887B]" />
-                      <input
-                        type="text"
-                        placeholder="Search orders by order number or product name..."
-                        value={orderSearch}
-                        onChange={(e) => setOrderSearch(e.target.value)}
-                        className="w-full bg-white border border-[#E8E4DC] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#181817] placeholder:text-[#8C887B] focus:outline-none focus:border-[#181817] shadow-xs transition-colors"
-                      />
-                    </div>
-                  )}
-
-                  {/* Orders Cards List */}
-                  {loadingOrders ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center text-xs font-mono text-[#77736C] shadow-xs flex items-center justify-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-[#2D4438]" />
-                      <span>Fetching client orders from dispensary database...</span>
-                    </div>
-                  ) : filteredOrders.length === 0 ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center shadow-xs">
-                      <Package size={40} className="mx-auto text-[#BBB6AE] mb-3" />
-                      <h3 className="font-serif text-xl text-[#181817] mb-1">No orders found</h3>
-                      <p className="text-xs text-[#77736C] max-w-sm mx-auto mb-5 font-light">
-                        {orderSearch || orderFilter !== 'all'
-                          ? 'No orders matched your current search or status filter criteria.'
-                          : 'Explore our botanical grooming formulations and begin your daily routine.'}
-                      </p>
-                      <Link
-                        href="/shop"
-                        className="inline-flex items-center gap-2 bg-[#181817] hover:bg-[#8B0000] text-white px-6 py-2.5 rounded-xl text-xs uppercase tracking-[0.2em] font-bold transition-all shadow-xs"
-                      >
-                        <span>Explore Formulations</span>
-                        <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  ) : (
-                    filteredOrders.map((order) => {
-                      const isDelivered = order.status === 'Delivered';
-                      const isShipped = order.status === 'Shipped';
-
-                      return (
-                        <div
-                          key={order._id || order.id || order.orderNumber}
-                          className="bg-white border border-[#E8E4DC] hover:border-[#181817] rounded-2xl p-6 sm:p-7 space-y-5 shadow-xs hover:shadow-md transition-all"
-                        >
-                          {/* Order Card Header */}
-                          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#EAE6DF] pb-4">
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <span className="font-mono text-sm font-bold text-[#181817]">
-                                  {order.orderNumber}
-                                </span>
-                                <span
-                                  className={`inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wider px-2.5 py-0.5 font-bold rounded-full ${
-                                    isDelivered
-                                      ? 'bg-[#2D4438]/10 text-[#2D4438] border border-[#2D4438]/30'
-                                      : isShipped
-                                      ? 'bg-blue-50 text-blue-800 border border-blue-200'
-                                      : 'bg-amber-50 text-amber-800 border border-amber-200'
-                                  }`}
-                                >
-                                  {isDelivered ? (
-                                    <CheckCircle2 size={11} />
-                                  ) : isShipped ? (
-                                    <Truck size={11} />
-                                  ) : (
-                                    <Clock size={11} />
-                                  )}
-                                  <span>{order.status}</span>
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-[#77736C] font-mono mt-1">
-                                Placed on{' '}
-                                {new Date(order.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString(
-                                  'en-IN',
-                                  {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                  }
-                                )}
-                                {' • '}
-                                <span className="uppercase">{order.paymentMethod || 'UPI'}</span>
-                                {order.paymentStatus && (
-                                  <span className="ml-1 text-[#2D4438]">({order.paymentStatus})</span>
-                                )}
-                              </p>
-                            </div>
-
-                            <div className="text-right">
-                              <span className="text-[9px] font-mono uppercase tracking-wider text-[#77736C] block">
-                                Total Paid
-                              </span>
-                              <span className="font-mono text-base font-bold text-[#181817]">
-                                ₹{order.total?.toLocaleString('en-IN')}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Order Items List — Always rendered with live DB Cloudinary images */}
-                          <div className="space-y-3.5">
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {order.items?.map((item: any, idx: number) => {
-                              const itemImgSrc = getOrderItemImage(item);
-                              return (
-                                <div key={idx} className="flex items-center justify-between gap-4">
-                                  <div className="flex items-center gap-4">
-                                    <div className="relative w-14 h-14 bg-[#1A1918] rounded-xl shrink-0 overflow-hidden border border-[#EAE6DF]">
-                                      <Image
-                                        src={itemImgSrc}
-                                        alt={item.name}
-                                        fill
-                                        className="object-cover"
-                                        sizes="56px"
-                                      />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="text-xs font-bold text-[#181817] truncate">
-                                        {item.name}
-                                      </h4>
-                                      <p className="text-[11px] text-[#77736C] font-mono mt-0.5">
-                                        Quantity: {item.quantity} • ₹{item.price} each
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-2 shrink-0">
-                                    <span className="font-mono text-xs font-semibold text-[#181817]">
-                                      ₹{item.price * item.quantity}
-                                    </span>
-                                    {isDelivered && (
-                                      <button
-                                        onClick={() => openReviewModal(item)}
-                                        className="text-[10px] uppercase font-mono tracking-widest font-bold text-[#2D4438] underline cursor-pointer hover:text-[#181817]"
-                                      >
-                                        Leave a Review
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Tracking & Courier Status Box */}
-                          <div className="bg-[#FAF8F5] p-3.5 rounded-xl border border-[#EAE6DF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                            <div className="flex items-center gap-2 text-[#55524D]">
-                              <Truck size={14} className="text-[#2D4438]" />
-                              <span>
-                                Express Courier Dispatch:{' '}
-                                <strong className="text-[#181817]">
-                                  {order.trackingNumber || 'BlueDart Air Express (TR-IN-8891)'}
-                                </strong>
-                              </span>
-                            </div>
-
-                            <span className="text-[9px] uppercase font-bold text-[#2D4438] font-mono bg-white px-2.5 py-1 rounded-full border border-[#E5E0D8] self-start sm:self-auto shadow-2xs">
-                              {isDelivered ? 'Delivered to Destination' : 'In Transit across India'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </motion.div>
-              )}
-
-              {/* ===================================================================== */}
-              {/* TAB 2: SAVED WISHLIST                                                 */}
-              {/* ===================================================================== */}
-              {activeTab === 'wishlist' && (
-                <motion.div
-                  key="wishlist-tab"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-                    <div>
-                      <h2 className="font-serif text-2xl text-[#181817] font-medium">Saved Formulations</h2>
-                      <p className="text-xs text-[#77736C] font-mono mt-1">
-                        Your curated dispensary selection for face and beard care
-                      </p>
-                    </div>
-                    <span className="text-xs text-[#2D4438] font-mono font-bold bg-[#2D4438]/10 px-3 py-1 rounded-full">
-                      {wishlistedProducts.length} Saved
-                    </span>
-                  </div>
-
-                  {loadingProducts ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center text-xs font-mono text-[#77736C] shadow-xs flex items-center justify-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-[#2D4438]" />
-                      <span>Loading saved formulations from catalog...</span>
-                    </div>
-                  ) : wishlistedProducts.length === 0 ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center shadow-xs">
-                      <Heart size={36} className="mx-auto text-[#BBB6AE] mb-3" />
-                      <h3 className="font-serif text-xl text-[#181817] mb-1">Your wishlist is empty</h3>
-                      <p className="text-xs text-[#77736C] max-w-sm mx-auto mb-5 font-light">
-                        Explore our botanical grooming essentials and tap the heart icon on any card to save it here.
-                      </p>
-                      <Link
-                        href="/shop"
-                        className="inline-flex items-center gap-2 bg-[#181817] hover:bg-[#8B0000] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-xs"
-                      >
-                        <span>Explore Catalog</span>
-                        <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      {wishlistedProducts.map((p, idx) => {
-                        const itemKey = p._id || p.id || p.slug || `wish-${idx}`;
-                        const imgSrc = getProductImage(p);
-
-                        return (
-                          <div
-                            key={itemKey}
-                            className="bg-white border border-[#E8E4DC] rounded-2xl p-4 flex flex-col justify-between hover:border-[#181817] hover:shadow-md transition-all group shadow-xs"
+                    {/* Filter & Search Controls */}
+                    <div className="bg-[#FFFFFF] rounded-xl p-3 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+                      <div className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-hide">
+                        {(['all', 'Processing', 'Shipped', 'Delivered'] as const).map((st) => (
+                          <button
+                            key={st}
+                            onClick={() => setOrderFilter(st)}
+                            className={`px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all whitespace-nowrap ${orderFilter === st
+                              ? 'bg-[#000000] text-[#FFFFFF]'
+                              : 'bg-[#F4F4F0] text-[#45464C] hover:text-[#1A1C1A]'
+                              }`}
                           >
-                            <div>
-                              {/* Product Image — Fixed edge-to-edge luxury object-cover with DB Cloudinary source */}
-                              <div className="relative aspect-4/3 bg-[#1A1918] mb-3.5 overflow-hidden rounded-xl">
+                            {st === 'all' ? `All (${orders.length})` : st}
+                          </button>
+                        ))}
+                      </div>
+                      {orders.length > 0 && (
+                        <div className="relative w-full md:w-64">
+                          <Search size={16} className="absolute left-3 top-2 text-[#c6c6cd]" />
+                          <input
+                            type="text"
+                            placeholder="Search orders or items..."
+                            value={orderSearch}
+                            onChange={(e) => setOrderSearch(e.target.value)}
+                            className="w-full pl-9 pr-3 py-1.5 bg-[#F4F4F0] rounded-lg text-[13px] text-[#1A1C1A] placeholder:text-[#c6c6cd] focus:outline-none focus:bg-[#FFFFFF] focus:ring-1 focus:ring-[#E2E3DF] transition-colors"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Orders List */}
+                    <div className="flex flex-col gap-4">
+                      {loadingOrders ? (
+                        <div className="py-12 text-center text-sm text-[#45464C] flex flex-col items-center gap-2">
+                          <Loader2 size={24} className="animate-spin text-[#3A6753]" />
+                          <span>Fetching archival orders...</span>
+                        </div>
+                      ) : filteredOrders.length === 0 ? (
+                        <div className="p-12 bg-[#FFFFFF] rounded-xl text-center shadow-sm">
+                          <Package size={48} className="mx-auto text-[#c6c6cd] mb-3" strokeWidth={1} />
+                          <h3 className="font-serif text-xl text-[#1A1C1A]">No records matching your search</h3>
+                          <p className="text-[13px] text-[#45464C] mt-1 max-w-sm mx-auto mb-4">
+                            Try adjusting your query or filter pills to review other time periods.
+                          </p>
+                          {orderFilter !== 'all' ? (
+                            <button
+                              onClick={() => setOrderFilter('all')}
+                              className="px-4 py-2 bg-[#000000] text-[#FFFFFF] rounded-lg text-[12px] uppercase tracking-wider font-medium"
+                            >
+                              Reset Filters
+                            </button>
+                          ) : (
+                            <Link
+                              href="/shop"
+                              className="inline-block px-4 py-2 bg-[#000000] text-[#FFFFFF] rounded-lg text-[12px] uppercase tracking-wider font-medium"
+                            >
+                              Explore Catalog
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        filteredOrders.map((order) => {
+                          const isDelivered = order.status === 'Delivered';
+                          const isShipped = order.status === 'Shipped';
+                          const isProcessing = order.status === 'Processing';
+
+                          return (
+                            <article
+                              key={order._id || order.id || order.orderNumber}
+                              className="bg-[#FFFFFF] rounded-xl p-5 md:p-6 shadow-sm transition-all hover:shadow-md"
+                            >
+                              <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#E2E3DF] gap-2">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <span className="text-[15px] text-[#1A1C1A] font-semibold">
+                                    Order #{order.orderNumber}
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${isDelivered ? 'bg-[#baebd1] text-[#3e6b57]' : isShipped ? 'bg-[#F4F4F0] text-[#1A1C1A]' : 'bg-[#E2E3DF] text-[#45464C]'
+                                    }`}>
+                                    {isDelivered && <CheckCircle2 size={12} />}
+                                    {isShipped && <Truck size={12} />}
+                                    {isProcessing && <Clock size={12} />}
+                                    <span>{order.status}</span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-[13px] text-[#45464C]">
+                                    Placed {new Date(order.createdAt || '2024-01-01').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </span>
+                                  <span className="text-[15px] text-[#1A1C1A] font-medium">₹{order.total?.toLocaleString('en-IN')}</span>
+                                </div>
+                              </div>
+
+                              {/* Premium Animated Visual Progress Stepper */}
+                              <div className="py-8 px-2 sm:px-4">
+                                <div className="relative flex items-center justify-between max-w-2xl mx-auto">
+                                  {/* Background Track */}
+                                  <div className="absolute left-0 top-5 h-1 w-full bg-[#F4F4F0] rounded-full z-0"></div>
+                                  
+                                  {/* Animated Fill Track */}
+                                  <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: isDelivered ? '100%' : isShipped ? '66%' : '33%' }}
+                                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+                                    className="absolute left-0 top-5 h-1 bg-[#3A6753] rounded-full z-0 shadow-[0_0_8px_rgba(58,103,83,0.4)]"
+                                  ></motion.div>
+
+                                  {/* Steps */}
+                                  {[
+                                    { label: 'Placed', active: true, icon: CheckCircle2 },
+                                    { label: 'Formulated', active: isShipped || isDelivered, icon: isShipped || isDelivered ? CheckCircle2 : Package },
+                                    { label: 'Dispatched', active: isShipped || isDelivered, icon: isDelivered ? CheckCircle2 : isShipped ? Truck : Truck },
+                                    { label: 'Delivered', active: isDelivered, icon: isDelivered ? CheckCircle2 : MapPin }
+                                  ].map((step, idx) => {
+                                    const isCurrentStep = 
+                                      (idx === 3 && isDelivered) || 
+                                      (idx === 2 && isShipped && !isDelivered) || 
+                                      (idx === 1 && !isShipped && !isDelivered);
+
+                                    return (
+                                      <div key={idx} className="flex flex-col items-center gap-3 z-10 w-16 sm:w-24">
+                                        <div className="bg-[#FFFFFF] px-2 py-1 relative">
+                                          {isCurrentStep && (
+                                            <motion.div 
+                                              initial={{ scale: 0.8, opacity: 0 }}
+                                              animate={{ scale: 1.5, opacity: 0 }}
+                                              transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
+                                              className="absolute inset-0 rounded-full bg-[#3A6753]/20 z-0 m-1"
+                                            />
+                                          )}
+                                          <motion.div
+                                            initial={{ scale: 0.5, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ duration: 0.5, delay: 0.3 + (idx * 0.15), type: "spring", stiffness: 200 }}
+                                            className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors duration-700 z-10 ${
+                                              step.active 
+                                                ? 'bg-[#3A6753] border-[#3A6753] text-[#FFFFFF]' 
+                                                : 'bg-[#FFFFFF] border-[#E2E3DF] text-[#c6c6cd]'
+                                            }`}
+                                          >
+                                            <step.icon size={16} className={isCurrentStep && !isDelivered ? "animate-pulse" : ""} />
+                                          </motion.div>
+                                        </div>
+                                        <motion.span 
+                                          initial={{ opacity: 0, y: 5 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ duration: 0.4, delay: 0.6 + (idx * 0.1) }}
+                                          className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold text-center ${
+                                            step.active ? 'text-[#1A1C1A]' : 'text-[#c6c6cd]'
+                                          }`}
+                                        >
+                                          {step.label}
+                                        </motion.span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Products List */}
+                              <div className="flex flex-col gap-4">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {order.items?.map((item: any, idx: number) => {
+                                  const itemImgSrc = getOrderItemImage(item);
+                                  return (
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-3">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-16 h-16 rounded-lg bg-[#F4F4F0] overflow-hidden flex-shrink-0">
+                                          <Image src={itemImgSrc} alt={item.name} width={64} height={64} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div>
+                                          <h3 className="text-[15px] text-[#1A1C1A] font-medium">{item.name}</h3>
+                                          <p className="text-[13px] text-[#45464C]">Qty: {item.quantity} · ₹{item.price}</p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 self-start sm:self-auto mt-2 sm:mt-0">
+                                        {isDelivered && !userReviews.some(r => r.productSlug === item.productId || r.productSlug === item.slug) && (
+                                          <button
+                                            onClick={() => openReviewModal(item)}
+                                            className="px-4 py-2 rounded-lg bg-[#000000] text-[#FFFFFF] hover:opacity-90 text-[12px] uppercase tracking-wider flex items-center gap-1.5 transition-opacity"
+                                          >
+                                            <Star size={14} />
+                                            Leave a Review
+                                          </button>
+                                        )}
+                                        {!isDelivered && isShipped && (
+                                          <button className="px-4 py-2 rounded-lg bg-[#F4F4F0] text-[#1A1C1A] hover:bg-[#E2E3DF] text-[12px] uppercase tracking-wider transition-colors">
+                                            Track Status
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Order Card Footer */}
+                              <div className="pt-4 mt-4 border-t border-[#E2E3DF] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[13px] text-[#45464C]">
+                                <div className="flex items-center gap-2">
+                                  <ShieldCheck size={16} />
+                                  <span>{order.paymentMethod || 'UPI'} Payment Confirmed</span>
+                                </div>
+                                <span>{order.trackingNumber ? `Courier: ${order.trackingNumber}` : 'Standard Shipping'}</span>
+                              </div>
+                            </article>
+                          );
+                        })
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ===================================================================== */}
+                {/* TAB 2: SAVED WISHLIST                                                 */}
+                {/* ===================================================================== */}
+                {activeTab === 'wishlist' && (
+                  <motion.div
+                    key="wishlist-tab"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-6"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-serif text-2xl text-[#1A1C1A]">Curated Wishlist</h2>
+                        <p className="text-[13px] text-[#45464C]">Archived selections reserved for personal formulation or gifting.</p>
+                      </div>
+                      <span className="text-[12px] uppercase tracking-widest text-[#45464C] font-medium self-start sm:self-auto">
+                        {wishlistedProducts.length} Items Saved
+                      </span>
+                    </div>
+
+                    {loadingProducts ? (
+                      <div className="py-12 text-center text-sm text-[#45464C] flex flex-col items-center gap-2">
+                        <Loader2 size={24} className="animate-spin text-[#3A6753]" />
+                        <span>Loading saved formulations...</span>
+                      </div>
+                    ) : wishlistedProducts.length === 0 ? (
+                      <div className="p-12 bg-[#FFFFFF] rounded-xl text-center shadow-sm">
+                        <Heart size={48} className="mx-auto text-[#c6c6cd] mb-3" strokeWidth={1} />
+                        <h3 className="font-serif text-xl text-[#1A1C1A]">Your curatorial wishlist is empty</h3>
+                        <p className="text-[13px] text-[#45464C] mt-1 max-w-sm mx-auto mb-4">
+                          Explore our formulations to preserve your customized regimens.
+                        </p>
+                        <Link
+                          href="/shop"
+                          className="inline-block px-6 py-2.5 bg-[#000000] text-[#FFFFFF] rounded-lg text-[12px] uppercase tracking-wider font-medium"
+                        >
+                          Explore Catalog
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {wishlistedProducts.map((p, idx) => {
+                          const itemKey = p._id || p.id || p.slug || `wish-${idx}`;
+                          const imgSrc = getProductImage(p);
+
+                          return (
+                            <article
+                              key={itemKey}
+                              className="bg-[#FFFFFF] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col"
+                            >
+                              <div className="relative h-64 bg-[#F4F4F0] overflow-hidden group">
                                 <Image
                                   src={imgSrc}
                                   alt={p.name}
                                   fill
                                   className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                  sizes="(max-width: 768px) 100vw, 50vw"
+                                  sizes="(max-width: 768px) 100vw, 33vw"
                                 />
-                                <span className="absolute top-2.5 left-2.5 text-[9px] uppercase font-mono tracking-wider bg-white/95 text-[#181817] px-2.5 py-0.5 rounded-full font-bold shadow-xs">
-                                  {p.category}
-                                </span>
+                                <button
+                                  onClick={() => toggleWishlist(p._id || p.id || p.slug)}
+                                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#FFFFFF]/80 backdrop-blur-md text-[#45464C] hover:text-[#8B0000] flex items-center justify-center transition-colors"
+                                  title="Remove item"
+                                >
+                                  <X size={16} />
+                                </button>
+                                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#FFFFFF]/90 backdrop-blur-md text-[10px] uppercase tracking-wider text-[#1A1C1A] font-medium">
+                                  {p.category || 'Formulation'}
+                                </div>
                               </div>
 
-                              <h3 className="font-serif text-lg text-[#181817] font-medium">{p.name}</h3>
-                              <p className="text-xs text-[#77736C] line-clamp-2 mt-1 font-light">
-                                {p.tagline || p.shortDescription}
-                              </p>
-
-                              <div className="mt-3 flex items-center justify-between font-mono">
-                                <span className="text-base font-bold text-[#181817]">₹{p.price}</span>
-                                <span className="text-[10px] font-bold text-[#2D4438]">
-                                  ● In Stock
-                                </span>
+                              <div className="p-4 flex flex-col flex-grow justify-between gap-3">
+                                <div>
+                                  <h3 className="text-[15px] text-[#1A1C1A] font-medium leading-tight">{p.name}</h3>
+                                  <p className="text-[13px] text-[#45464C] mt-1 line-clamp-2">
+                                  {p.shortDescription || 'Artisanal formulation.'}
+                                </p>
+                                  <span className="text-[15px] text-[#1A1C1A] font-semibold block mt-2">₹{p.price}</span>
+                                </div>
+                                <div className="pt-2">
+                                  <button
+                                    onClick={() => addItem(p)}
+                                    className="w-full py-2.5 px-3 rounded-lg bg-[#000000] text-[#FFFFFF] hover:opacity-90 text-[12px] uppercase tracking-wider text-center transition-opacity flex items-center justify-center gap-2 font-medium"
+                                  >
+                                    <ShoppingBag size={14} />
+                                    Add to Bag
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-
-                            <div className="flex gap-2 mt-4 pt-3.5 border-t border-[#EAE6DF]">
-                              <button
-                                onClick={() => addItem(p)}
-                                className="flex-1 bg-[#181817] hover:bg-[#8B0000] text-white py-2.5 px-3 rounded-xl text-[10px] uppercase font-bold tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                              >
-                                <ShoppingBag size={13} />
-                                <span>Add to Bag</span>
-                              </button>
-                              <button
-                                onClick={() => toggleWishlist(p._id || p.id || p.slug)}
-                                className="p-2.5 rounded-xl border border-[#E5E0D8] text-[#77736C] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors cursor-pointer"
-                                title="Remove from wishlist"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* ===================================================================== */}
-              {/* TAB 3: AUTO-REPLENISHMENT (Synchronized with DB User Model)          */}
-              {/* ===================================================================== */}
-              {activeTab === 'replenishment' && (
-                <motion.div
-                  key="replenishment-tab"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h2 className="font-serif text-2xl text-[#181817] font-medium">Auto-Replenishment Routine</h2>
-                      <p className="text-xs text-[#77736C] font-mono mt-1">
-                        Never run out of daily grooming essentials. Enjoy 10% subscriber privilege.
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold bg-[#2D4438] text-white px-3 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto">
-                      10% Subscriber Privilege
-                    </span>
-                  </div>
-
-                  {/* Active Routine Card */}
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#EAE6DF] pb-5">
-                      <div>
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#2D4438] font-bold block mb-1">
-                          AUTOMATED ROUTINE CADENCE
-                        </span>
-                        <h3 className="font-serif text-2xl text-[#181817] font-medium">
-                          The Complete Terra Method Set
-                        </h3>
-                        <p className="text-xs text-[#77736C] mt-1 font-mono">
-                          {faceWashProduct?.name || 'Terra Face Wash'} + {beardOilProduct?.name || 'Terra Beard Oil'}
-                        </p>
+                            </article>
+                          );
+                        })}
                       </div>
+                    )}
+                  </motion.div>
+                )}
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={isUpdatingSubscription}
-                          onClick={() => handleUpdateSubscription(undefined, !isReplenishPaused)}
-                          className={`px-4 py-2.5 text-xs rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs disabled:opacity-50 ${
-                            isReplenishPaused
-                              ? 'bg-[#2D4438] text-white hover:bg-[#181817]'
-                              : 'bg-white border border-[#E5E0D8] text-[#181817] hover:border-[#8B0000] hover:text-[#8B0000]'
-                          }`}
-                        >
-                          {isUpdatingSubscription
-                            ? 'Updating...'
-                            : isReplenishPaused
-                            ? 'Resume Routine'
-                            : 'Pause Routine'}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Visual Set Showcase using DB Cloudinary Images */}
-                    <div className="grid grid-cols-2 gap-3 p-3 bg-[#FAF8F5] rounded-xl border border-[#EAE6DF]">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-lg bg-[#1A1918] overflow-hidden shrink-0 border border-[#E5E0D8]">
-                          {faceWashProduct && (
-                            <Image
-                              src={getProductImage(faceWashProduct)}
-                              alt={faceWashProduct.name}
-                              fill
-                              className="object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[11px] font-bold text-[#181817] block truncate">
-                            {faceWashProduct?.name || 'Face Wash'}
-                          </span>
-                          <span className="text-[10px] text-[#77736C] font-mono">Step 01 • Cleanse</span>
+                {activeTab === 'replenishment' && (
+                  <motion.div
+                    key="replenishment-tab"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-6"
+                  >
+                    {/* Privilege Banner */}
+                    <div className="bg-[#baebd1] text-[#3e6b57] p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <ShieldCheck size={28} className="shrink-0" />
+                        <div>
+                          <h4 className="text-[15px] font-semibold">Client Privilege Status</h4>
+                          <p className="text-[13px] text-[#3e6b57]/90 mt-1">
+                            10% Perpetual Savings & Complimentary Seasonal Gifting included on your active cadence.
+                          </p>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-lg bg-[#1A1918] overflow-hidden shrink-0 border border-[#E5E0D8]">
-                          {beardOilProduct && (
-                            <Image
-                              src={getProductImage(beardOilProduct)}
-                              alt={beardOilProduct.name}
-                              fill
-                              className="object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[11px] font-bold text-[#181817] block truncate">
-                            {beardOilProduct?.name || 'Beard Oil'}
-                          </span>
-                          <span className="text-[10px] text-[#77736C] font-mono">Step 02 • Nourish</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cycle Selector */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-[#181817] mb-3">
-                        Choose Dispatch Frequency:
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {[
-                          { id: '30d', label: 'Every 30 Days', desc: 'Intensive daily grooming' },
-                          { id: '60d', label: 'Every 60 Days', desc: 'Recommended Standard cadence' },
-                          { id: '90d', label: 'Every 90 Days', desc: 'Light / Occasional usage' },
-                        ].map((cyc) => (
-                          <button
-                            key={cyc.id}
-                            type="button"
-                            disabled={isUpdatingSubscription}
-                            onClick={() => handleUpdateSubscription(cyc.id as '30d' | '60d' | '90d')}
-                            className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                              replenishCycle === cyc.id
-                                ? 'bg-[#181817] text-white border-[#181817] shadow-sm'
-                                : 'bg-[#FAF8F5] text-[#55524D] border-[#E5E0D8] hover:border-[#181817]'
-                            }`}
-                          >
-                            <span className="text-xs font-bold uppercase tracking-wider block">
-                              {cyc.label}
-                            </span>
-                            <span
-                              className={`text-[10px] block mt-1 ${
-                                replenishCycle === cyc.id ? 'text-[#C4A482]' : 'text-[#77736C]'
-                              }`}
-                            >
-                              {cyc.desc}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Next Scheduled Delivery Banner with DB-backed date and dynamic price */}
-                    <div className="p-4 bg-[#FAF8F5] rounded-xl border border-[#EAE6DF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                      <div>
-                        <span className="font-bold text-[#181817] block">
-                          Next Scheduled Dispatch: {nextDispatchDateDisplay}
-                        </span>
-                        <span className="text-[#77736C] font-mono text-[11px]">
-                          Price: ₹{bundleDiscountedPrice} (Original ₹{bundleTotalOriginal} — 10% Subscriber Privilege Applied)
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[9px] font-mono uppercase font-bold px-2.5 py-1 rounded-full self-start sm:self-auto ${
-                          isReplenishPaused
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-[#2D4438]/10 text-[#2D4438] border border-[#2D4438]/20'
-                        }`}
-                      >
-                        {isReplenishPaused ? 'Cadence Paused' : '● Active Cadence'}
+                      <span className="inline-flex w-fit text-[11px] uppercase tracking-widest bg-[#3e6b57] text-[#ffffff] px-3 py-1.5 rounded-full font-medium">
+                        VIP Guaranteed
                       </span>
                     </div>
 
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ===================================================================== */}
-              {/* TAB 4: SAVED ADDRESSES (100% Persisted in MongoDB User Document)       */}
-              {/* ===================================================================== */}
-              {activeTab === 'addresses' && (
-                <motion.div
-                  key="addresses-tab"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-                    <div>
-                      <h2 className="font-serif text-2xl text-[#181817] font-medium">Delivery Addresses</h2>
-                      <p className="text-xs text-[#77736C] font-mono mt-1">
-                        Manage Pan-India delivery addresses for seamless express checkout
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddAddressModal(true)}
-                      className="inline-flex items-center gap-1.5 bg-[#181817] hover:bg-[#8B0000] text-white px-4 py-2.5 rounded-xl text-xs uppercase font-bold tracking-wider transition-all cursor-pointer shadow-xs"
-                    >
-                      <Plus size={14} />
-                      <span>Add Address</span>
-                    </button>
-                  </div>
-
-                  {/* Add New Address Modal / Form inline */}
-                  {showAddAddressModal && (
-                    <form
-                      onSubmit={handleAddAddress}
-                      className="bg-white border border-[#181817] rounded-2xl p-6 sm:p-7 space-y-4 shadow-xl animate-in fade-in duration-200"
-                    >
-                      <div className="flex items-center justify-between border-b border-[#EAE6DF] pb-3">
-                        <h3 className="font-serif text-xl text-[#181817] font-medium">
-                          Add New Delivery Address
-                        </h3>
-                        <span className="text-[10px] font-mono text-[#77736C] uppercase">Pan-India Express</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Subscription Card Container */}
+                    <div className="bg-[#FFFFFF] rounded-xl p-5 md:p-8 shadow-sm flex flex-col gap-8">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-[#E2E3DF] gap-4">
                         <div>
-                          <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                            Address Label
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Home, Studio, Office"
-                            value={newAddrForm.title}
-                            onChange={(e) => setNewAddrForm({ ...newAddrForm, title: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                          />
+                          <span className="text-[11px] uppercase tracking-widest text-[#3A6753] font-medium block">
+                            Bespoke Subscription Routine
+                          </span>
+                          <h3 className="font-serif text-2xl text-[#1A1C1A] mt-1">The Complete Terra Method Set</h3>
                         </div>
-                        <div>
-                          <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                            Contact Phone
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="+91 98765 43210"
-                            value={newAddrForm.phone}
-                            onChange={(e) => setNewAddrForm({ ...newAddrForm, phone: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                          />
+
+                        {/* Pause / Resume Toggle */}
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] uppercase tracking-wider text-[#3A6753] font-semibold">
+                            {isReplenishPaused ? 'Routine Paused' : 'Routine Active'}
+                          </span>
+                          <button
+                            disabled={isUpdatingSubscription}
+                            onClick={() => handleUpdateSubscription(undefined, !isReplenishPaused)}
+                            className={`w-12 h-6 rounded-full p-0.5 transition-colors relative focus:outline-none ${isReplenishPaused ? 'bg-[#E2E3DF]' : 'bg-[#3A6753]'
+                              }`}
+                          >
+                            <span
+                              className={`block w-5 h-5 rounded-full bg-[#FFFFFF] transition-transform ${isReplenishPaused ? 'translate-x-0' : 'translate-x-6 shadow-sm'
+                                }`}
+                            />
+                          </button>
                         </div>
                       </div>
 
+                      {/* Products Bundled Showcase */}
                       <div>
-                        <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                          Street Address & Flat / Building *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. 402 Highline Residences, Linking Road"
-                          value={newAddrForm.street}
-                          onChange={(e) => setNewAddrForm({ ...newAddrForm, street: e.target.value })}
-                          className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                            City *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Mumbai"
-                            value={newAddrForm.city}
-                            onChange={(e) => setNewAddrForm({ ...newAddrForm, city: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                            State *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Maharashtra"
-                            value={newAddrForm.state}
-                            onChange={(e) => setNewAddrForm({ ...newAddrForm, state: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                            PIN Code *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="400050"
-                            maxLength={6}
-                            value={newAddrForm.postalCode}
-                            onChange={(e) => setNewAddrForm({ ...newAddrForm, postalCode: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] font-mono focus:border-[#181817] focus:outline-none"
-                          />
+                        <span className="text-[11px] uppercase tracking-widest text-[#45464C] block mb-3 font-medium">
+                          Artisanal Formulas in this Bundle
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="p-3 bg-[#F4F4F0] rounded-lg flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-md bg-[#E2E3DF] overflow-hidden shrink-0 relative">
+                              {faceWashProduct && (
+                                <Image src={getProductImage(faceWashProduct)} alt={faceWashProduct.name} fill className="object-cover" />
+                              )}
+                            </div>
+                            <div>
+                              <h5 className="text-[15px] text-[#1A1C1A] font-medium leading-tight">
+                                {faceWashProduct?.name || 'Face Wash'}
+                              </h5>
+                              <span className="text-[11px] text-[#45464C] mt-1 block">Step 01 • Cleanse</span>
+                            </div>
+                          </div>
+                          <div className="p-3 bg-[#F4F4F0] rounded-lg flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-md bg-[#E2E3DF] overflow-hidden shrink-0 relative">
+                              {beardOilProduct && (
+                                <Image src={getProductImage(beardOilProduct)} alt={beardOilProduct.name} fill className="object-cover" />
+                              )}
+                            </div>
+                            <div>
+                              <h5 className="text-[15px] text-[#1A1C1A] font-medium leading-tight">
+                                {beardOilProduct?.name || 'Beard Oil'}
+                              </h5>
+                              <span className="text-[11px] text-[#45464C] mt-1 block">Step 02 • Nourish</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex justify-end gap-2.5 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowAddAddressModal(false)}
-                          className="px-4 py-2.5 text-xs uppercase font-bold text-[#55524D] hover:text-[#181817] cursor-pointer rounded-xl"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isSubmittingAddress}
-                          className="bg-[#181817] hover:bg-[#8B0000] text-white px-5 py-2.5 text-xs uppercase font-bold tracking-wider rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
-                        >
-                          {isSubmittingAddress ? 'Saving Address...' : 'Save Address'}
-                        </button>
+                      {/* Cadence Frequency Selector */}
+                      <div>
+                        <span className="text-[11px] uppercase tracking-widest text-[#45464C] block mb-3 font-medium">
+                          Replenishment Cadence Frequency
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {[
+                            { id: '30d', label: 'Every 30 Days', desc: 'Rapid Cellular Renewal' },
+                            { id: '60d', label: 'Every 60 Days', desc: 'Optimal Seasonal Cycle' },
+                            { id: '90d', label: 'Every 90 Days', desc: 'Gentle Maintenance' },
+                          ].map((cyc) => {
+                            const isSelected = replenishCycle === cyc.id;
+                            return (
+                              <button
+                                key={cyc.id}
+                                disabled={isUpdatingSubscription}
+                                onClick={() => handleUpdateSubscription(cyc.id as '30d' | '60d' | '90d')}
+                                className={`p-4 rounded-xl text-left transition-all ${isSelected
+                                  ? 'bg-[#000000] text-[#FFFFFF] shadow-sm'
+                                  : 'bg-[#F4F4F0] text-[#1A1C1A] hover:bg-[#E2E3DF]'
+                                  }`}
+                              >
+                                <span className="text-[15px] font-semibold flex items-center justify-between">
+                                  {cyc.label}
+                                  {isSelected && <CheckCircle2 size={18} />}
+                                </span>
+                                <span className={`text-[13px] mt-1 block ${isSelected ? 'text-[#FFFFFF]/80' : 'text-[#45464C]'}`}>
+                                  {cyc.desc}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </form>
-                  )}
 
-                  {/* Addresses Cards Grid — Loaded directly from MongoDB */}
-                  {loadingAddresses ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center text-xs font-mono text-[#77736C] shadow-xs flex items-center justify-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-[#2D4438]" />
-                      <span>Loading delivery addresses from database...</span>
+                      {/* Dispatch & Billing Schedule Summary */}
+                      <div className="p-5 bg-[#F4F4F0] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-5">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-[11px] uppercase tracking-widest text-[#45464C] font-medium">Next Dispatch Date</span>
+                          <span className="font-serif text-2xl text-[#1A1C1A]">
+                            {isReplenishPaused ? 'Paused' : nextDispatchDateDisplay}
+                          </span>
+                          <span className="text-[13px] text-[#45464C]">Dispatched via Standard Delivery to primary address</span>
+                        </div>
+
+                        <div className="flex flex-col md:items-end gap-1.5">
+                          <span className="text-[11px] uppercase tracking-widest text-[#45464C] font-medium">Next Auto-Charge Total</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl text-[#1A1C1A] font-semibold">₹{bundleDiscountedPrice}</span>
+                            <span className="text-[13px] line-through text-[#c6c6cd]">₹{bundleTotalOriginal}</span>
+                            <span className="text-[11px] text-[#3A6753] font-medium">(10% VIP applied)</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ) : savedAddresses.length === 0 ? (
-                    <div className="bg-white border border-[#E8E4DC] rounded-2xl p-12 text-center shadow-xs">
-                      <MapPin size={36} className="mx-auto text-[#BBB6AE] mb-3" />
-                      <h3 className="font-serif text-xl text-[#181817] mb-1">No saved addresses yet</h3>
-                      <p className="text-xs text-[#77736C] max-w-sm mx-auto mb-5 font-light">
-                        Add your primary delivery address for automated express checkout on all orders.
-                      </p>
+                  </motion.div>
+                )}
+
+                {/* ===================================================================== */}
+                {/* TAB 4: SAVED ADDRESSES (100% Persisted in MongoDB User Document)       */}
+                {/* ===================================================================== */}
+                {activeTab === 'addresses' && (
+                  <motion.div
+                    key="addresses-tab"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-6"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="font-serif text-2xl text-[#1A1C1A]">Registered Addresses</h2>
+                        <p className="text-[13px] text-[#45464C]">Manage global shipping destinations and preferred couriers.</p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setShowAddAddressModal(true)}
-                        className="inline-flex items-center gap-2 bg-[#181817] hover:bg-[#8B0000] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-xs"
+                        className="flex items-center gap-2 bg-[#000000] text-[#FFFFFF] px-4 py-2 rounded-lg text-[12px] uppercase tracking-wider font-medium hover:opacity-90 transition-opacity self-start sm:self-auto"
                       >
-                        <Plus size={13} />
-                        <span>Add New Address</span>
+                        <Plus size={16} />
+                        <span>New Address</span>
                       </button>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      {savedAddresses.map((addr) => (
-                        <div
-                          key={addr.id}
-                          className={`bg-white rounded-2xl p-6 border transition-all relative flex flex-col justify-between shadow-xs ${
-                            addr.isDefault
-                              ? 'border-[#181817] shadow-sm'
-                              : 'border-[#E8E4DC] hover:border-[#181817]'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-bold text-xs uppercase tracking-wider text-[#181817] font-mono">
-                                {addr.title || 'Address'}
-                              </span>
-                              {addr.isDefault && (
-                                <span className="text-[9px] font-mono uppercase tracking-widest bg-[#2D4438] text-white px-2.5 py-0.5 rounded-full font-bold">
-                                  Default
-                                </span>
-                              )}
-                            </div>
 
-                            <p className="text-xs text-[#44403C] leading-relaxed font-light">
-                              {addr.street}
-                              {addr.area && `, ${addr.area}`}
-                              <br />
-                              {addr.city}, {addr.state} — {addr.postalCode}
-                              <br />
-                              {addr.country || 'India'}
-                            </p>
+                    {/* Add New Address Form inline */}
+                    {showAddAddressModal && (
+                      <form
+                        onSubmit={handleAddAddress}
+                        className="bg-[#FFFFFF] p-6 rounded-xl shadow-sm border border-[#E2E3DF] space-y-6 animate-in fade-in duration-200"
+                      >
+                        <div className="flex items-center justify-between border-b border-[#E2E3DF] pb-4">
+                          <h3 className="font-serif text-xl text-[#1A1C1A]">Add Delivery Address</h3>
+                        </div>
 
-                            {addr.phone && (
-                              <p className="text-[11px] text-[#77736C] font-mono mt-2">
-                                Phone: {addr.phone}
-                              </p>
-                            )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Address Label</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Studio, Home"
+                              value={newAddrForm.title}
+                              onChange={(e) => setNewAddrForm({ ...newAddrForm, title: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            />
                           </div>
-
-                          <div className="pt-4 mt-5 border-t border-[#EAE6DF] flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              {!addr.isDefault && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSetDefaultAddress(addr.id)}
-                                  className="text-[10px] uppercase font-mono font-bold text-[#55524D] hover:text-[#181817] underline cursor-pointer"
-                                >
-                                  Set as Default
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteAddress(addr.id)}
-                                className="text-[10px] uppercase font-mono font-bold text-[#99948D] hover:text-[#8B0000] cursor-pointer"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                            <span className="text-[9px] text-[#77736C] font-mono ml-auto">
-                              Pan-India Verified
-                            </span>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Contact Phone</label>
+                            <input
+                              type="tel"
+                              placeholder="+91 98765 43210"
+                              value={newAddrForm.phone}
+                              onChange={(e) => setNewAddrForm({ ...newAddrForm, phone: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
 
-              {/* ===================================================================== */}
-              {/* TAB 5: PROFILE & SECURITY (Synchronized with DB User Model)           */}
-              {/* ===================================================================== */}
-              {activeTab === 'profile' && (
-                <motion.div
-                  key="profile-tab"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-5"
-                >
-                  <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 shadow-xs flex items-center justify-between">
-                    <div>
-                      <h2 className="font-serif text-2xl text-[#181817] font-medium">Member Profile & Security</h2>
-                      <p className="text-xs text-[#77736C] font-mono mt-1">
-                        Manage your account information and authentication credentials
-                      </p>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-[#2D4438] flex items-center gap-1.5 bg-[#2D4438]/10 px-3 py-1 rounded-full">
-                      <Lock size={12} />
-                      <span>256-Bit SSL</span>
-                    </span>
-                  </div>
-
-                  {profileSuccessMsg && (
-                    <div className="p-4 bg-[#2D4438]/10 border border-[#2D4438]/30 rounded-xl text-[#2D4438] text-xs font-bold flex items-center gap-2">
-                      <CheckCircle2 size={16} />
-                      <span>{profileSuccessMsg}</span>
-                    </div>
-                  )}
-
-                  {profileErrorMsg && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold flex items-center gap-2">
-                      <AlertCircle size={16} />
-                      <span>{profileErrorMsg}</span>
-                    </div>
-                  )}
-
-                  {/* Profile Form */}
-                  <form onSubmit={handleSaveProfile} className="bg-white border border-[#E8E4DC] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-                    <h3 className="font-serif text-xl text-[#181817] font-medium border-b border-[#EAE6DF] pb-3">
-                      Personal Credentials
-                    </h3>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                          Client Full Name
-                        </label>
-                        <div className="relative">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Street Address & Flat / Building *</label>
                           <input
                             type="text"
-                            value={profileData.name}
-                            onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                            className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                            placeholder="Your full name"
+                            required
+                            placeholder="e.g. 402 Highline Residences, Linking Road"
+                            value={newAddrForm.street}
+                            onChange={(e) => setNewAddrForm({ ...newAddrForm, street: e.target.value })}
+                            className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
                           />
-                          <UserIcon size={15} className="absolute right-3.5 top-3.5 text-[#8C887B]" />
                         </div>
-                      </div>
 
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">City *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Mumbai"
+                              value={newAddrForm.city}
+                              onChange={(e) => setNewAddrForm({ ...newAddrForm, city: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">State *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Maharashtra"
+                              value={newAddrForm.state}
+                              onChange={(e) => setNewAddrForm({ ...newAddrForm, state: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">PIN Code *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="400050"
+                              maxLength={6}
+                              value={newAddrForm.postalCode}
+                              onChange={(e) => setNewAddrForm({ ...newAddrForm, postalCode: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[13px] px-3 py-2.5 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAddAddressModal(false)}
+                            className="px-4 py-2 text-[12px] uppercase tracking-wider font-medium text-[#45464C] hover:text-[#1A1C1A] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSubmittingAddress}
+                            className={`bg-[#000000] text-[#FFFFFF] px-6 py-2 rounded-lg text-[12px] uppercase tracking-wider font-medium transition-opacity ${isSubmittingAddress ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                              }`}
+                          >
+                            {isSubmittingAddress ? 'Saving...' : 'Save Address'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {/* Addresses Cards Grid */}
+                    {loadingAddresses ? (
+                      <div className="py-12 text-center text-sm text-[#45464C] flex flex-col items-center gap-2">
+                        <Loader2 size={24} className="animate-spin text-[#3A6753]" />
+                        <span>Loading delivery addresses...</span>
+                      </div>
+                    ) : savedAddresses.length === 0 ? (
+                      <div className="p-12 bg-[#FFFFFF] rounded-xl text-center shadow-sm">
+                        <MapPin size={48} className="mx-auto text-[#c6c6cd] mb-3" strokeWidth={1} />
+                        <h3 className="font-serif text-xl text-[#1A1C1A]">No addresses registered</h3>
+                        <p className="text-[13px] text-[#45464C] mt-1 max-w-sm mx-auto mb-4">
+                          Add a primary delivery address for automated express checkout.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddAddressModal(true)}
+                          className="inline-flex items-center gap-2 bg-[#000000] text-[#FFFFFF] px-6 py-2.5 rounded-lg text-[12px] uppercase tracking-wider font-medium"
+                        >
+                          <Plus size={16} />
+                          <span>Add New Address</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {savedAddresses.map((addr) => (
+                          <article
+                            key={addr.id}
+                            className={`bg-[#FFFFFF] rounded-xl p-5 shadow-sm border flex flex-col relative overflow-hidden transition-all hover:shadow-md ${addr.isDefault
+                              ? 'border-[#3A6753]'
+                              : 'border-[#E2E3DF] hover:border-[#1A1C1A]/20'
+                              }`}
+                          >
+                            {addr.isDefault && (
+                              <div className="absolute top-0 right-0 bg-[#3A6753] text-[#FFFFFF] text-[10px] uppercase tracking-widest font-medium px-3 py-1 rounded-bl-lg">
+                                Primary Default
+                              </div>
+                            )}
+                            <div className="flex flex-col h-full justify-between gap-5">
+                              <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                  <MapPin size={16} className={addr.isDefault ? 'text-[#3A6753]' : 'text-[#45464C]'} />
+                                  <span className="text-[13px] uppercase tracking-wider text-[#1A1C1A] font-semibold">
+                                    {addr.title || 'Address'}
+                                  </span>
+                                </div>
+                                <p className="text-[14px] text-[#45464C] leading-relaxed">
+                                  {addr.street}
+                                  {addr.area && `, ${addr.area}`}
+                                  <br />
+                                  {addr.city}, {addr.state} — {addr.postalCode}
+                                  <br />
+                                  {addr.country || 'India'}
+                                </p>
+                                {addr.phone && (
+                                  <p className="text-[13px] text-[#45464C] mt-3 pt-3 border-t border-[#E2E3DF] border-dashed">
+                                    Contact: {addr.phone}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3 pt-4 border-t border-[#E2E3DF]">
+                                {!addr.isDefault && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetDefaultAddress(addr.id)}
+                                    className="px-3 py-1.5 bg-[#F4F4F0] hover:bg-[#E2E3DF] text-[#1A1C1A] rounded-md text-[11px] uppercase tracking-wider font-medium transition-colors"
+                                  >
+                                    Make Primary
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAddress(addr.id)}
+                                  className="px-3 py-1.5 text-[#8B0000] hover:bg-red-50 rounded-md text-[11px] uppercase tracking-wider font-medium transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* ===================================================================== */}
+                {/* TAB 5: PROFILE & SECURITY (Synchronized with DB User Model)           */}
+                {/* ===================================================================== */}
+                {activeTab === 'profile' && (
+                  <motion.div
+                    key="profile-tab"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-6"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
-                        <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                          Primary Email Address (Verified in DB)
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="email"
-                            value={user.email}
-                            disabled
-                            className="w-full bg-[#F4F1EB] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#77736C] cursor-not-allowed"
-                          />
-                          <Mail size={15} className="absolute right-3.5 top-3.5 text-[#8C887B]" />
+                        <h2 className="font-serif text-2xl text-[#1A1C1A]">Client Identity</h2>
+                        <p className="text-[13px] text-[#45464C]">Manage authenticated sessions and personal dossier.</p>
+                      </div>
+                      <span className="flex items-center gap-1.5 text-[#3e6b57] text-[11px] uppercase tracking-widest font-medium bg-[#baebd1]/50 px-3 py-1.5 rounded-full self-start sm:self-auto">
+                        <Lock size={14} />
+                        Verified Secure
+                      </span>
+                    </div>
+
+                    {profileSuccessMsg && (
+                      <div className="p-4 bg-[#baebd1]/30 border border-[#baebd1] rounded-xl text-[#3e6b57] text-[13px] font-medium flex items-center gap-2">
+                        <CheckCircle2 size={18} />
+                        <span>{profileSuccessMsg}</span>
+                      </div>
+                    )}
+
+                    {profileErrorMsg && (
+                      <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-[#8B0000] text-[13px] font-medium flex items-center gap-2">
+                        <AlertCircle size={18} />
+                        <span>{profileErrorMsg}</span>
+                      </div>
+                    )}
+
+                    {/* Profile Form */}
+                    <div className="bg-[#FFFFFF] rounded-xl p-5 md:p-8 shadow-sm">
+                      <form onSubmit={handleSaveProfile} className="flex flex-col gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Legal Name</label>
+                            <input
+                              type="text"
+                              value={profileData.name}
+                              onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                              className="bg-[#F4F4F0] text-[#1A1C1A] text-[14px] px-4 py-3 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                              placeholder="Your full name"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Primary Email Address</label>
+                            <div className="relative">
+                              <input
+                                type="email"
+                                value={user.email}
+                                disabled
+                                className="bg-[#E2E3DF]/50 text-[#45464C] text-[14px] px-4 py-3 rounded-lg border-none outline-none w-full cursor-not-allowed pr-10"
+                              />
+                              <CheckCircle2 size={16} className="absolute right-3 top-3.5 text-[#3A6753]" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
+                        <div className="flex flex-col gap-1.5 max-w-md">
+                          <label className="text-[11px] uppercase tracking-wider text-[#45464C] font-medium">Direct Contact Line</label>
+                          <input
+                            type="tel"
+                            value={profileData.phone}
+                            onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                            className="bg-[#F4F4F0] text-[#1A1C1A] text-[14px] px-4 py-3 rounded-lg border-none focus:ring-1 focus:ring-[#E2E3DF] outline-none transition-shadow w-full"
+                            placeholder="+91 98765 43210"
+                          />
+                        </div>
+
+                        <div className="pt-6 mt-2 border-t border-[#E2E3DF] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="text-[12px] text-[#45464C]">
+                            Account Level: <span className="font-semibold text-[#1A1C1A] uppercase tracking-wider ml-1 px-2 py-1 bg-[#F4F4F0] rounded-md">{user.role}</span>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isUpdatingProfile}
+                            className={`bg-[#000000] text-[#FFFFFF] px-8 py-2.5 rounded-lg text-[12px] uppercase tracking-wider font-medium transition-opacity ${isUpdatingProfile ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+                              }`}
+                          >
+                            {isUpdatingProfile ? 'Saving Protocol...' : 'Update Identity'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Review Modal */}
+        <AnimatePresence>
+          {reviewModalItem && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setReviewModalItem(null)}
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 0 }}
+                className="bg-white border border-[#E5E0D8] text-[#181817] shadow-2xl max-w-xl w-full p-5 sm:p-10 relative z-10 my-auto max-h-[90vh] overflow-y-auto rounded-2xl"
+              >
+                <button
+                  onClick={() => setReviewModalItem(null)}
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 p-1 cursor-pointer z-20 text-[#77736C] hover:text-[#181817]"
+                >
+                  <X size={20} />
+                </button>
+                {reviewSuccess ? (
+                  <div className="py-12 text-center space-y-4">
+                    <div className="w-14 h-14 text-white bg-[#2D4438] rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <h3 className="font-serif text-2xl text-[#181817]">Review Submitted</h3>
+                    <p className="text-xs max-w-sm mx-auto font-light leading-relaxed text-[#55524D]">
+                      Thank you! Your verified review is pending admin approval and will be published shortly.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={submitReview} className="space-y-6">
                     <div>
-                      <label className="block text-[10px] uppercase font-mono font-bold text-[#55524D] mb-1.5">
-                        Primary Phone / Mobile
-                      </label>
-                      <div className="relative max-w-sm">
-                        <input
-                          type="tel"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                          className="w-full bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl p-3 text-xs text-[#181817] focus:border-[#181817] focus:outline-none"
-                          placeholder="+91 98765 43210"
-                        />
-                        <Phone size={15} className="absolute right-3.5 top-3.5 text-[#8C887B]" />
+                      <span className="text-[10px] uppercase font-mono tracking-widest block mb-1 text-[#2D4438]">
+                        VERIFIED PRACTITIONER REVIEW
+                      </span>
+                      <h3 className="font-serif text-2xl text-[#181817]">Review {reviewModalItem.name}</h3>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-2 text-[#55524D]">Efficacy Rating</label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                            className="p-1 cursor-pointer transition-transform hover:scale-110"
+                          >
+                            <Star size={24} className={star <= reviewForm.rating ? 'fill-[#C4A482] text-[#C4A482]' : 'fill-transparent text-[#DDD8CF]'} />
+                          </button>
+                        ))}
+                        <span className="font-mono text-xs font-semibold ml-2 text-[#2D4438]">{reviewForm.rating}.0 / 5.0</span>
                       </div>
                     </div>
-
-                    <div className="pt-4 border-t border-[#EAE6DF] flex items-center justify-between flex-wrap gap-4">
-                      <div className="text-[11px] text-[#77736C] font-mono">
-                        Account Privilege: <strong className="text-[#181817]">{user.role.toUpperCase()}</strong>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Skin / Hair Profile</label>
+                        <input
+                          type="text"
+                          value={reviewForm.skinType}
+                          onChange={(e) => setReviewForm({ ...reviewForm, skinType: e.target.value })}
+                          className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                        />
                       </div>
-
-                      <button
-                        type="submit"
-                        disabled={isUpdatingProfile}
-                        className="bg-[#181817] hover:bg-[#8B0000] text-white px-6 py-2.5 rounded-xl text-xs uppercase font-bold tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
-                      >
-                        {isUpdatingProfile ? (
-                          <span>Updating Database...</span>
+                      <div>
+                        <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Display Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={reviewForm.author}
+                          onChange={(e) => setReviewForm({ ...reviewForm, author: e.target.value })}
+                          className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Location (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Delhi"
+                          value={reviewForm.location}
+                          onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
+                          className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Headline Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={reviewForm.title}
+                          onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                          className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Detailed Experience *</label>
+                        <textarea
+                          required
+                          rows={4}
+                          value={reviewForm.content}
+                          onChange={(e) => setReviewForm({ ...reviewForm, content: e.target.value })}
+                          className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2 flex items-center justify-end gap-3">
+                      <button type="button" onClick={() => setReviewModalItem(null)} className="px-5 py-3 text-xs uppercase tracking-widest font-medium text-[#77736C] hover:text-[#181817] cursor-pointer">Cancel</button>
+                      <button type="submit" disabled={isSubmittingReview} className={`text-white px-8 py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors rounded-xl shadow-xs relative ${isSubmittingReview ? 'bg-[#181817] opacity-90 cursor-not-allowed' : 'bg-[#181817] hover:bg-[#2D4438] cursor-pointer'}`}>
+                        {isSubmittingReview ? (
+                          <div className="flex items-center gap-2 justify-center">
+                            <svg className="animate-spin h-4 w-4 text-[#F6F3ED]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                              <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>SUBMITTING...</span>
+                          </div>
                         ) : (
-                          <>
-                            <span>Save Changes</span>
-                            <ArrowRight size={13} />
-                          </>
+                          'SUBMIT REVIEW'
                         )}
                       </button>
                     </div>
                   </form>
-                </motion.div>
-              )}
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-            </AnimatePresence>
-          </div>
-
-        </div>
       </div>
-
-      {/* Review Modal */}
-      <AnimatePresence>
-        {reviewModalItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setReviewModalItem(null)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 0 }}
-              className="bg-white border border-[#E5E0D8] text-[#181817] shadow-2xl max-w-xl w-full p-5 sm:p-10 relative z-10 my-auto max-h-[90vh] overflow-y-auto rounded-2xl"
+      );
+}
+      export default function AccountPage() {
+  return (
+      <ErrorBoundary
+        fallbackRender={({ error, resetErrorBoundary }) => (
+          <div className="min-h-screen bg-[#F9F8F5] py-32 flex flex-col items-center justify-center space-y-4 px-6 text-center">
+            <div className="text-3xl mb-4">🚨</div>
+            <h2 className="text-xl font-bold text-red-600">Account Dashboard Crashed</h2>
+            <pre className="bg-gray-100 p-4 mt-4 text-xs max-w-2xl overflow-auto text-left rounded shadow border border-gray-300">
+              {(error as Error)?.message || String(error)}
+              {'\n'}
+              {(error as Error)?.stack}
+            </pre>
+            <button
+              onClick={() => {
+                resetErrorBoundary();
+                window.location.href = '/login';
+              }}
+              className="mt-6 px-6 py-2.5 bg-[#181817] text-white uppercase text-xs font-bold tracking-wider rounded-xl cursor-pointer"
             >
-              <button
-                onClick={() => setReviewModalItem(null)}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 p-1 cursor-pointer z-20 text-[#77736C] hover:text-[#181817]"
-              >
-                <X size={20} />
-              </button>
-              {reviewSuccess ? (
-                <div className="py-12 text-center space-y-4">
-                  <div className="w-14 h-14 text-white bg-[#2D4438] rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 size={32} />
-                  </div>
-                  <h3 className="font-serif text-2xl text-[#181817]">Review Submitted</h3>
-                  <p className="text-xs max-w-sm mx-auto font-light leading-relaxed text-[#55524D]">
-                    Thank you! Your verified review is pending admin approval and will be published shortly.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={submitReview} className="space-y-6">
-                  <div>
-                    <span className="text-[10px] uppercase font-mono tracking-widest block mb-1 text-[#2D4438]">
-                      VERIFIED PRACTITIONER REVIEW
-                    </span>
-                    <h3 className="font-serif text-2xl text-[#181817]">Review {reviewModalItem.name}</h3>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-mono uppercase tracking-wider mb-2 text-[#55524D]">Efficacy Rating</label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                          className="p-1 cursor-pointer transition-transform hover:scale-110"
-                        >
-                          <Star size={24} className={star <= reviewForm.rating ? 'fill-[#C4A482] text-[#C4A482]' : 'fill-transparent text-[#DDD8CF]'} />
-                        </button>
-                      ))}
-                      <span className="font-mono text-xs font-semibold ml-2 text-[#2D4438]">{reviewForm.rating}.0 / 5.0</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Skin / Hair Profile</label>
-                      <input
-                        type="text"
-                        value={reviewForm.skinType}
-                        onChange={(e) => setReviewForm({ ...reviewForm, skinType: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Display Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={reviewForm.author}
-                        onChange={(e) => setReviewForm({ ...reviewForm, author: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Location (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Delhi"
-                        value={reviewForm.location}
-                        onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Headline Title *</label>
-                      <input
-                        type="text"
-                        required
-                        value={reviewForm.title}
-                        onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono uppercase tracking-wider mb-1 text-[#55524D]">Detailed Experience *</label>
-                      <textarea
-                        required
-                        rows={4}
-                        value={reviewForm.content}
-                        onChange={(e) => setReviewForm({ ...reviewForm, content: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs rounded-lg focus:outline-none bg-[#FBF9F5] border border-[#DDD8CF] text-[#181817] focus:border-[#2D4438]"
-                      />
-                    </div>
-                  </div>
-                  <div className="pt-2 flex items-center justify-end gap-3">
-                    <button type="button" onClick={() => setReviewModalItem(null)} className="px-5 py-3 text-xs uppercase tracking-widest font-medium text-[#77736C] hover:text-[#181817] cursor-pointer">Cancel</button>
-                    <button type="submit" disabled={isSubmittingReview} className={`text-white px-8 py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors rounded-xl shadow-xs ${isSubmittingReview ? 'opacity-50' : 'cursor-pointer'} bg-[#181817] hover:bg-[#2D4438]`}>
-                      {isSubmittingReview ? 'SUBMITTING...' : 'SUBMIT REVIEW'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </motion.div>
+              Go back to Sign In
+            </button>
           </div>
         )}
-      </AnimatePresence>
-
-    </div>
-  );
-}
-
-import { ErrorBoundary } from 'react-error-boundary';
-
-export default function AccountPage() {
-  return (
-    <ErrorBoundary
-      fallbackRender={({ error, resetErrorBoundary }) => (
-        <div className="min-h-screen bg-[#F9F8F5] py-32 flex flex-col items-center justify-center space-y-4 px-6 text-center">
-          <div className="text-3xl mb-4">🚨</div>
-          <h2 className="text-xl font-bold text-red-600">Account Dashboard Crashed</h2>
-          <pre className="bg-gray-100 p-4 mt-4 text-xs max-w-2xl overflow-auto text-left rounded shadow border border-gray-300">
-            {(error as Error)?.message || String(error)}
-            {'\n'}
-            {(error as Error)?.stack}
-          </pre>
-          <button
-            onClick={() => {
-              resetErrorBoundary();
-              window.location.href = '/login';
-            }}
-            className="mt-6 px-6 py-2.5 bg-[#181817] text-white uppercase text-xs font-bold tracking-wider rounded-xl cursor-pointer"
-          >
-            Go back to Sign In
-          </button>
-        </div>
-      )}
-    >
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-[#F9F8F5] py-32 flex flex-col items-center justify-center space-y-4">
-            <div className="w-8 h-8 border-2 border-[#181817] border-t-[#8B0000] rounded-full animate-spin" />
-            <div className="text-xs uppercase font-mono tracking-widest text-[#77736C]">
-              Loading Client Portal...
-            </div>
-          </div>
-        }
       >
-        <AccountPageContent />
-      </Suspense>
-    </ErrorBoundary>
-  );
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-[#F9F8F5] py-32 flex flex-col items-center justify-center space-y-4">
+              <div className="w-8 h-8 border-2 border-[#181817] border-t-[#8B0000] rounded-full animate-spin" />
+              <div className="text-xs uppercase font-mono tracking-widest text-[#77736C]">
+                Loading Client Portal...
+              </div>
+            </div>
+          }
+        >
+          <AccountPageContent />
+        </Suspense>
+      </ErrorBoundary>
+      );
 }

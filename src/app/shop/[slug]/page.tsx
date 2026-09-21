@@ -9,6 +9,7 @@ import { ProductGallery } from '@/components/products/ProductGallery';
 import { ProductInfoPanel } from '@/components/products/ProductInfoPanel';
 import { IngredientStory } from '@/components/products/IngredientStory';
 import { RitualSteps } from '@/components/products/RitualSteps';
+import { SetIngredientsAndRitual } from '@/components/products/SetIngredientsAndRitual';
 import { ReviewSection } from '@/components/products/ReviewSection';
 import { BeardOilBenefits } from '@/components/products/BeardOilBenefits';
 import { BeardOilIngredients } from '@/components/products/BeardOilIngredients';
@@ -21,14 +22,29 @@ import { products as fallbackProducts } from '@/data/products';
 import { Product, Review } from '@/types';
 import { Review as ReviewModel } from '@/models/Review';
 
-// Force dynamic rendering to guarantee live review data
-export const dynamic = 'force-dynamic';
+// ISR: Cache the product page, revalidate every 60 seconds for fresh review data
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Removed generateStaticParams so that 'force-dynamic' can take effect on all product routes
+export async function generateStaticParams() {
+  try {
+    await connectToDatabase();
+    const dbProducts = await ProductModel.find({ isPublished: { $ne: false } }).select('slug').lean();
+    if (dbProducts && dbProducts.length > 0) {
+      return dbProducts.map((p: any) => ({
+        slug: p.slug,
+      }));
+    }
+  } catch {
+    // fall through to static fallback
+  }
+  return fallbackProducts.map((p) => ({
+    slug: p.slug,
+  }));
+}
 
 // Dynamic metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -309,21 +325,31 @@ export default async function DynamicProductPage({ params }: PageProps) {
         </>
       ) : (
         <>
-          {/* Ingredient Storytelling */}
-          {product.keyIngredients && product.keyIngredients.length > 0 && (
-            <IngredientStory
+          {/* Unified Set Ingredients & Ritual */}
+          {product.keyIngredients && product.keyIngredients.length > 0 && product.ritual && product.ritual.length > 0 ? (
+            <SetIngredientsAndRitual 
               ingredients={product.keyIngredients}
+              steps={product.ritual}
               productName={product.name}
             />
-          )}
+          ) : (
+            <>
+              {/* Fallback to separate if only one exists */}
+              {product.keyIngredients && product.keyIngredients.length > 0 && (
+                <IngredientStory
+                  ingredients={product.keyIngredients}
+                  productName={product.name}
+                />
+              )}
 
-          {/* Application Ritual */}
-          {product.ritual && product.ritual.length > 0 && (
-            <RitualSteps
-              steps={product.ritual}
-              title={`${product.name.toUpperCase()} RITUAL`}
-              subtitle="Disciplined daily application instructions."
-            />
+              {product.ritual && product.ritual.length > 0 && (
+                <RitualSteps
+                  steps={product.ritual}
+                  title={`${product.name.toUpperCase()} RITUAL`}
+                  subtitle="Disciplined daily application instructions."
+                />
+              )}
+            </>
           )}
         </>
       )}

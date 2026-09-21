@@ -91,6 +91,7 @@ export function JournalArticleClient({ slug }: JournalArticleClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [newsletterEmail, setNewsletterEmail] = useState<string>('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState<boolean>(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
 
   // Sync bookmark state from localStorage
   useEffect(() => {
@@ -186,11 +187,15 @@ export function JournalArticleClient({ slug }: JournalArticleClientProps) {
     }, 1200);
   };
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail || !newsletterEmail.includes('@')) return;
+    setIsSubscribing(true);
+    // Simulate network request
+    await new Promise((resolve) => setTimeout(resolve, 800));
     setNewsletterSubscribed(true);
     setNewsletterEmail('');
+    setIsSubscribing(false);
     setTimeout(() => setNewsletterSubscribed(false), 5000);
   };
 
@@ -783,9 +788,21 @@ export function JournalArticleClient({ slug }: JournalArticleClientProps) {
               />
               <button
                 type="submit"
-                className="bg-[#181817] text-white px-6 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold hover:bg-[#2D4438] transition-colors cursor-pointer shadow-xs"
+                disabled={isSubscribing}
+                className={`px-6 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold transition-colors shadow-xs relative ${
+                  isSubscribing ? 'bg-[#181817] text-white opacity-90 cursor-not-allowed' : 'bg-[#181817] text-white hover:bg-[#2D4438] cursor-pointer'
+                }`}
               >
-                Join
+                {isSubscribing ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                      <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : (
+                  'Join'
+                )}
               </button>
             </form>
           )}

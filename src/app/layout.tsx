@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '@/components/providers/ClientProviders';
+import NextTopLoader from 'nextjs-toploader';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
@@ -154,6 +155,8 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
@@ -163,6 +166,7 @@ export default async function RootLayout({
         className="min-h-screen flex flex-col bg-[#F6F3ED] text-[#181817] font-sans antialiased selection:bg-[#2D4438] selection:text-[#F6F3ED]"
         suppressHydrationWarning
       >
+        <NextTopLoader color="crimson" showSpinner={false} />
         <ClientProviders initialProducts={initialProducts}>{children}</ClientProviders>
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />

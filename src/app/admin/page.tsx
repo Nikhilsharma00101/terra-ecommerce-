@@ -293,6 +293,8 @@ export default function AdminPage() {
   // Database feedback
   const [dbActionMessage, setDbActionMessage] = useState('');
   const [dbActionLoading, setDbActionLoading] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isSavingReview, setIsSavingReview] = useState(false);
 
   // Product Form State
   const [productForm, setProductForm] = useState<{
@@ -571,6 +573,7 @@ export default function AdminPage() {
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingProduct(true);
     try {
       const payload = {
         ...productForm,
@@ -625,6 +628,8 @@ export default function AdminPage() {
       }
     } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
       alert(e.message || 'Error saving product');
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -694,6 +699,7 @@ export default function AdminPage() {
   const handleSaveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingReviewId) return;
+    setIsSavingReview(true);
     try {
       const res = await fetch(`/api/reviews/${editingReviewId}`, {
         method: 'PATCH',
@@ -709,6 +715,8 @@ export default function AdminPage() {
       }
     } catch (e) {
       console.error('Save review error:', e);
+    } finally {
+      setIsSavingReview(false);
     }
   };
 
@@ -927,45 +935,8 @@ export default function AdminPage() {
   };
 
   // Database Actions
-  const handleSeedCatalog = async () => {
-    try {
-      setDbActionLoading(true);
-      setDbActionMessage('Adding default products into database...');
-      const res = await fetch('/api/products/seed', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setDbActionMessage('Default products successfully synced to database!');
-        fetchProducts();
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchStats();
-      } else {
-        setDbActionMessage(`Error: ${data.error || 'Failed to sync'}`);
-      }
-    } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
-      setDbActionMessage(`Error: ${e.message}`);
-    } finally {
-      setDbActionLoading(false);
-    }
-  };
 
-  const handleSeedAdminAccount = async () => {
-    try {
-      setDbActionLoading(true);
-      setDbActionMessage('Verifying admin account in database...');
-      const res = await fetch('/api/auth/seed-admin', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setDbActionMessage('Admin account is ready in database!');
-        fetchUsers();
-      } else {
-        setDbActionMessage(`Error: ${data.error || 'Failed'}`);
-      }
-    } catch (e: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) {
-      setDbActionMessage(`Error: ${e.message}`);
-    } finally {
-      setDbActionLoading(false);
-    }
-  };
+
 
   const handleRefreshAll = async () => {
     setIsRefreshing(true);
@@ -982,6 +953,31 @@ export default function AdminPage() {
       setTimeout(() => setIsRefreshing(false), 500);
     }
   };
+
+  const { totalBeardOil, totalFaceWash } = React.useMemo(() => {
+    let beard = 0;
+    let face = 0;
+    orders.forEach((order) => {
+      if (order.status !== 'Cancelled') {
+        order.items?.forEach((item: any) => {
+          const name = (item.name || '').toLowerCase();
+          const qty = item.quantity || 1;
+          const isSet = name.includes('set') || name.includes('method') || name.includes('duo');
+          const isBeard = name.includes('beard');
+          const isFace = name.includes('face') || name.includes('cleanse');
+          
+          if (isSet) {
+            beard += qty;
+            face += qty;
+          } else {
+            if (isBeard) beard += qty;
+            if (isFace) face += qty;
+          }
+        });
+      }
+    });
+    return { totalBeardOil: beard, totalFaceWash: face };
+  }, [orders]);
 
   if (isLoading || !isAdmin) {
     return (
@@ -1108,7 +1104,7 @@ export default function AdminPage() {
           <div className="flex items-center justify-between pt-2 border-t border-[#DDD8CF]/70">
             <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold tracking-widest text-[#2D4438] uppercase">
               <ShieldCheck size={13} className="text-[#2D4438]" />
-              <span>Admin Console</span>
+              <span>Admin Panel</span>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 bg-[#EAE5DC] text-[#44403C] border border-[#DDD8CF]">
               <span
@@ -1126,7 +1122,7 @@ export default function AdminPage() {
           {/* Group 1: OVERVIEW */}
           <div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#8C887B] px-3 block mb-2 font-mono">
-              Store Pulse
+              Overview
             </span>
             <div className="space-y-1">
               <button
@@ -1155,7 +1151,7 @@ export default function AdminPage() {
           {/* Group 2: COMMERCE */}
           <div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#8C887B] px-3 block mb-2 font-mono">
-              Commerce & Catalog
+              Store
             </span>
             <div className="space-y-1">
               {/* Products */}
@@ -1199,7 +1195,7 @@ export default function AdminPage() {
               >
                 <div className="flex items-center gap-3">
                   <ShoppingBag size={16} strokeWidth={2} />
-                  <span>Orders & Shipments</span>
+                  <span>Orders</span>
                 </div>
                 {stats.processingOrders > 0 ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
@@ -1283,7 +1279,7 @@ export default function AdminPage() {
           {/* Group 3: SYSTEM */}
           <div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#8C887B] px-3 block mb-2 font-mono">
-              System & Health
+              System
             </span>
             <div className="space-y-1">
               <button
@@ -1299,7 +1295,7 @@ export default function AdminPage() {
               >
                 <div className="flex items-center gap-3">
                   <Database size={16} strokeWidth={2} />
-                  <span>Database & Logs</span>
+                  <span>System Settings</span>
                 </div>
                 <span
                   className={`w-2 h-2 rounded-full ${
@@ -1313,7 +1309,7 @@ export default function AdminPage() {
           {/* Sidebar Metric Widget */}
           <div className="p-3.5 bg-[#F4EFEA] border border-[#DDD8CF] space-y-2.5">
             <div className="flex items-center justify-between text-[11px] font-mono uppercase font-bold text-[#57534E]">
-              <span>Gross Revenue</span>
+              <span>Total Sales</span>
               <DollarSign size={13} className="text-[#2D4438]" />
             </div>
             <div className="font-serif text-xl font-bold text-[#181817] tracking-tight">
@@ -1388,18 +1384,18 @@ export default function AdminPage() {
               <div className="flex items-center gap-2 text-[11px] uppercase font-bold tracking-wider text-[#77736C] mb-0.5 font-mono">
                 <span>Terra</span>
                 <span>/</span>
-                <span className="text-[#2D4438]">Admin Console</span>
+                <span className="text-[#2D4438]">Admin Panel</span>
               </div>
               <h1 className="font-serif text-2xl sm:text-3xl text-[#181817] font-normal capitalize tracking-tight leading-tight">
                 {activeSection === 'overview'
-                  ? 'Store Dashboard'
+                  ? 'Overview'
                   : activeSection === 'products'
-                  ? 'Products Catalog'
+                  ? 'Products'
                   : activeSection === 'orders'
-                  ? 'Orders & Fulfillment'
+                  ? 'Orders'
                   : activeSection === 'users'
-                  ? 'Customer Directory'
-                  : 'Database & System Health'}
+                  ? 'Customers'
+                  : 'System Settings'}
               </h1>
             </div>
           </div>
@@ -1450,12 +1446,12 @@ export default function AdminPage() {
           {activeSection === 'overview' && (
             <div className="space-y-8">
               {/* Executive KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
                 {/* 1. Total Revenue */}
                 <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-6 shadow-2xs hover:border-[#2D4438]/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold tracking-wider text-[#77736C] font-mono">
-                      Gross Revenue
+                      Total Sales
                     </span>
                     <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-800 flex items-center justify-center">
                       <DollarSign size={16} />
@@ -1480,7 +1476,7 @@ export default function AdminPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold tracking-wider text-[#77736C] font-mono">
-                      Pending Action
+                      Pending Orders
                     </span>
                     <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center">
                       <Clock size={16} />
@@ -1536,6 +1532,28 @@ export default function AdminPage() {
                   <div className="text-xs text-[#57534E] font-medium mt-3 flex items-center justify-between">
                     <span>Registered store accounts</span>
                     <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+
+                {/* 5. Units Sold */}
+                <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-6 shadow-2xs hover:border-[#2D4438]/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-[#77736C] font-mono">
+                      Units Sold
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-[#EAE5DC] text-[#2D4438] flex items-center justify-center">
+                      <Package size={16} />
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#57534E]">Beard Oil</span>
+                      <span className="font-serif font-bold text-[#181817] text-lg">{totalBeardOil}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm border-t border-[#DDD8CF] pt-2">
+                      <span className="text-[#57534E]">Face Wash</span>
+                      <span className="font-serif font-bold text-[#181817] text-lg">{totalFaceWash}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1719,16 +1737,7 @@ export default function AdminPage() {
                         <ChevronRight size={14} />
                       </button>
 
-                      <button
-                        onClick={handleSeedCatalog}
-                        disabled={dbActionLoading}
-                        className="w-full flex items-center justify-between p-3.5 bg-[#FAF8F5] hover:bg-[#EAE5DC] text-[#181817] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border border-[#DDD8CF]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Database size={15} className="text-[#2D4438]" /> Sync Catalog to DB
-                        </span>
-                        <ChevronRight size={14} />
-                      </button>
+
                     </div>
 
                     {dbActionMessage && (
@@ -1777,7 +1786,7 @@ export default function AdminPage() {
                       type="text"
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Search formulas by name, slug, or tagline..."
+                      placeholder="Search products by name, web link, or subtitle..."
                       className="w-full bg-[#FFFFFF] border border-[#DDD8CF] pl-10 pr-9 py-2 text-xs text-[#181817] placeholder:text-[#8C887B] focus:outline-none focus:border-[#2D4438]"
                     />
                     {productSearch && (
@@ -1792,14 +1801,7 @@ export default function AdminPage() {
 
                   {/* Buttons */}
                   <div className="flex items-center gap-2.5">
-                    <button
-                      onClick={handleSeedCatalog}
-                      disabled={dbActionLoading}
-                      className="px-4 py-2 bg-[#EAE5DC] hover:bg-[#DDD8CF] border border-[#DDD8CF] text-[#181817] text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <RefreshCw size={13} />
-                      <span>Sync DB</span>
-                    </button>
+
 
                     <button
                       onClick={handleOpenCreateProduct}
@@ -1890,7 +1892,16 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#DDD8CF]">
-                        {filteredProducts.map((prod) => (
+                        {filteredProducts.map((prod) => {
+                          const productReviews = reviewsList.filter(
+                            (r: any) => r.productSlug === prod.slug && r.status === 'approved'
+                          );
+                          const dynReviewCount = productReviews.length;
+                          const dynRating = dynReviewCount > 0 
+                            ? (productReviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / dynReviewCount).toFixed(1) 
+                            : '0.0';
+
+                          return (
                           <tr key={prod._id || prod.id || prod.slug} className="hover:bg-[#F6F3ED] transition-colors">
                             {/* Product Info */}
                             <td className="p-4 pl-5">
@@ -1908,7 +1919,7 @@ export default function AdminPage() {
                                     {prod.name}
                                   </h4>
                                   <span className="text-[11px] text-[#77736C] block mt-0.5">
-                                    Slug: <strong className="font-mono text-[#181817]">{prod.slug}</strong> • Size: {prod.size}
+                                    Web Link: <strong className="font-mono text-[#181817]">{prod.slug}</strong> • Size: {prod.size}
                                   </span>
                                 </div>
                               </div>
@@ -1945,9 +1956,9 @@ export default function AdminPage() {
 
                             {/* Rating */}
                             <td className="p-4 text-[#2D4438] font-bold">
-                              ★ {prod.rating || 5.0}{' '}
+                              ★ {dynRating}{' '}
                               <span className="text-[10px] text-[#77736C] font-normal">
-                                ({prod.reviewCount || 0})
+                                ({dynReviewCount})
                               </span>
                             </td>
 
@@ -1970,8 +1981,9 @@ export default function AdminPage() {
                                 </button>
                               </div>
                             </td>
-                          </tr>
-                        ))}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2606,13 +2618,7 @@ export default function AdminPage() {
                     Total Registered Clientele: <strong className="text-[#181817]">{usersList.length}</strong>
                   </p>
                 </div>
-                <button
-                  onClick={handleSeedAdminAccount}
-                  disabled={dbActionLoading}
-                  className="px-4 py-2 bg-[#EAE5DC] hover:bg-[#DDD8CF] border border-[#DDD8CF] text-[#181817] text-xs uppercase tracking-wider font-bold transition-colors"
-                >
-                  Verify Admin Account
-                </button>
+
               </div>
 
               <div className="bg-[#FAF8F5] border border-[#DDD8CF] overflow-hidden shadow-2xs">
@@ -2888,37 +2894,9 @@ export default function AdminPage() {
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <button
-                      onClick={handleSeedCatalog}
-                      disabled={dbActionLoading}
-                      className="p-5 bg-[#FAF8F5] hover:bg-[#EAE5DC] border border-[#DDD8CF] text-left transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between text-[#2D4438] mb-1.5">
-                        <span className="text-xs uppercase font-bold tracking-wider">
-                          Sync Catalog To Database
-                        </span>
-                        <Database size={16} />
-                      </div>
-                      <p className="text-[11px] text-[#77736C]">
-                        Populates or refreshes default Terra formulas (Face Wash, Beard Oil, The Method).
-                      </p>
-                    </button>
 
-                    <button
-                      onClick={handleSeedAdminAccount}
-                      disabled={dbActionLoading}
-                      className="p-5 bg-[#FAF8F5] hover:bg-[#EAE5DC] border border-[#DDD8CF] text-left transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between text-[#2D4438] mb-1.5">
-                        <span className="text-xs uppercase font-bold tracking-wider">
-                          Verify Admin Credentials
-                        </span>
-                        <ShieldCheck size={16} />
-                      </div>
-                      <p className="text-[11px] text-[#77736C]">
-                        Verifies and ensures default administrator login credentials in MongoDB.
-                      </p>
-                    </button>
+
+
                   </div>
 
                   {dbActionMessage && (
@@ -3015,7 +2993,7 @@ export default function AdminPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C]">
-                        Product URL (Slug)
+                        Product Web Address (URL)
                       </label>
                       <div className="flex items-center gap-2">
                         {isSlugAuto ? (
@@ -3231,7 +3209,7 @@ export default function AdminPage() {
 
                 <div>
                   <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">
-                    Tagline
+                    Subtitle
                   </label>
                   <input
                     type="text"
@@ -3468,10 +3446,25 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 bg-[#181817] hover:bg-[#2D4438] text-[#F6F3ED] font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+                    disabled={isSavingProduct}
+                    className={`px-6 py-2.5 text-[#F6F3ED] font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm flex items-center gap-2 relative ${
+                      isSavingProduct ? 'bg-[#181817] opacity-90 cursor-not-allowed' : 'bg-[#181817] hover:bg-[#2D4438]'
+                    }`}
                   >
-                    <CheckCircle2 size={14} />
-                    <span>{editingProduct ? 'Save Changes' : 'Add Product'}</span>
+                    {isSavingProduct ? (
+                      <div className="flex items-center gap-2 justify-center">
+                        <svg className="animate-spin h-4 w-4 text-[#F6F3ED]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                          <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>SAVING...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={14} />
+                        <span>{editingProduct ? 'Save Changes' : 'Add Product'}</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -3486,271 +3479,144 @@ export default function AdminPage() {
         const orderSubtotal = selectedOrder.subtotal || selectedOrder.total || 0;
         const orderShipping = selectedOrder.shipping || 0;
         const orderGrandTotal = selectedOrder.total || 0;
+        const orderDiscount = selectedOrder.discountAmount || 0;
+        const appliedCoupon = selectedOrder.couponCode || '';
         const totalItemsCount = selectedOrder.items?.reduce((acc: number, it: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => acc + (it.quantity || 1), 0) || 0;
         const totalTaxable = Math.round((orderGrandTotal / 1.18) * 100) / 100;
         const totalGst = Math.round((orderGrandTotal - totalTaxable) * 100) / 100;
         const cgst = Math.round((totalGst / 2) * 100) / 100;
         const sgst = Math.round((totalGst - cgst) * 100) / 100;
-        const customerState = selectedOrder.shippingAddress?.state || 'Karnataka';
-        const isKarnataka = customerState.toLowerCase().includes('karnataka');
+        const customerState = selectedOrder.shippingAddress?.state || 'Delhi';
+        const isDelhi = customerState.toLowerCase().includes('delhi');
 
         return (
           <>
             {/* SCREEN MODAL DIALOG */}
             <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 no-print">
-              <div className="bg-[#FAF8F5] border border-[#DDD8CF] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] overflow-hidden">
+              <div className="bg-[#FAF8F5] border border-[#DDD8CF] max-w-5xl w-full max-h-[92vh] sm:max-h-[92vh] h-[95dvh] sm:h-auto flex flex-col shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] overflow-y-auto">
                 
-                {/* Modal Header */}
-                <div className="p-6 bg-[#F5F2EA] border-b border-[#DDD8CF] flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="text-[11px] font-mono uppercase tracking-widest font-bold px-2 py-0.5 bg-[#2D4438]/10 text-[#2D4438] border border-[#2D4438]/20">
-                        Order Management
-                      </span>
-                      
-                      {/* Status Badge */}
-                      <span
-                        className={`text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 border flex items-center gap-1.5 ${
-                          selectedOrder.status === 'Delivered'
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : selectedOrder.status === 'Shipped'
-                            ? 'bg-sky-50 text-sky-800 border-sky-200'
-                            : selectedOrder.status === 'Cancelled'
-                            ? 'bg-rose-50 text-rose-800 border-rose-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200'
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            selectedOrder.status === 'Delivered'
-                              ? 'bg-emerald-600'
-                              : selectedOrder.status === 'Shipped'
-                              ? 'bg-sky-600'
-                              : selectedOrder.status === 'Cancelled'
-                              ? 'bg-rose-600'
-                              : 'bg-amber-600 animate-pulse'
-                          }`}
-                        />
-                        {selectedOrder.status || 'Processing'}
-                      </span>
-
-                      {/* Payment Badge + COD Collect Action */}
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 border flex items-center gap-1 ${
-                            selectedOrder.paymentStatus === 'Paid'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : selectedOrder.paymentStatus === 'Failed'
-                              ? 'bg-rose-50 text-rose-800 border-rose-200'
-                              : 'bg-amber-50 text-amber-900 border-amber-300'
-                          }`}
-                        >
-                          {selectedOrder.paymentStatus === 'Paid' ? (
-                            <CheckCircle2 size={12} className="text-emerald-700" />
-                          ) : null}
-                          {selectedOrder.paymentStatus || 'Pending'}
-                        </span>
-
-                        {selectedOrder.paymentStatus !== 'Paid' && (
-                          <button
-                            type="button"
-                            disabled={updatingPaymentStatus}
-                            onClick={() =>
-                              handleUpdatePaymentStatus(
-                                selectedOrder._id || selectedOrder.orderNumber,
-                                'Paid'
-                              )
-                            }
-                            className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 bg-emerald-800 hover:bg-emerald-900 text-white flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
-                            title="Mark cash collected from customer"
-                          >
-                            <CheckCircle2 size={12} /> Mark as Paid (COD Collected)
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-serif text-2xl sm:text-3xl text-[#181817] font-medium tracking-tight">
+                {/* Slimmed Modal Header */}
+                <div className="p-4 sm:p-6 bg-[#F5F2EA] border-b border-[#DDD8CF] flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[11px] font-mono uppercase tracking-widest font-bold px-2.5 py-0.5 bg-[#2D4438] text-[#FAF8F5] border border-[#2D4438]">
                         Order #{selectedOrder.orderNumber}
-                      </h3>
+                      </span>
                       <button
                         onClick={() => handleCopyText(selectedOrder.orderNumber, 'modal_order_no')}
-                        className="p-1.5 hover:bg-[#EAE5DC] text-[#77736C] hover:text-[#181817] transition-colors"
+                        className="text-[#77736C] hover:text-[#181817] transition-colors"
                         title="Copy Order ID"
                       >
-                        {copiedKey === 'modal_order_no' ? (
-                          <CheckCheck size={16} className="text-emerald-700" />
-                        ) : (
-                          <Copy size={16} />
-                        )}
+                        {copiedKey === 'modal_order_no' ? <CheckCheck size={14} className="text-emerald-700" /> : <Copy size={14} />}
                       </button>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#57534E]">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={13} className="text-[#8C887B]" />
-                        {new Date(selectedOrder.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
+                    <h3 className="font-serif text-2xl text-[#181817] font-medium tracking-tight">
+                      {selectedOrder.customerName || 'Customer Order'}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-[#57534E] mt-1 font-mono">
+                      <span>{new Date(selectedOrder.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       <span>•</span>
-                      <span>
-                        Payment Method:{' '}
-                        <strong className="text-[#181817]">
-                          {selectedOrder.paymentMethod || 'Prepaid / UPI'}
-                        </strong>
-                      </span>
+                      <span>{selectedOrder.paymentMethod || 'Prepaid / UPI'}</span>
                     </div>
                   </div>
 
-                  {/* Header Actions & Tab Switcher */}
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    {/* View Mode Tabs */}
                     <div className="flex items-center bg-[#EAE5DC] p-1 border border-[#DDD8CF]">
-                      <button
-                        type="button"
-                        onClick={() => setModalViewTab('overview')}
-                        className={`px-3 py-1.5 text-xs uppercase tracking-wider font-bold transition-colors ${
-                          modalViewTab === 'overview'
-                            ? 'bg-[#181817] text-[#FAF8F5]'
-                            : 'text-[#57534E] hover:text-[#181817]'
-                        }`}
-                      >
+                      <button type="button" onClick={() => setModalViewTab('overview')} className={`px-3 py-1.5 text-xs uppercase tracking-wider font-bold transition-colors ${modalViewTab === 'overview' ? 'bg-[#181817] text-[#FAF8F5]' : 'text-[#57534E] hover:text-[#181817]'}`}>
                         Overview
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalViewTab('invoice')}
-                        className={`px-3 py-1.5 text-xs uppercase tracking-wider font-bold transition-colors ${
-                          modalViewTab === 'invoice'
-                            ? 'bg-[#181817] text-[#FAF8F5]'
-                            : 'text-[#57534E] hover:text-[#181817]'
-                        }`}
-                      >
-                        Tax Invoice
+                      <button type="button" onClick={() => setModalViewTab('invoice')} className={`px-3 py-1.5 text-xs uppercase tracking-wider font-bold transition-colors ${modalViewTab === 'invoice' ? 'bg-[#181817] text-[#FAF8F5]' : 'text-[#57534E] hover:text-[#181817]'}`}>
+                        Invoice
                       </button>
                     </div>
-
-                    {/* Print Button */}
-                    <button
-                      onClick={() => window.print()}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#2D4438] hover:bg-[#181817] border border-[#2D4438] text-xs font-bold uppercase tracking-wider text-[#FAF8F5] transition-colors shadow-xs"
-                      title="Print Complete Official Tax Invoice"
-                    >
-                      <Printer size={14} />
-                      <span>Print Invoice</span>
+                    <button onClick={() => window.print()} className="p-2 bg-[#2D4438] hover:bg-[#181817] border border-[#2D4438] text-[#FAF8F5] transition-colors" title="Print Invoice">
+                      <Printer size={16} />
                     </button>
-
-                    {/* Close Button */}
-                    <button
-                      onClick={() => setSelectedOrder(null)}
-                      className="p-2 bg-[#FAF8F5] hover:bg-[#EAE5DC] border border-[#DDD8CF] text-[#57534E] hover:text-[#181817] transition-colors"
-                      title="Close Modal"
-                    >
-                      <X size={20} />
+                    <button onClick={() => setSelectedOrder(null)} className="p-2 bg-[#FAF8F5] hover:bg-[#EAE5DC] border border-[#DDD8CF] text-[#57534E] hover:text-[#181817] transition-colors" title="Close Modal">
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
 
                 {/* TAB 1: INTERACTIVE ORDER OVERVIEW */}
                 {modalViewTab === 'overview' && (
-                  <>
-                    {/* Quick In-Modal Fulfillment Toolbar */}
-                    <div className="px-6 py-3.5 bg-[#EAE5DC]/60 border-b border-[#DDD8CF] flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#44403C] flex items-center gap-1.5">
-                          <Truck size={14} className="text-[#2D4438]" /> Update Status:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {(['Processing', 'Shipped', 'Delivered', 'Cancelled'] as const).map((st) => (
-                            <button
-                              key={st}
-                              disabled={updatingOrderStatus || selectedOrder.status === st}
-                              onClick={() =>
-                                handleUpdateOrderStatus(selectedOrder._id || selectedOrder.orderNumber, st)
-                              }
-                              className={`text-xs px-2.5 py-1 font-semibold uppercase tracking-wider transition-colors border ${
-                                selectedOrder.status === st
-                                  ? 'bg-[#181817] text-[#FAF8F5] border-[#181817]'
-                                  : 'bg-[#FAF8F5] hover:bg-[#EAE5DC] text-[#44403C] border-[#DDD8CF]'
-                              } ${updatingOrderStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            >
-                              {st}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Payment Status Switcher */}
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-[#DDD8CF]">
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#44403C] flex items-center gap-1">
-                            <CreditCard size={13} className="text-[#2D4438]" /> Payment:
-                          </span>
-                          {(['Paid', 'Pending', 'Failed'] as const).map((pst) => (
-                            <button
-                              key={pst}
-                              disabled={updatingPaymentStatus || selectedOrder.paymentStatus === pst}
-                              onClick={() =>
-                                handleUpdatePaymentStatus(
-                                  selectedOrder._id || selectedOrder.orderNumber,
-                                  pst
-                                )
-                              }
-                              className={`text-xs px-2 py-1 font-semibold uppercase tracking-wider transition-colors border ${
-                                selectedOrder.paymentStatus === pst
-                                  ? pst === 'Paid'
-                                    ? 'bg-emerald-800 text-white border-emerald-800'
-                                    : pst === 'Pending'
-                                    ? 'bg-amber-700 text-white border-amber-700'
-                                    : 'bg-rose-700 text-white border-rose-700'
-                                  : 'bg-[#FAF8F5] hover:bg-[#EAE5DC] text-[#44403C] border-[#DDD8CF]'
-                              } ${updatingPaymentStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            >
-                              {pst === 'Paid' ? '✓ Paid' : pst === 'Pending' ? '⏳ COD Pending' : '✕ Failed'}
-                            </button>
-                          ))}
-                        </div>
+                  <div className="p-4 sm:p-6 space-y-6">
+                    
+                    {/* Fulfillment Control Center Card */}
+                    <div className="bg-white border border-[#DDD8CF] shadow-sm">
+                      <div className="p-3.5 border-b border-[#DDD8CF] bg-[#FAF8F5] flex items-center gap-2">
+                        <Activity size={15} className="text-[#2D4438]" />
+                        <h4 className="text-xs uppercase font-bold text-[#181817] tracking-widest">Fulfillment Control Center</h4>
                       </div>
+                      
+                      <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        {/* Order Status */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-[#77736C]">1. Dispatch Status</span>
+                          <div className="flex flex-wrap gap-2">
+                            {(['Processing', 'Shipped', 'Delivered', 'Cancelled'] as const).map((st) => (
+                              <button
+                                key={st}
+                                disabled={updatingOrderStatus || selectedOrder.status === st}
+                                onClick={() => handleUpdateOrderStatus(selectedOrder._id || selectedOrder.orderNumber, st)}
+                                className={`text-[10px] px-2.5 py-1.5 font-bold uppercase tracking-wider transition-colors border ${
+                                  selectedOrder.status === st ? 'bg-[#181817] text-[#FAF8F5] border-[#181817]' : 'bg-[#FAF8F5] hover:bg-[#EAE5DC] text-[#44403C] border-[#DDD8CF]'
+                                } ${updatingOrderStatus ? 'opacity-50' : ''}`}
+                              >
+                                {st}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                      {/* Tracking Number Input */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Carrier Tracking #"
-                          value={modalTrackingInput}
-                          onChange={(e) => setModalTrackingInput(e.target.value)}
-                          className="bg-[#FFFFFF] border border-[#DDD8CF] px-3 py-1.5 text-xs text-[#181817] placeholder:text-[#8C887B] focus:outline-none focus:border-[#2D4438] w-44 sm:w-52"
-                        />
-                        <button
-                          onClick={() =>
-                            handleSaveTracking(
-                              selectedOrder._id || selectedOrder.orderNumber,
-                              modalTrackingInput
-                            )
-                          }
-                          className="px-3 py-1.5 bg-[#2D4438] hover:bg-[#181817] text-[#FAF8F5] text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
-                        >
-                          {modalTrackingSaved ? (
-                            <>
-                              <Check size={14} className="text-emerald-300" /> Saved
-                            </>
-                          ) : (
-                            'Save Tracking'
-                          )}
-                        </button>
+                        {/* Payment Status */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-[#77736C]">2. Payment Collection</span>
+                          <div className="flex flex-wrap gap-2">
+                            {(['Paid', 'Pending', 'Failed'] as const).map((pst) => (
+                              <button
+                                key={pst}
+                                disabled={updatingPaymentStatus || selectedOrder.paymentStatus === pst}
+                                onClick={() => handleUpdatePaymentStatus(selectedOrder._id || selectedOrder.orderNumber, pst)}
+                                className={`text-[10px] px-2.5 py-1.5 font-bold uppercase tracking-wider transition-colors border ${
+                                  selectedOrder.paymentStatus === pst
+                                    ? pst === 'Paid' ? 'bg-emerald-800 text-white border-emerald-800' : pst === 'Pending' ? 'bg-amber-700 text-white border-amber-700' : 'bg-rose-700 text-white border-rose-700'
+                                    : 'bg-[#FAF8F5] hover:bg-[#EAE5DC] text-[#44403C] border-[#DDD8CF]'
+                                } ${updatingPaymentStatus ? 'opacity-50' : ''}`}
+                              >
+                                {pst === 'Paid' ? '✓ Paid' : pst === 'Pending' ? '⏳ Pending' : '✕ Failed'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tracking Input */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-[#77736C]">3. Logistics Tracking</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="AWB / Tracking #"
+                              value={modalTrackingInput}
+                              onChange={(e) => setModalTrackingInput(e.target.value)}
+                              className="bg-[#FAF8F5] border border-[#DDD8CF] px-3 py-1.5 text-xs text-[#181817] w-full focus:outline-none focus:border-[#2D4438]"
+                            />
+                            <button
+                              onClick={() => handleSaveTracking(selectedOrder._id || selectedOrder.orderNumber, modalTrackingInput)}
+                              className="px-3 py-1.5 bg-[#2D4438] hover:bg-[#181817] text-[#FAF8F5] text-[10px] font-bold uppercase tracking-wider transition-colors shrink-0"
+                            >
+                              {modalTrackingSaved ? 'Saved' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+
                       </div>
                     </div>
-
-                    {/* Scrollable Content Body */}
-                    <div className="overflow-y-auto p-6 space-y-6">
                       
                       {/* Order Fulfillment Stepper */}
                       <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-4">
-                        <div className="grid grid-cols-4 gap-2 text-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-2 text-center">
                           {[
                             { label: '1. Placed', done: true },
                             {
@@ -3907,6 +3773,15 @@ export default function AdminPage() {
                                   </span>
                                 )}
                               </div>
+
+                              {orderDiscount > 0 && (
+                                <div className="flex justify-between items-center text-emerald-700">
+                                  <span>Discount Applied {appliedCoupon ? `(${appliedCoupon})` : ''}</span>
+                                  <span className="font-semibold">
+                                    - ₹{orderDiscount}
+                                  </span>
+                                </div>
+                              )}
 
                               <div className="flex justify-between text-xs text-[#77736C]">
                                 <span>Goods & Services Tax (18% GST Included)</span>
@@ -4111,7 +3986,7 @@ export default function AdminPage() {
                             <div className="p-3 bg-[#F5F2EA] border border-[#DDD8CF] space-y-2 text-xs">
                               <div className="flex justify-between items-center">
                                 <span className="text-[#77736C]">Assigned Carrier:</span>
-                                <span className="font-bold text-[#181817]">Bluedart Express / Delhivery Air</span>
+                                <span className="font-bold text-[#181817]">Shiprocket</span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-[#77736C]">Tracking ID:</span>
@@ -4142,13 +4017,12 @@ export default function AdminPage() {
 
                         </div>
                       </div>
-                    </div>
-                  </>
+                  </div>
                 )}
 
                 {/* TAB 2: FORMAL TAX INVOICE SCREEN PREVIEW */}
                 {modalViewTab === 'invoice' && (
-                  <div className="overflow-y-auto p-4 sm:p-8 bg-[#EAE5DC]/50 flex justify-center">
+                  <div className="p-4 sm:p-8 bg-[#EAE5DC]/50 flex justify-center">
                     <div className="bg-white border border-[#DDD8CF] shadow-xl p-6 sm:p-10 max-w-4xl w-full text-black text-xs space-y-6">
                       
                       {/* Top Bar with Print Callout */}
@@ -4173,16 +4047,18 @@ export default function AdminPage() {
                       {/* Letterhead */}
                       <div className="flex flex-wrap justify-between items-start gap-4 border-b pb-6">
                         <div>
-                          <h1 className="font-serif text-3xl font-bold tracking-tight text-[#181817]">TERRA</h1>
+                          <div className="flex items-center gap-2 mb-1">
+                            <img src="/images/logo/logo-dark.png" alt="Terra Mens" className="h-7 w-auto object-contain" />
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#181817]">TERRA MENS</h1>
+                          </div>
                           <p className="text-[10px] tracking-widest uppercase text-[#555] font-semibold">
-                            Botanical Grooming Co. Private Limited
+                            Sri Sai Enterprises
                           </p>
                           <p className="text-[11px] text-[#444] mt-2 leading-relaxed">
-                            42, 12th Main Road, HAL 2nd Stage, Indiranagar<br />
-                            Bengaluru, Karnataka, India — 560038<br />
-                            <strong>GSTIN:</strong> 29AAACT8201M1Z5 &nbsp;|&nbsp; <strong>PAN:</strong> AAACT8201M<br />
-                            <strong>CIN:</strong> U24246KA2024PTC189201<br />
-                            Email: concierge@terragrooming.com &nbsp;|&nbsp; +91 80 4920 3388
+                            C-5/39, G/f, Khand-42/16, Plot No. 6, Karawal Nagar Road<br />
+                            New Delhi, North East Delhi - 110094<br />
+                            <strong>GSTIN:</strong> 07ELZPS4500M1Z9<br />
+                            Email: info@terramensco.com
                           </p>
                         </div>
                         <div className="p-3 bg-gray-50 border border-gray-200 text-right min-w-64 space-y-1">
@@ -4200,7 +4076,7 @@ export default function AdminPage() {
                             <strong>Order No:</strong> #{selectedOrder.orderNumber}
                           </p>
                           <p className="text-[11px] text-gray-700">
-                            <strong>Place of Supply:</strong> {customerState} (29)
+                            <strong>Place of Supply:</strong> {customerState}
                           </p>
                         </div>
                       </div>
@@ -4249,8 +4125,8 @@ export default function AdminPage() {
                       </div>
 
                       {/* Items Table */}
-                      <div>
-                        <table className="w-full text-left border-collapse border border-gray-300 text-[11px]">
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full min-w-[600px] text-left border-collapse border border-gray-300 text-[11px]">
                           <thead>
                             <tr className="bg-gray-100 text-gray-800 border-b border-gray-300 font-bold uppercase text-[10px]">
                               <th className="p-2 border border-gray-300 text-center w-10">#</th>
@@ -4325,7 +4201,7 @@ export default function AdminPage() {
                             <span className="text-gray-600">Total Taxable Value</span>
                             <span className="font-mono font-medium">₹{totalTaxable}</span>
                           </div>
-                          {isKarnataka ? (
+                          {isDelhi ? (
                             <>
                               <div className="flex justify-between p-2">
                                 <span className="text-gray-600">CGST (9.00%)</span>
@@ -4348,6 +4224,12 @@ export default function AdminPage() {
                               {orderShipping === 0 ? 'FREE' : `₹${orderShipping}`}
                             </span>
                           </div>
+                          {orderDiscount > 0 && (
+                            <div className="flex justify-between p-2 text-emerald-700">
+                              <span className="text-gray-600 font-medium">Discount Applied {appliedCoupon ? `(${appliedCoupon})` : ''}</span>
+                              <span className="font-mono font-medium">- ₹{orderDiscount}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between p-3 bg-gray-100 font-bold text-sm text-black">
                             <span>Total Invoice Value</span>
                             <span className="font-mono text-base">₹{orderGrandTotal}</span>
@@ -4364,7 +4246,7 @@ export default function AdminPage() {
                           <p>3. This is an electronically generated and authenticated computer document.</p>
                         </div>
                         <div className="text-center p-3 border border-gray-300 min-w-56 bg-gray-50/50">
-                          <p className="text-[10px] text-gray-500 mb-6">For TERRA BOTANICAL GROOMING CO. PVT. LTD.</p>
+                          <p className="text-[10px] text-gray-500 mb-6">For SRI SAI ENTERPRISES</p>
                           <div className="border-t border-dashed border-gray-400 pt-1 font-bold text-black">
                             Authorized Signatory
                           </div>
@@ -4407,14 +4289,18 @@ export default function AdminPage() {
               {/* Header Letterhead */}
               <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
                 <div>
-                  <h1 className="font-serif text-3xl font-bold tracking-tight text-black">TERRA</h1>
+                  <div className="flex items-center gap-2 mb-1">
+                    <img src="/images/logo/logo-dark.png" alt="Terra Mens" className="h-7 w-auto object-contain" />
+                    <h1 className="font-serif text-3xl font-bold tracking-tight text-black">TERRA MENS</h1>
+                  </div>
                   <p className="text-[10px] tracking-widest uppercase text-gray-800 font-bold">
-                    Botanical Grooming Co. Private Limited
+                    Sri Sai Enterprises
                   </p>
                   <p className="text-xs text-gray-700 mt-1 leading-snug">
-                    42, 12th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru, KA, India - 560038<br />
-                    <strong>GSTIN:</strong> 29AAACT8201M1Z5 &nbsp;|&nbsp; <strong>PAN:</strong> AAACT8201M<br />
-                    <strong>CIN:</strong> U24246KA2024PTC189201 &nbsp;|&nbsp; Email: concierge@terragrooming.com
+                    C-5/39, G/f, Khand-42/16, Plot No. 6, Karawal Nagar Road<br />
+                    New Delhi, North East Delhi - 110094<br />
+                    <strong>GSTIN:</strong> 07ELZPS4500M1Z9<br />
+                    Email: info@terramensco.com
                   </p>
                 </div>
                 <div className="text-right border border-gray-400 p-2.5 bg-gray-50 min-w-56 text-xs space-y-0.5">
@@ -4424,7 +4310,7 @@ export default function AdminPage() {
                   <p className="pt-1"><strong>Invoice No:</strong> INV-{selectedOrder.orderNumber}</p>
                   <p><strong>Invoice Date:</strong> {new Date(selectedOrder.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN')}</p>
                   <p><strong>Order ID:</strong> #{selectedOrder.orderNumber}</p>
-                  <p><strong>Place of Supply:</strong> {customerState} (29)</p>
+                  <p><strong>Place of Supply:</strong> {customerState}</p>
                 </div>
               </div>
 
@@ -4457,7 +4343,7 @@ export default function AdminPage() {
                     {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} — {selectedOrder.shippingAddress?.postalCode}
                   </p>
                   <p className="text-gray-600 pt-1">
-                    Dispatch Carrier: <strong>Bluedart / Delhivery</strong><br />
+                    Dispatch Carrier: <strong>Shiprocket</strong><br />
                     AWB Tracking: <strong>{selectedOrder.trackingNumber || 'Pending Dispatch'}</strong>
                   </p>
                 </div>
@@ -4526,7 +4412,7 @@ export default function AdminPage() {
 
                   <div className="text-[11px] text-gray-700 space-y-1">
                     <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod || 'Prepaid / Online UPI'}</p>
-                    <p><strong>Payment Status:</strong> {selectedOrder.paymentStatus === 'Paid' ? 'PAID IN FULL' : 'CASH ON DELIVERY (PENDING)'}</p>
+                    <p><strong>Payment Status:</strong> {selectedOrder.paymentStatus === 'Paid' ? 'PAID IN FULL' : selectedOrder.paymentStatus === 'Failed' ? 'PAYMENT FAILED / CANCELLED' : 'CASH ON DELIVERY (PENDING)'}</p>
                     <p><strong>Total Items Count:</strong> {totalItemsCount} units</p>
                   </div>
                 </div>
@@ -4536,7 +4422,7 @@ export default function AdminPage() {
                     <span>Taxable Amount</span>
                     <span className="font-mono">₹{totalTaxable}</span>
                   </div>
-                  {isKarnataka ? (
+                  {isDelhi ? (
                     <>
                       <div className="flex justify-between p-1.5">
                         <span>CGST (9%)</span>
@@ -4557,6 +4443,12 @@ export default function AdminPage() {
                     <span>Shipping Charges</span>
                     <span className="font-mono">{orderShipping === 0 ? 'FREE' : `₹${orderShipping}`}</span>
                   </div>
+                  {orderDiscount > 0 && (
+                    <div className="flex justify-between p-1.5 text-emerald-800">
+                      <span className="font-medium">Discount Applied {appliedCoupon ? `(${appliedCoupon})` : ''}</span>
+                      <span className="font-mono font-medium">- ₹{orderDiscount}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between p-2 bg-gray-100 font-bold text-sm text-black">
                     <span>Grand Total</span>
                     <span className="font-mono">₹{orderGrandTotal}</span>
@@ -4573,7 +4465,7 @@ export default function AdminPage() {
                   <p>3. This is a computer-generated invoice and requires no physical signature.</p>
                 </div>
                 <div className="text-center p-2.5 border border-gray-400 min-w-52">
-                  <p className="text-[10px] text-gray-500 mb-6">For TERRA BOTANICAL GROOMING CO. PVT. LTD.</p>
+                  <p className="text-[10px] text-gray-500 mb-6">For SRI SAI ENTERPRISES</p>
                   <p className="border-t border-dashed border-gray-400 pt-1 font-bold text-black">
                     Authorized Signatory
                   </p>
@@ -4708,9 +4600,22 @@ export default function AdminPage() {
               <button
                 type="submit"
                 form="review-edit-form"
-                className="px-6 py-2.5 bg-[#2D4438] hover:bg-[#181817] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-xs"
+                disabled={isSavingReview}
+                className={`px-6 py-2.5 text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-xs relative ${
+                  isSavingReview ? 'bg-[#2D4438] opacity-90 cursor-not-allowed' : 'bg-[#2D4438] hover:bg-[#181817]'
+                }`}
               >
-                Save Changes
+                {isSavingReview ? (
+                  <div className="flex items-center gap-2 justify-center">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                      <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>SAVING...</span>
+                  </div>
+                ) : (
+                  'Save Changes'
+                )}
               </button>
             </div>
           </div>
