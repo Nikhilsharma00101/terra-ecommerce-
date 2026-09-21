@@ -4,6 +4,10 @@ import { Order } from '@/models/Order';
 import { Product } from '@/models/Product';
 import { getAuthUser } from '@/lib/auth';
 import nodemailer from 'nodemailer';
+import { generateOrderConfirmationHtml } from '@/lib/email/templates';
+import crypto from 'crypto';
+import Razorpay from 'razorpay';
+import { sendAdminTelegramNotification } from '@/lib/telegram';
 
 export async function GET(req: NextRequest) {
   try {
@@ -74,6 +78,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * Creates a new order.
+ * Flow:
+ * 1. Validates the request payload (required fields, lengths).
+ * 2. Enforces authentication (`getAuthUser`).
+ * 3. Fetches authoritative prices and stock from the database (prevents client-side price manipulation).
+ * 4. Checks stock availability for requested quantities.
+ * 5. Applies coupons (e.g. WELCOME10) and calculates final totals (subtotal, shipping, discounts).
+ * 6. Performs an idempotency check to prevent duplicate orders within a 60-second window.
+ * 7. Enforces COD limits (maximum amount, maximum pending orders).
+ * 8. Saves the order in the database and initiates Razorpay integration if applicable.
+ * 
+ * @param {NextRequest} req - The incoming HTTP request.
+ * @returns {NextResponse} JSON response with the order details or an error message.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -107,8 +126,6 @@ export async function POST(req: NextRequest) {
       typeof shippingAddress !== 'object' ||
       typeof shippingAddress.firstName !== 'string' ||
       !shippingAddress.firstName.trim() ||
-      typeof shippingAddress.lastName !== 'string' ||
-      !shippingAddress.lastName.trim() ||
       typeof shippingAddress.address1 !== 'string' ||
       !shippingAddress.address1.trim() ||
       typeof shippingAddress.city !== 'string' ||
@@ -136,7 +153,7 @@ export async function POST(req: NextRequest) {
       const quantity = Math.floor(item.quantity || 1);
       if (quantity < 1 || quantity > 100) {
         return NextResponse.json(
-          { error: `Invalid quantity for item ${item.name || item.productId}. Quantity must be between 1 and 100.` },
+          { error: `Invalid quantity for item. Quantity must be between 1 and 100.` },
           { status: 400 }
         );
       }
@@ -149,7 +166,14 @@ export async function POST(req: NextRequest) {
 
       if (!dbProduct) {
         return NextResponse.json(
-          { error: `Product not found: ${item.name || item.productId}. Cannot process order.` },
+          { error: 'One or more products could not be found. Please refresh and try again.' },
+          { status: 400 }
+        );
+      }
+
+      if (dbProduct.stock < quantity) {
+        return NextResponse.json(
+          { error: `Product "${dbProduct.name}" is out of stock or does not have enough quantity available.` },
           { status: 400 }
         );
       }
@@ -194,9 +218,87 @@ export async function POST(req: NextRequest) {
     const shippingCost = (calculatedSubtotal - discountAmount) >= freeShippingThreshold ? 0 : 75;
     const calculatedTotal = Math.max(0, calculatedSubtotal - discountAmount + shippingCost);
 
-    // Generate unique order number
-    const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    const orderNumber = `TR-IN-${Date.now()}-${randomDigits}`;
+    // H-3: Generate unique order number using cryptographically secure random bytes
+    const generateShortId = (length: number) => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const bytes = crypto.randomBytes(length);
+      return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+    };
+
+    // Retry loop for the (rare) collision case
+    let orderNumber = '';
+    let orderAttempts = 0;
+    do {
+      orderNumber = `TR-${generateShortId(8)}`;
+      orderAttempts++;
+    } while ((await Order.exists({ orderNumber })) && orderAttempts < 5);
+
+    if (orderAttempts >= 5) {
+      return NextResponse.json(
+        { error: 'Unable to generate a unique order number. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // I-1: Idempotency check — prevent duplicate orders within 60s window
+    const recentDuplicate = await Order.findOne({
+      customerEmail: customerEmail.toLowerCase().trim(),
+      total: calculatedTotal,
+      createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+    });
+    if (recentDuplicate) {
+      return NextResponse.json(
+        {
+          message: 'Order already placed.',
+          orderNumber: recentDuplicate.orderNumber,
+          razorpayOrderId: recentDuplicate.razorpayOrderId || null,
+          amount: Math.round(recentDuplicate.total * 100),
+          currency: 'INR',
+        },
+        { status: 200 }
+      );
+    }
+
+    // M-4: COD fraud protection — limit pending COD orders
+    if (paymentMethod === 'cod') {
+      const pendingCodOrders = await Order.countDocuments({
+        customerEmail: customerEmail.toLowerCase().trim(),
+        paymentMethod: 'cod',
+        status: { $in: ['Processing', 'Shipped'] },
+      });
+      if (pendingCodOrders >= 2) {
+        return NextResponse.json(
+          { error: 'You already have pending Cash on Delivery orders. Please wait for them to be delivered before placing a new COD order.' },
+          { status: 400 }
+        );
+      }
+
+      // Cap COD order amount
+      if (calculatedTotal > 5000) {
+        return NextResponse.json(
+          { error: 'Cash on Delivery is available for orders up to ₹5,000. Please use online payment for higher amounts.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // L-2: Validate input lengths
+    const maxFieldLength = 500;
+    const maxNameLength = 100;
+    if (
+      customerName.trim().length > maxNameLength ||
+      customerEmail.trim().length > maxNameLength ||
+      (shippingAddress.address1 && shippingAddress.address1.length > maxFieldLength) ||
+      (shippingAddress.address2 && shippingAddress.address2.length > maxFieldLength) ||
+      (shippingAddress.city && shippingAddress.city.length > maxNameLength) ||
+      (shippingAddress.firstName && shippingAddress.firstName.length > maxNameLength) ||
+      (shippingAddress.lastName && shippingAddress.lastName.length > maxNameLength)
+    ) {
+      return NextResponse.json(
+        { error: 'One or more fields exceed the maximum allowed length.' },
+        { status: 400 }
+      );
+    }
 
     const newOrder = await Order.create({
       orderNumber,
@@ -212,7 +314,7 @@ export async function POST(req: NextRequest) {
       couponCode: appliedCoupon || undefined,
       discountAmount: discountAmount,
       status: 'Processing',
-      paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Paid',
+      paymentStatus: 'Pending',
       paymentMethod: paymentMethod || 'upi',
       shippingAddress: {
         firstName: shippingAddress.firstName,
@@ -226,92 +328,125 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- NODEMAILER ORDER CONFIRMATION ---
-    try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || 465,
-        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+    let razorpayOrderId = null;
+
+    // For COD, decrement stock immediately. For Razorpay, stock is decremented upon payment verification.
+    if (paymentMethod === 'cod') {
+      const bulkOperations = validatedItems.map((item) => ({
+        updateOne: {
+          filter: {
+            $or: [
+              { _id: item.productId.length === 24 ? item.productId : null },
+              { slug: item.productId }
+            ]
+          },
+          update: { $inc: { stock: -item.quantity } },
         },
+      }));
+
+      // Clean up invalid object ids from filter just to be safe
+      bulkOperations.forEach(op => {
+        if (!op.updateOne.filter.$or[0]._id) {
+          op.updateOne.filter.$or.shift();
+        }
       });
 
-      const itemsHtml = validatedItems.map(item => `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #E5E0D8;">${item.name} x ${item.quantity}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #E5E0D8; text-align: right;">₹${item.price * item.quantity}</td>
-        </tr>
-      `).join('');
-
-      const mailOptions = {
-        from: process.env.EMAIL_FROM || 'Info@terramensco.com',
-        to: customerEmail.toLowerCase().trim(),
-        subject: `Terra Men's Co - Order Confirmation ${orderNumber}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #DDD8CF; background-color: #FBF9F5;">
-            <h2 style="color: #181817; text-align: center;">Order Confirmed</h2>
-            <p style="color: #181817;">Hi ${customerName},</p>
-            <p style="color: #181817;">Thank you for your order! We're preparing it for shipment. Your order number is <strong>${orderNumber}</strong>.</p>
-            
-            <h3 style="color: #2D4438; margin-top: 30px; border-bottom: 1px solid #DDD8CF; padding-bottom: 10px;">Order Summary</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; color: #181817; font-size: 14px;">
-              ${itemsHtml}
-              <tr>
-                <td style="padding: 10px; font-weight: bold; text-align: right;">Subtotal:</td>
-                <td style="padding: 10px; text-align: right;">₹${calculatedSubtotal}</td>
-              </tr>
-              ${discountAmount > 0 ? `
-              <tr>
-                <td style="padding: 10px; font-weight: bold; text-align: right; color: #2D4438;">Discount (${appliedCoupon}):</td>
-                <td style="padding: 10px; text-align: right; color: #2D4438;">-₹${discountAmount}</td>
-              </tr>
-              ` : ''}
-              <tr>
-                <td style="padding: 10px; font-weight: bold; text-align: right;">Shipping:</td>
-                <td style="padding: 10px; text-align: right;">${shippingCost === 0 ? 'Free' : `₹${shippingCost}`}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; font-weight: bold; text-align: right; font-size: 16px; border-top: 2px solid #181817;">Total:</td>
-                <td style="padding: 10px; font-weight: bold; text-align: right; font-size: 16px; border-top: 2px solid #181817;">₹${calculatedTotal}</td>
-              </tr>
-            </table>
-
-            <h3 style="color: #2D4438; margin-top: 30px; border-bottom: 1px solid #DDD8CF; padding-bottom: 10px;">Shipping Details</h3>
-            <p style="color: #181817; font-size: 14px; line-height: 1.6;">
-              ${shippingAddress.firstName} ${shippingAddress.lastName}<br/>
-              ${shippingAddress.address1} ${shippingAddress.address2 ? `<br/>${shippingAddress.address2}` : ''}<br/>
-              ${shippingAddress.city}, ${shippingAddress.state || 'Maharashtra'} - ${shippingAddress.postalCode}<br/>
-              ${shippingAddress.country || 'India'}
-            </p>
-
-            <hr style="border: none; border-top: 1px solid #DDD8CF; margin: 30px 0;" />
-            <p style="color: #57534E; font-size: 12px; text-align: center;">If you have any questions, reply to this email or contact us at <a href="mailto:info@terramensco.com" style="color: #2D4438;">info@terramensco.com</a>.</p>
-            <p style="color: #8C887B; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} Terra Men's Co.</p>
-          </div>
-        `,
-      };
-
-      await transporter.sendMail(mailOptions);
-    } catch (emailError) {
-      console.error('Failed to send order confirmation email:', emailError);
-      // We deliberately do not throw here, so the order still successfully completes for the user.
+      if (bulkOperations.length > 0) {
+        await Product.bulkWrite(bulkOperations);
+      }
     }
-    // --- END NODEMAILER ---
+
+    if (paymentMethod !== 'cod') {
+      const key_id = (process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '').trim();
+      const key_secret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+
+      if (!key_id || !key_secret) {
+        throw new Error('Razorpay keys are missing.');
+      }
+
+      const razorpay = new Razorpay({ key_id, key_secret });
+
+      const rzpOrder = await razorpay.orders.create({
+        amount: Math.round(calculatedTotal * 100),
+        currency: 'INR',
+        receipt: newOrder._id.toString(),
+      });
+
+      if (!rzpOrder) {
+        throw new Error('Failed to create Razorpay Order.');
+      }
+
+      razorpayOrderId = rzpOrder.id;
+      newOrder.razorpayOrderId = razorpayOrderId;
+      await newOrder.save();
+    }
+
+    // --- NODEMAILER ORDER CONFIRMATION ---
+    // Only send email immediately if it's Cash on Delivery.
+    // For Razorpay, we send the email from the verify/webhook endpoints AFTER payment is confirmed.
+    if (paymentMethod === 'cod') {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_SERVER_HOST,
+          port: Number(process.env.EMAIL_SERVER_PORT) || 465,
+          secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+          auth: {
+            user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
+            pass: process.env.EMAIL_SERVER_PASSWORD,
+          },
+        });
+
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || 'Info@terramensco.com',
+          to: customerEmail.toLowerCase().trim(),
+          subject: `Terra Men's Co - Order Confirmation ${orderNumber}`,
+          html: generateOrderConfirmationHtml({
+            orderNumber,
+            customerName,
+            customerEmail: customerEmail.toLowerCase().trim(),
+            items: validatedItems,
+            subtotal: calculatedSubtotal,
+            discountAmount,
+            couponCode: appliedCoupon,
+            shipping: shippingCost,
+            total: calculatedTotal,
+            shippingAddress: {
+              firstName: shippingAddress.firstName,
+              lastName: shippingAddress.lastName || '',
+              address1: shippingAddress.address1,
+              address2: shippingAddress.address2,
+              city: shippingAddress.city,
+              state: shippingAddress.state,
+              postalCode: shippingAddress.postalCode
+            },
+            paymentMethod: 'cod'
+          }, false),
+        };
+
+        await transporter.sendMail(mailOptions);
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+        // We deliberately do not throw here, so the order still successfully completes for the user.
+      }
+
+      // Send Telegram notification to Admin
+      await sendAdminTelegramNotification(newOrder);
+    } // End if (paymentMethod === 'cod')
 
     return NextResponse.json(
       {
         message: 'Order created successfully',
-        order: newOrder,
         orderNumber: newOrder.orderNumber,
+        razorpayOrderId: razorpayOrderId,
+        amount: Math.round(calculatedTotal * 100),
+        currency: 'INR',
       },
       { status: 201 }
     );
   } catch (error: any) {
     console.error('Create order error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to place order.' },
+      { error: 'An unexpected error occurred while placing your order. Please try again.' },
       { status: 500 }
     );
   }

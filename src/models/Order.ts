@@ -10,7 +10,7 @@ export interface IOrderItem {
 
 export interface IOrderAddress {
   firstName: string;
-  lastName: string;
+  lastName?: string;
   address1: string;
   address2?: string;
   city: string;
@@ -40,6 +40,8 @@ export interface IOrder extends Document {
   discountAmount?: number;
   createdAt: Date;
   updatedAt: Date;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
 }
 
 const OrderItemSchema = new Schema<IOrderItem>(
@@ -56,7 +58,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
 const OrderAddressSchema = new Schema<IOrderAddress>(
   {
     firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
+    lastName: { type: String },
     address1: { type: String, required: true },
     address2: { type: String },
     city: { type: String, required: true },
@@ -120,7 +122,7 @@ const OrderSchema = new Schema<IOrder>(
     paymentStatus: {
       type: String,
       enum: ['Pending', 'Paid', 'Failed'],
-      default: 'Paid',
+      default: 'Pending',
     },
     paymentMethod: {
       type: String,
@@ -139,6 +141,13 @@ const OrderSchema = new Schema<IOrder>(
     discountAmount: {
       type: Number,
       default: 0,
+    },
+    razorpayOrderId: {
+      type: String,
+      index: true,
+    },
+    razorpayPaymentId: {
+      type: String,
     },
   },
   {

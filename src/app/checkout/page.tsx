@@ -20,7 +20,10 @@ import {
   Tag,
   Gift,
   Banknote,
-  Sparkles
+  Sparkles,
+  SmartphoneNfc,
+  CreditCard,
+  Landmark
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -86,6 +89,12 @@ export default function CheckoutPage() {
   // Active Checkout Step: 1 = Contact & Shipping, 2 = Payment Method
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
+  // Prevent hydration mismatch FOUC by waiting for mount
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Form State
@@ -99,12 +108,19 @@ export default function CheckoutPage() {
     city: '',
     state: 'Maharashtra',
     postalCode: '',
-    paymentMethod: 'razorpay',
+    paymentMethod: 'upi',
+    saveAddress: true,
   });
 
   // Promo code state
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Saved Address States
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(true);
 
   // Auto-fill logged in user info
   useEffect(() => {
@@ -117,8 +133,54 @@ export default function CheckoutPage() {
         lastName: names.slice(1).join(' ') || prev.lastName,
         phone: user.phone || prev.phone,
       }));
+
+      // Fetch precise saved addresses
+      fetch('/api/user/profile')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.user?.addresses?.length > 0) {
+            setSavedAddresses(data.user.addresses);
+
+            const defaultAddr = data.user.addresses.find((a: any) => a.isDefault) || data.user.addresses[0];
+            setSelectedAddressId(defaultAddr.id);
+            setIsAddingNewAddress(false);
+
+            const defaultNames = defaultAddr.fullName ? defaultAddr.fullName.split(' ') : names;
+            setFormData(prev => ({
+              ...prev,
+              firstName: defaultNames[0] || prev.firstName,
+              lastName: defaultNames.slice(1).join(' ') || prev.lastName,
+              address1: defaultAddr.street || prev.address1,
+              city: defaultAddr.city || prev.city,
+              state: defaultAddr.state || prev.state,
+              postalCode: defaultAddr.postalCode || prev.postalCode,
+              phone: defaultAddr.phone || prev.phone,
+            }));
+          }
+        })
+        .catch(err => console.error('Error fetching addresses:', err));
     }
   }, [user]);
+
+  const handleAddressSelect = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setIsAddingNewAddress(false);
+
+    const names = addr.fullName ? addr.fullName.split(' ') : (user?.name || '').split(' ');
+
+    setFormData(prev => ({
+      ...prev,
+      firstName: names[0] || prev.firstName,
+      lastName: names.slice(1).join(' ') || prev.lastName,
+      address1: addr.street || '',
+      city: addr.city || '',
+      state: addr.state || 'Maharashtra',
+      postalCode: addr.postalCode || '',
+      phone: addr.phone || user?.phone || prev.phone,
+    }));
+
+    setErrors({});
+  };
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -162,11 +224,16 @@ export default function CheckoutPage() {
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     setCouponError('');
-    const res = await applyCoupon(couponInput, formData.email || user?.email);
-    if (!res.success) {
-      setCouponError(res.error || 'Invalid coupon code. Try WELCOME10.');
-    } else {
-      setCouponInput('');
+    setIsApplyingCoupon(true);
+    try {
+      const res = await applyCoupon(couponInput, formData.email || user?.email);
+      if (!res.success) {
+        setCouponError(res.error || 'Invalid coupon code. Try WELCOME10.');
+      } else {
+        setCouponInput('');
+      }
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -193,7 +260,7 @@ export default function CheckoutPage() {
             '',
         })),
         couponCode: appliedCoupon || undefined,
-        paymentMethod: formData.paymentMethod,
+        paymentMethod: formData.paymentMethod === 'cod' ? 'cod' : 'razorpay',
         shippingAddress: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -206,27 +273,57 @@ export default function CheckoutPage() {
         },
       };
 
+      // 0. Auto-Save New Address if requested
+      if (user && formData.saveAddress && (!savedAddresses.length || isAddingNewAddress)) {
+        try {
+          await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'add_address',
+              address: {
+                title: 'Home',
+                street: formData.address1,
+                city: formData.city,
+                state: formData.state,
+                postalCode: formData.postalCode,
+                phone: formData.phone,
+                isDefault: savedAddresses.length === 0, // Make default if it's their first
+              }
+            })
+          });
+        } catch (e) {
+          console.error('Failed to auto-save address', e);
+          // Non-blocking error, we still want to place the order
+        }
+      }
+
+      // 1. Pre-emptively create the DB Order first
+      const createOrderRes = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const createOrderData = await createOrderRes.json();
+      if (!createOrderRes.ok) {
+        throw new Error(createOrderData.error || 'Failed to create order');
+      }
+
+      const { orderNumber, razorpayOrderId, amount, currency } = createOrderData;
+
       if (formData.paymentMethod !== 'cod') {
-        const createOrderRes = await fetch('/api/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: total * 100, currency: 'INR' }),
-        });
-        const createOrderData = await createOrderRes.json();
-
-        if (!createOrderRes.ok)
-          throw new Error(createOrderData.error || 'Failed to create order');
-
         const options = {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: createOrderData.amount,
-          currency: createOrderData.currency,
+          amount: amount,
+          currency: currency,
           name: 'Terra',
           description: 'Purchase from Terra',
-          order_id: createOrderData.order_id,
+          order_id: razorpayOrderId,
           handler: async function (response: any) {
             try {
-              const verifyRes = await fetch('/api/verify-payment', {
+              // 2. Snappy Frontend Verification
+              const verifyRes = await fetch('/api/orders/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -236,38 +333,17 @@ export default function CheckoutPage() {
                 }),
               });
 
-              const verifyData = await verifyRes.json();
-
               if (verifyRes.ok) {
-                const res = await fetch('/api/orders', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(orderPayload),
-                });
-
-                let orderNumber =
-                  'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.orderNumber) orderNumber = data.orderNumber;
-                  clearCart();
-                  router.push(
-                    `/checkout/success?order=${orderNumber}&total=${total}`
-                  );
-                } else {
-                  const data = await res.json();
-                  alert(
-                    'Order creation failed: ' + (data.error || 'Unknown error')
-                  );
-                  setIsProcessing(false);
-                }
+                clearCart();
+                router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
               } else {
-                alert('Payment verification failed: ' + verifyData.error);
+                const verifyData = await verifyRes.json();
+                alert('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
                 setIsProcessing(false);
               }
             } catch (err) {
               console.error(err);
-              alert('Payment verification error.');
+              alert('Payment processing error.');
               setIsProcessing(false);
             }
           },
@@ -275,6 +351,24 @@ export default function CheckoutPage() {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
             contact: formData.phone,
+          },
+          config: {
+            display: {
+              blocks: {
+                default: {
+                  name: 'Complete Payment',
+                  instruments: [
+                    {
+                      method: formData.paymentMethod,
+                    }
+                  ]
+                }
+              },
+              sequence: ['block.default'],
+              preferences: {
+                show_default_blocks: false,
+              }
+            }
           },
           theme: {
             color: '#181817',
@@ -293,25 +387,9 @@ export default function CheckoutPage() {
         });
         rzp.open();
       } else {
-        const res = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderPayload),
-        });
-
-        let orderNumber =
-          'TR-IN-' + Math.floor(100000 + Math.random() * 900000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.orderNumber) {
-            orderNumber = data.orderNumber;
-          }
-          clearCart();
-          router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
-        } else {
-          const data = await res.json();
-          throw new Error(data.error || 'Failed to place order');
-        }
+        // COD logic: order is already created, just redirect
+        clearCart();
+        router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
       }
     } catch (err: any) {
       console.error('Order creation error:', err);
@@ -329,597 +407,515 @@ export default function CheckoutPage() {
     }
   };
 
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#F6F3ED] py-24 flex items-center justify-center">
-        <div className="text-sm font-serif text-[#181817] animate-pulse">
-          Preparing secure environment...
-        </div>
-      </div>
-    );
-  }
+  if (isLoading || !isAuthenticated || !isMounted) {
 
-  if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F6F3ED] py-24 flex items-center justify-center">
-        <div className="text-center max-w-md p-8 sm:p-12">
-          <div className="w-16 h-16 border border-[#DDD8CF] text-[#181817] rounded-full flex items-center justify-center mx-auto mb-6">
-            <Gift size={24} strokeWidth={1} />
-          </div>
-          <h2 className="font-serif text-3xl text-[#181817] mb-3">
-            Your Bag is Empty
-          </h2>
-          <p className="text-sm text-[#77736C] mb-8 font-light">
-            Return to our boutique to discover formulations crafted for you.
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="font-mono text-sm tracking-widest text-on-surface uppercase">
+            Loading Checkout...
           </p>
-          <Link
-            href="/shop"
-            className="border-b border-[#181817] pb-1 text-xs uppercase tracking-widest text-[#181817] hover:text-[#55524D] transition-colors inline-flex items-center gap-2"
-          >
-            <span>Return to Catalog</span>
-            <ArrowRight size={14} />
-          </Link>
         </div>
       </div>
     );
   }
-
-  const indianStates = [
-    'Andhra Pradesh',
-    'Assam',
-    'Bihar',
-    'Chandigarh',
-    'Chhattisgarh',
-    'Delhi NCR',
-    'Goa',
-    'Gujarat',
-    'Haryana',
-    'Himachal Pradesh',
-    'Jammu & Kashmir',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Tamil Nadu',
-    'Telangana',
-    'Uttar Pradesh',
-    'Uttarakhand',
-    'West Bengal',
-  ];
-
   return (
-    <div className="min-h-screen bg-[#F6F3ED] select-none text-[#181817]">
-      <Script
-        src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="lazyOnload"
-      />
-      
-      {/* Minimal Header */}
-      <header className="py-6 px-6 lg:px-12 border-b border-[#DDD8CF] flex items-center justify-between sticky top-0 bg-[#F6F3ED]/90 backdrop-blur-md z-40">
-        <Logo variant="full" markHeight={20} />
-        <div className="flex items-center gap-2 text-[10px] uppercase font-mono tracking-widest text-[#55524D]">
-          <Lock size={12} />
-          <span className="hidden sm:inline">Secure Checkout</span>
-        </div>
-      </header>
+    <>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <div className="min-h-screen bg-surface flex flex-col font-body-md text-on-surface antialiased">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-10 lg:py-16">
-        
-        {/* Full width Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
-          
-          {/* LEFT COLUMN: ACCORDION FORM (7 COLS) */}
-          <div className="lg:col-span-7">
-            <form onSubmit={handlePlaceOrder}>
-              
-              {/* ACCORDION STEP 1: SHIPPING & CONTACT */}
-              <div className="mb-10">
-                <div
-                  className={`flex items-baseline justify-between cursor-pointer pb-3 border-b-2 transition-colors ${
-                    currentStep === 1
-                      ? 'border-[#181817]'
-                      : 'border-[#DDD8CF] hover:border-[#181817]/30'
-                  }`}
-                  onClick={() => setCurrentStep(1)}
-                >
-                  <h3
-                    className={`font-serif text-2xl sm:text-3xl transition-colors ${
-                      currentStep === 1 ? 'text-[#181817]' : 'text-[#99948D]'
-                    }`}
-                  >
-                    01. Shipping & Contact
-                  </h3>
-                  {currentStep === 2 && (
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-[#2D4438] underline underline-offset-4">
-                      Edit
+
+        <main className="w-full bg-surface flex-1">
+          <div className="flex flex-col w-full">
+
+            {/* Top Progress Breadcrumb & Trust Strip (Full Width Desktop) */}
+            <div className="w-full sm:bg-surface-container-lowest sm:shadow-sm mt-0 sm:mb-8">
+              <div className="w-full px-3 sm:px-6 lg:px-12 xl:px-16 py-2 sm:py-4 flex flex-wrap items-center justify-between gap-2 sm:gap-4 bg-transparent">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 font-label-sm sm:font-label-md text-[10px] sm:text-label-md text-on-surface">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-tertiary-fixed text-on-tertiary-fixed">
+                      <span className="material-symbols-outlined text-[13px] sm:text-[16px]">check</span>
                     </span>
-                  )}
+                    <span className="font-semibold text-on-surface">Cart</span>
+                  </div>
+                  <span className="text-outline-variant mx-0.5 sm:mx-1.5">/</span>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-secondary-container text-on-secondary font-bold text-[11px] sm:text-[14px]">2</span>
+                    <span className="font-bold text-secondary-container">Checkout</span>
+                  </div>
+                  <span className="text-outline-variant mx-0.5 sm:mx-1.5">/</span>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-surface-container text-on-surface-variant text-[11px] sm:text-[14px]">3</span>
+                    <span className="text-on-surface-variant">Confirmation</span>
+                  </div>
                 </div>
+                <div className="flex items-center text-on-surface-variant font-label-sm text-label-sm">
+                  <div className="flex items-center gap-1 bg-surface-container-low px-2 sm:px-3 py-1 rounded-full text-on-tertiary-container font-semibold">
+                    <span className="material-symbols-outlined text-[15px]">verified</span>
+                    <span className="hidden sm:inline">Verified Merchant</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                <AnimatePresence>
-                  {currentStep === 1 && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-8 space-y-4">
-                        {user && (
-                          <div className="mb-6 inline-flex items-center gap-2 bg-[#EAE5DC] px-3 py-1.5 rounded-sm">
-                            <Sparkles size={12} className="text-[#2D4438]" />
-                            <span className="text-[10px] uppercase font-mono tracking-widest text-[#55524D]">
-                              Auto-filled from {user.name}'s profile
-                            </span>
-                          </div>
+            <div className="w-full px-0 sm:px-6 lg:px-12 xl:px-16 pb-8 md:pb-10 pt-0">
+
+              {/* Main 2-Column Responsive Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+                {/* LEFT COLUMN: Checkout Interaction Canvas (Col 1-7 or 1-8) */}
+                <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-0 sm:gap-6">
+
+                  {/* 1. Authenticated User Banner */}
+                  {user && (
+                    <div className="flex items-center justify-between p-4 sm:p-5 bg-surface-container-low rounded-none sm:rounded-xl shadow-sm gap-2">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-secondary-container/10 flex items-center justify-center text-secondary-container flex-shrink-0">
+                          <span className="material-symbols-outlined text-[20px]">account_circle</span>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-label-lg text-label-lg text-on-surface block truncate">Logged in as {user.name}</span>
+                          <p className="font-body-sm text-body-sm text-on-surface-variant truncate mt-0.5">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className="bg-surface-container-lowest text-on-tertiary-container font-label-sm text-label-sm px-2 sm:px-2.5 py-1 rounded-full flex items-center gap-1 w-fit">
+                          <span className="material-symbols-outlined text-[14px]">check_circle</span> <span className="hidden sm:inline">Verified</span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handlePlaceOrder}>
+                    {/* 2. Shipping Address Selection */}
+                    <section className="bg-surface-container-lowest p-6 sm:p-7 rounded-none sm:rounded-xl shadow-sm flex flex-col gap-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary-container text-on-secondary font-headline-sm text-headline-sm">1</span>
+                          <h2 className="font-headline-md text-headline-md text-on-surface">Select Shipping Address</h2>
+                        </div>
+                        {user && savedAddresses.length > 0 && (
+                          <button
+                            onClick={() => { setIsAddingNewAddress(!isAddingNewAddress); setSelectedAddressId(null); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-low hover:bg-surface-container text-secondary-container font-label-md text-label-md rounded-lg transition-colors"
+                            type="button"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">{isAddingNewAddress ? 'close' : 'add_location_alt'}</span>
+                            <span>{isAddingNewAddress ? 'Cancel' : '+ Add New Address'}</span>
+                          </button>
                         )}
+                      </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-6">
-                          <StandardInput
-                            label="Email Address *"
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            error={errors.email}
-                          />
-                          <StandardInput
-                            label="Mobile Number *"
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            required
-                            error={errors.phone}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-6">
-                          <StandardInput
-                            label="First Name *"
-                            name="firstName"
-                            value={formData.firstName}
-                            onChange={handleChange}
-                            required
-                            error={errors.firstName}
-                          />
-                          <StandardInput
-                            label="Last Name *"
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            required
-                            error={errors.lastName}
-                          />
-                        </div>
-
-                        <StandardInput
-                          label="Street Address, Flat / Building *"
-                          name="address1"
-                          value={formData.address1}
-                          onChange={handleChange}
-                          required
-                          error={errors.address1}
-                        />
-
-                        <StandardInput
-                          label="Apartment, Suite, etc. (Optional)"
-                          name="address2"
-                          value={formData.address2}
-                          onChange={handleChange}
-                        />
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 sm:gap-6">
-                          <StandardInput
-                            label="City *"
-                            name="city"
-                            value={formData.city}
-                            onChange={handleChange}
-                            required
-                            error={errors.city}
-                          />
-                          <StandardInput
-                            label="PIN Code *"
-                            name="postalCode"
-                            value={formData.postalCode}
-                            onChange={handleChange}
-                            maxLength={6}
-                            required
-                            error={errors.postalCode}
-                          />
-                          <div className="w-full">
-                            <label htmlFor="state" className="block text-[10px] uppercase tracking-wider text-[#181817] font-bold mb-2">
-                              State *
-                            </label>
-                            <select
-                              name="state"
-                              id="state"
-                              value={formData.state}
-                              onChange={handleChange}
-                              className="w-full bg-[#FAF8F5] border border-[#DDD8CF] px-3.5 py-3 text-xs text-[#181817] focus:outline-none focus:border-[#2D4438] transition-colors"
+                      {/* Radio Address Cards Grid */}
+                      {user && savedAddresses.length > 0 && !isAddingNewAddress && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {savedAddresses.map((addr: any) => (
+                            <label
+                              key={addr.id}
+                              className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedAddressId === addr.id ? 'bg-surface-container-low' : 'bg-surface-container-lowest'}`}
                             >
-                              {indianStates.map((st) => (
-                                <option key={st} value={st}>
-                                  {st}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="pt-6">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (validateStep1()) {
-                                setCurrentStep(2);
-                              }
-                            }}
-                            className="bg-[#181817] text-[#F6F3ED] hover:bg-[#2D4438] px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] transition-all duration-300 inline-flex items-center gap-3 w-full sm:w-auto justify-center group"
-                          >
-                            <span>Continue to Payment</span>
-                            <ArrowRight
-                              size={14}
-                              className="group-hover:translate-x-1 transition-transform"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* ACCORDION STEP 2: PAYMENT METHOD */}
-              <div>
-                <div
-                  className={`pb-3 border-b-2 transition-colors ${
-                    currentStep === 2
-                      ? 'border-[#181817]'
-                      : 'border-[#DDD8CF]'
-                  }`}
-                >
-                  <h3
-                    className={`font-serif text-2xl sm:text-3xl transition-colors ${
-                      currentStep === 2 ? 'text-[#181817]' : 'text-[#99948D]'
-                    }`}
-                  >
-                    02. Payment
-                  </h3>
-                </div>
-
-                <AnimatePresence>
-                  {currentStep === 2 && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-8 space-y-4">
-                        {/* High-End Payment Selector */}
-                        <div className="border border-[#DDD8CF] divide-y divide-[#DDD8CF] bg-[#FBF9F5] shadow-sm">
-                          
-                          {/* Razorpay Option */}
-                          <div className={`transition-colors ${formData.paymentMethod === 'razorpay' ? 'bg-[#F6F3ED]' : 'hover:bg-[#F6F3ED]'}`}>
-                            <label className="flex items-center gap-4 p-5 cursor-pointer select-none">
-                              <div className="relative flex items-center justify-center w-4 h-4 rounded-full border border-[#181817] shrink-0">
-                                {formData.paymentMethod === 'razorpay' && (
-                                  <motion.div layoutId="radio-dot" className="w-2 h-2 rounded-full bg-[#181817]" />
-                                )}
-                              </div>
-                              <input 
-                                type="radio" 
-                                name="paymentMethod" 
-                                value="razorpay" 
-                                checked={formData.paymentMethod === 'razorpay'} 
-                                onChange={handleChange} 
-                                className="hidden" 
-                              />
-                              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <span className="text-[13px] font-semibold text-[#181817] tracking-wide">
-                                  Credit Card, UPI, or NetBanking
-                                </span>
-                                <div className="flex items-center gap-1.5 opacity-100">
-                                  {/* Visa */}
-                                  <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
-                                    <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#1434CB" fontSize="9" fontWeight="900" fontStyle="italic" fontFamily="Arial, sans-serif">VISA</text>
-                                  </svg>
-                                  {/* Mastercard */}
-                                  <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="10" r="5" fill="#EB001B" />
-                                    <circle cx="20" cy="10" r="5" fill="#F79E1B" opacity="0.9" />
-                                  </svg>
-                                  {/* UPI */}
-                                  <svg viewBox="0 0 32 20" className="w-8 h-5 border border-[#DDD8CF] bg-white rounded-[2px] shadow-sm" xmlns="http://www.w3.org/2000/svg">
-                                    <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fill="#44403C" fontSize="8" fontWeight="bold" fontFamily="Arial, sans-serif">UPI</text>
-                                  </svg>
+                              <div className="flex items-start justify-between gap-2 mb-3">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    checked={selectedAddressId === addr.id}
+                                    onChange={() => handleAddressSelect(addr)}
+                                    className="w-4 h-4 text-secondary-container focus:ring-0 cursor-pointer accent-[#316bf3]"
+                                    name="shipping_address"
+                                    type="radio"
+                                  />
+                                  <span className="bg-secondary-container text-on-secondary font-label-sm text-label-sm px-2 py-0.5 rounded font-semibold">{addr.title || 'Address'}</span>
+                                  {addr.isDefault && (
+                                    <span className="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded font-medium">Default</span>
+                                  )}
                                 </div>
                               </div>
+                              <div className="space-y-1 mb-4">
+                                <p className="font-headline-sm text-headline-sm text-on-surface">{addr.fullName || user?.name}</p>
+                                <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                  {addr.street}<br />
+                                  {addr.city}, {addr.state} {addr.postalCode}
+                                </p>
+                                <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 pt-1">
+                                  <span className="material-symbols-outlined text-[14px]">call</span>
+                                  {addr.phone || formData.phone}
+                                </p>
+                              </div>
                             </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Expandable / Manual New Address Form */}
+                      {(!user || savedAddresses.length === 0 || isAddingNewAddress) && (
+                        <div className="bg-surface-container-low/60 rounded-xl p-5 mt-2">
+                          <div className="flex items-center gap-2 mb-5">
+                            <span className="material-symbols-outlined text-secondary-container text-[20px]">edit_note</span>
+                            <h3 className="font-headline-sm text-headline-sm text-on-surface">Enter Shipping Details</h3>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">Email Address</label>
+                                <input name="email" onChange={handleChange} value={formData.email} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest" type="email" />
+                                {errors.email && <span className="text-error text-[10px] mt-1">{errors.email}</span>}
+                              </div>
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">Mobile Phone Number</label>
+                                <input name="phone" onChange={handleChange} value={formData.phone} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" type="tel" />
+                                {errors.phone && <span className="text-error text-[10px] mt-1">{errors.phone}</span>}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">First Name</label>
+                                <input name="firstName" onChange={handleChange} value={formData.firstName} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" type="text" />
+                                {errors.firstName && <span className="text-error text-[10px] mt-1">{errors.firstName}</span>}
+                              </div>
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">Last Name</label>
+                                <input name="lastName" onChange={handleChange} value={formData.lastName} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" type="text" />
+                                {errors.lastName && <span className="text-error text-[10px] mt-1">{errors.lastName}</span>}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block font-label-md text-label-md text-on-surface mb-1.5">Street Address</label>
+                              <input name="address1" onChange={handleChange} value={formData.address1} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" placeholder="House number and street name" type="text" />
+                              {errors.address1 && <span className="text-error text-[10px] mt-1">{errors.address1}</span>}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">Apt / Suite / Unit (Optional)</label>
+                                <input name="address2" onChange={handleChange} value={formData.address2} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" placeholder="e.g. Apt 4B" type="text" />
+                              </div>
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">City</label>
+                                <input name="city" onChange={handleChange} value={formData.city} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" type="text" />
+                                {errors.city && <span className="text-error text-[10px] mt-1">{errors.city}</span>}
+                              </div>
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">State</label>
+                                <select name="state" onChange={handleChange} value={formData.state} className="w-full h-11 px-3 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none">
+                                  <option value="Maharashtra">Maharashtra</option>
+                                  <option value="Delhi">Delhi</option>
+                                  <option value="Karnataka">Karnataka</option>
+                                  <option value="Gujarat">Gujarat</option>
+                                  <option value="Tamil Nadu">Tamil Nadu</option>
+                                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                  <option value="West Bengal">West Bengal</option>
+                                  <option value="Kerala">Kerala</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block font-label-md text-label-md text-on-surface mb-1.5">PIN Code</label>
+                                <input name="postalCode" onChange={handleChange} value={formData.postalCode} className="w-full h-11 px-3.5 bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" type="text" />
+                                {errors.postalCode && <span className="text-error text-[10px] mt-1">{errors.postalCode}</span>}
+                              </div>
+                            </div>
                             
-                            <AnimatePresence>
-                              {formData.paymentMethod === 'razorpay' && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="px-5 pb-6 pt-1 ml-6 sm:ml-8">
-                                    <div className="flex flex-col items-center justify-center py-8 px-6 bg-white border border-[#DDD8CF] text-center gap-3 shadow-inner">
-                                      <div className="w-12 h-12 bg-[#2D4438]/10 text-[#2D4438] rounded-full flex items-center justify-center">
-                                        <ShieldCheck size={24} strokeWidth={1.5} />
-                                      </div>
-                                      <div className="space-y-1 max-w-sm">
-                                        <p className="text-[13px] text-[#181817] font-semibold tracking-wide">
-                                          Secure Encrypted Gateway
-                                        </p>
-                                        <p className="text-[11px] text-[#77736C] leading-relaxed">
-                                          After clicking "Place Order", you will be safely redirected to Razorpay to complete your purchase.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-
-                          {/* COD Option */}
-                          <div className={`transition-colors ${formData.paymentMethod === 'cod' ? 'bg-[#F6F3ED]' : 'hover:bg-[#F6F3ED]'}`}>
-                            <label className="flex items-center gap-4 p-5 cursor-pointer select-none">
-                              <div className="relative flex items-center justify-center w-4 h-4 rounded-full border border-[#181817] shrink-0">
-                                {formData.paymentMethod === 'cod' && (
-                                  <motion.div layoutId="radio-dot" className="w-2 h-2 rounded-full bg-[#181817]" />
-                                )}
+                            {user && (
+                              <div className="flex items-center gap-2.5 mt-2">
+                                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                                  <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 rounded border-outline-variant text-secondary-container focus:ring-secondary-container accent-[#316bf3]"
+                                    checked={formData.saveAddress}
+                                    onChange={(e) => setFormData({...formData, saveAddress: e.target.checked})}
+                                  />
+                                  <span className="font-body-sm text-body-sm text-on-surface-variant">Save this address to my profile for future orders</span>
+                                </label>
                               </div>
-                              <input 
-                                type="radio" 
-                                name="paymentMethod" 
-                                value="cod" 
-                                checked={formData.paymentMethod === 'cod'} 
-                                onChange={handleChange} 
-                                className="hidden" 
-                              />
-                              <div className="flex-1 flex items-center justify-between">
-                                <span className="text-[13px] font-semibold text-[#181817] tracking-wide">
-                                  Cash on Delivery
-                                </span>
-                                <div className="flex items-center gap-1.5 opacity-100">
-                                  {/* Realistic Cash & Coins Icon */}
-                                  <svg viewBox="0 0 34 22" className="w-9 h-5 rounded-[2px] shadow-sm overflow-hidden" xmlns="http://www.w3.org/2000/svg">
-                                    <g transform="rotate(-6 13 10)">
-                                      <rect x="2" y="3" width="22" height="13" rx="1.5" fill="#15803D" stroke="#14532D" strokeWidth="0.6" />
-                                      <rect x="3.5" y="4.5" width="19" height="10" rx="1" fill="none" stroke="#86EFAC" strokeWidth="0.4" strokeDasharray="1 1" />
-                                    </g>
-                                    <rect x="2" y="4.5" width="22" height="13.5" rx="1.5" fill="#22C55E" stroke="#15803D" strokeWidth="0.6" />
-                                    <rect x="3.5" y="6" width="19" height="10.5" rx="1" fill="none" stroke="#DCFCE7" strokeWidth="0.5" />
-                                    <circle cx="13" cy="11.2" r="3.2" fill="#15803D" stroke="#86EFAC" strokeWidth="0.5" />
-                                    <text x="13" y="11.8" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontSize="4.5" fontWeight="bold" fontFamily="Arial, sans-serif">₹</text>
-                                    <circle cx="4.8" cy="7.2" r="0.6" fill="#DCFCE7" />
-                                    <circle cx="21.2" cy="7.2" r="0.6" fill="#DCFCE7" />
-                                    <circle cx="4.8" cy="15.2" r="0.6" fill="#DCFCE7" />
-                                    <circle cx="21.2" cy="15.2" r="0.6" fill="#DCFCE7" />
-                                    
-                                    {/* Stack of Gold Coins */}
-                                    <ellipse cx="26.5" cy="14.5" rx="4.5" ry="2" fill="#D97706" />
-                                    <ellipse cx="26.5" cy="13.8" rx="4.5" ry="1.8" fill="#F59E0B" stroke="#B45309" strokeWidth="0.4" />
-                                    <ellipse cx="26.5" cy="11.8" rx="4.5" ry="2" fill="#D97706" />
-                                    <ellipse cx="26.5" cy="11.1" rx="4.5" ry="1.8" fill="#FBBF24" stroke="#D97706" strokeWidth="0.4" />
-                                    <ellipse cx="26.5" cy="9.1" rx="4.5" ry="2" fill="#D97706" />
-                                    <ellipse cx="26.5" cy="8.4" rx="4.5" ry="1.8" fill="#FDE047" stroke="#F59E0B" strokeWidth="0.4" />
-                                    <text x="26.5" y="8.8" textAnchor="middle" dominantBaseline="middle" fill="#92400E" fontSize="3.2" fontWeight="900" fontFamily="Arial, sans-serif">₹</text>
-                                  </svg>
-                                </div>
-                              </div>
-                            </label>
-
-                            <AnimatePresence>
-                              {formData.paymentMethod === 'cod' && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="px-5 pb-6 pt-1 ml-6 sm:ml-8">
-                                    <div className="p-5 bg-white border border-[#DDD8CF] space-y-3 shadow-inner">
-                                      <div className="flex items-center gap-2 text-[#181817] text-[11px] font-bold uppercase tracking-wider">
-                                        <Banknote size={14} className="text-[#2D4438]" />
-                                        <span>Pay at Doorstep</span>
-                                      </div>
-                                      <p className="text-[11px] text-[#57534E] leading-relaxed">
-                                        Pay <strong className="text-[#181817]">₹{total.toLocaleString('en-IN')}</strong> directly to the delivery executive upon arrival. We accept Cash, UPI QR scans, and standard cards at your door.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        </div>
-
-                        {/* Final Submit Button */}
-                        <div className="pt-8">
-                          <button
-                            type="submit"
-                            disabled={isProcessing}
-                            className="bg-[#181817] text-[#F6F3ED] hover:bg-[#2D4438] disabled:opacity-50 w-full py-4 text-sm font-bold uppercase tracking-[0.2em] transition-all duration-300 flex items-center justify-center gap-3 group"
-                          >
-                            {isProcessing ? (
-                              <span className="animate-pulse">Authorizing Securely...</span>
-                            ) : (
-                              <>
-                                <span>Place Order • ₹{total.toLocaleString('en-IN')}</span>
-                                <Lock size={14} className="opacity-70" />
-                              </>
                             )}
-                          </button>
-                          <p className="text-[10px] text-center text-[#99948D] mt-4 uppercase tracking-widest font-mono">
-                            By placing your order, you agree to our Terms of Service.
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </form>
-          </div>
-
-          {/* RIGHT COLUMN: ELEGANT ORDER SUMMARY (5 COLS) */}
-          <div className="lg:col-span-5 relative">
-            <div className="sticky top-24 bg-white border border-[#DDD8CF] p-8 lg:p-10 shadow-sm">
-              <h3 className="font-serif text-2xl text-[#181817] mb-8">
-                In Your Bag
-              </h3>
-
-              {/* Minimal Cart Items List */}
-              <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                {items.map(({ product, quantity }) => {
-                  const itemKey = product._id || product.id || product.slug;
-                  return (
-                    <div
-                      key={itemKey}
-                      className="flex gap-4 items-start"
-                    >
-                      <div className="w-20 h-24 bg-[#FAF8F5] relative shrink-0 border border-[#DDD8CF] overflow-hidden">
-                        <Image
-                          src={product.featuredImage}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0 flex flex-col justify-between h-24 py-1">
-                        <div>
-                          <div className="flex justify-between items-start gap-2">
-                            <h4 className="font-serif text-[15px] leading-tight text-[#181817] truncate">
-                              {product.name}
-                            </h4>
-                            <span className="font-mono text-xs text-[#181817] shrink-0">
-                              ₹{(product.price * quantity).toLocaleString('en-IN')}
-                            </span>
                           </div>
-                          <p className="text-[10px] text-[#77736C] uppercase font-mono mt-1">
-                            Qty: {quantity}
-                          </p>
+                        </div>
+                      )}
+                    </section>
+
+                    {/* 3. Payment Selection Section */}
+                    <section className="bg-surface-container-lowest p-6 sm:p-7 rounded-none sm:rounded-xl shadow-sm flex flex-col gap-6 mt-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-secondary-container text-on-secondary font-headline-sm text-headline-sm flex-shrink-0">2</span>
+                          <h2 className="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Payment Method</h2>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-surface-container text-on-tertiary-container font-label-sm text-label-sm px-2.5 py-1 rounded-full w-fit">
+                          <span className="material-symbols-outlined text-[15px]">lock</span>
+                          <span>Encrypted &amp; 100% Secure</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* UPI */}
+                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'upi' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'upi' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
+                          <div className="flex items-center gap-3">
+                            <input checked={formData.paymentMethod === 'upi'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
+                            <SmartphoneNfc className="text-secondary-container" size={24} />
+                            <span className="font-headline-sm text-headline-sm text-on-surface">UPI / QR</span>
+                          </div>
+                          <AnimatePresence>
+                            {formData.paymentMethod === 'upi' && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="pt-3 pl-7">
+                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
+                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                      Pay securely using <strong className="text-on-surface font-semibold">Google Pay, PhonePe, Paytm</strong>, or any UPI app.
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
-                        {/* Quiet Controls */}
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => removeCoupon()}
-                            className="text-[9px] uppercase font-bold text-[#77736C] hover:text-[#181817] cursor-pointer"
-                          >
-                            <span onClick={(e) => { e.preventDefault(); removeItem(itemKey); }}>Remove</span>
-                          </button>
+                        {/* Credit / Debit Cards */}
+                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'card' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'card' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <input checked={formData.paymentMethod === 'card'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
+                              <CreditCard className="text-secondary-container" size={24} />
+                              <span className="font-headline-sm text-headline-sm text-on-surface">Credit / Debit Card</span>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-60">
+                              <span className="px-1.5 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded shadow-2xs">VISA</span>
+                              <span className="px-1.5 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded shadow-2xs">MC</span>
+                            </div>
+                          </div>
+                          <AnimatePresence>
+                            {formData.paymentMethod === 'card' && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="pt-3 pl-7">
+                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
+                                    <Lock size={16} className="text-secondary-container flex-shrink-0 mt-0.5" />
+                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                      You will be securely redirected to our bank-grade encrypted checkout gateway to enter your card details.
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Netbanking */}
+                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'netbanking' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'netbanking' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
+                          <div className="flex items-center gap-3">
+                            <input checked={formData.paymentMethod === 'netbanking'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
+                            <Landmark className="text-secondary-container" size={24} />
+                            <span className="font-headline-sm text-headline-sm text-on-surface">Netbanking</span>
+                          </div>
+                          <AnimatePresence>
+                            {formData.paymentMethod === 'netbanking' && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="pt-3 pl-7">
+                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
+                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                      All major Indian banks are supported. You will select your bank on the next secure screen.
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* COD */}
+                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'cod' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'cod' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
+                          <div className="flex items-center gap-3">
+                            <input checked={formData.paymentMethod === 'cod'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
+                            <Banknote className="text-secondary-container" size={24} />
+                            <span className="font-headline-sm text-headline-sm text-on-surface">Cash on Delivery (COD)</span>
+                          </div>
+                          <AnimatePresence>
+                            {formData.paymentMethod === 'cod' && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="pt-3 pl-7">
+                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
+                                    <Truck size={16} className="text-secondary-container flex-shrink-0 mt-0.5" />
+                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                                      Pay with cash upon package arrival. Please have the exact amount ready.
+                                    </p>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* 4. Final Checkout Button & Terms */}
+                    <div className="bg-surface-container-lowest p-6 sm:p-7 rounded-none sm:rounded-xl shadow-sm flex flex-col gap-4 mt-6">
+                      <button
+                        type="submit"
+                        disabled={isProcessing}
+                        className="w-full h-14 bg-secondary-container disabled:opacity-50 hover:bg-secondary text-on-secondary rounded-xl font-headline-sm text-[16px] sm:text-headline-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.99] cursor-pointer px-2 text-center"
+                      >
+                        {isProcessing ? (
+                          <><span className="material-symbols-outlined animate-spin text-[20px] sm:text-[22px]">sync</span><span>Securing Transaction...</span></>
+                        ) : (
+                          <><span className="material-symbols-outlined text-[20px] sm:text-[22px]">lock</span><span className="truncate">Pay ₹{total.toLocaleString('en-IN')} &amp; Place Order</span></>
+                        )}
+                      </button>
+                      <div className="text-center px-4">
+                        <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                          By placing this order, you agree to VeroStore's
+                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Terms of Service</a>,
+                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Privacy Policy</a>, and
+                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Return Guarantee</a>.
+                        </p>
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+
+                {/* RIGHT COLUMN: Sticky Order Summary & Cart Overview (Col 8-12) */}
+                <aside className="lg:col-span-5 xl:col-span-4 w-full flex flex-col gap-6 lg:sticky lg:top-24">
+                  <div className="bg-surface-container-lowest rounded-none sm:rounded-xl p-6 shadow-sm flex flex-col gap-6">
+
+                    {/* Summary Header */}
+                    <div className="flex items-center justify-between pb-4 bg-surface-container-low px-4 py-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-secondary-container text-[22px]">shopping_bag</span>
+                        <h3 className="font-headline-sm text-headline-sm text-on-surface">Order Summary ({items.length} items)</h3>
+                      </div>
+                    </div>
+
+                    {/* Product Line Items */}
+                    <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                      {items.map(({ product, quantity }) => {
+                        const itemKey = product._id || product.id || product.slug;
+                        return (
+                          <div key={itemKey} className="flex items-center gap-3.5 group">
+                            <div className="relative w-16 h-16 rounded-xl bg-surface-container-low overflow-hidden flex-shrink-0 shadow-2xs">
+                              <Image src={product.featuredImage} alt={product.name} fill className="object-cover" />
+                              <span className="absolute top-1 right-1 bg-primary text-on-primary font-label-sm text-label-sm w-5 h-5 rounded-full flex items-center justify-center font-bold">{quantity}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-headline-sm text-headline-sm text-on-surface truncate">{product.name}</h4>
+                              <div className="flex items-center gap-2 pt-0.5">
+                                <span className="font-label-sm text-label-sm text-on-surface-variant">Qty: {quantity}</span>
+                                <span className="text-outline-variant">•</span>
+                                <button onClick={(e) => { e.preventDefault(); removeItem(itemKey); }} className="font-label-sm text-label-sm text-error hover:underline inline-flex items-center gap-0.5" type="button">
+                                  <span className="material-symbols-outlined text-[13px]">delete</span> Remove
+                                </button>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <span className="font-headline-sm text-headline-sm text-on-surface font-semibold">₹{(product.price * quantity).toLocaleString('en-IN')}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Promo Code Input & Applied Chip */}
+                    <div className="bg-surface-container-low p-3.5 rounded-xl space-y-3">
+                      {appliedCoupon ? (
+                        <>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">
+                            <div className="flex items-center gap-1.5 text-on-tertiary-container font-label-md text-label-md font-semibold">
+                              <span className="material-symbols-outlined text-[16px]">local_offer</span>
+                              <span>{appliedCoupon}</span>
+                            </div>
+                            <button onClick={removeCoupon} className="font-label-sm text-label-sm text-on-surface-variant hover:text-error transition-colors flex items-center gap-0.5" type="button">
+                              <span className="material-symbols-outlined text-[14px]">close</span>
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                          <p className="font-body-sm text-body-sm text-on-tertiary-container flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                            Promo code applied!
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="relative w-full sm:flex-1">
+                              <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]">confirmation_number</span>
+                              <input
+                                type="text"
+                                value={couponInput}
+                                onChange={(e) => setCouponInput(e.target.value)}
+                                className="w-full h-10 pl-9 pr-3 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface uppercase tracking-wider focus:outline-none"
+                                placeholder="Promo code"
+                              />
+                            </div>
+                            <button onClick={handleApplyCoupon} disabled={isApplyingCoupon} className="w-full sm:w-auto px-4 h-10 bg-primary text-white hover:bg-on-background font-label-md text-label-md rounded-lg transition-colors disabled:opacity-50 cursor-pointer" type="button">
+                              {isApplyingCoupon ? '...' : 'Apply'}
+                            </button>
+                          </div>
+                          {couponError && <p className="text-error text-[10px]">{couponError}</p>}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Financial Breakdown Calculation */}
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between items-center font-body-md text-body-md text-on-surface-variant">
+                        <span>Subtotal</span>
+                        <span className="text-on-surface font-medium">₹{subtotal.toLocaleString('en-IN')}</span>
+                      </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between items-center font-body-md text-body-md text-on-tertiary-container">
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px]">sell</span>
+                            Discount ({appliedCoupon})
+                          </span>
+                          <span className="font-semibold">-₹{discountAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center font-body-md text-body-md text-on-surface-variant">
+                        <span>Shipping</span>
+                        <div className="flex items-center gap-1.5">
+                          {shippingCost === 0 ? (
+                            <span className="text-on-tertiary-container font-semibold">FREE</span>
+                          ) : (
+                            <span className="text-on-surface font-semibold">₹{shippingCost}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center font-body-md text-body-md text-on-surface-variant">
+                        <span>Estimated Tax</span>
+                        <span className="text-on-surface font-medium">₹0.00 <span className="text-outline text-label-sm">(Included)</span></span>
+                      </div>
+
+                      {/* Total Block */}
+                      <div className="pt-4 mt-3 bg-surface-container-low p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="font-headline-sm text-headline-sm text-on-surface">Final Total</p>
+                          <p className="font-body-sm text-body-sm text-on-surface-variant">Includes all taxes</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display text-display text-on-surface tracking-tight leading-none">₹{total.toLocaleString('en-IN')}</p>
+                          <span className="font-label-sm text-label-sm text-on-tertiary-container font-semibold">INR Net</span>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="w-full h-[1px] bg-[#DDD8CF] my-8" />
+                  </div>
 
-              {/* Coupon Code Minimalist Input */}
-              <div className="mb-8">
-                {appliedCoupon ? (
-                  <div className="bg-[#FAF8F5] border border-[#DDD8CF] border-dashed p-3 flex items-center justify-between text-xs text-[#181817] font-mono">
-                    <div className="flex items-center gap-2">
-                      <Tag size={12} className="text-[#2D4438]" />
-                      <span>{appliedCoupon} APPLIED</span>
+                  {/* Trust Assurance & Guarantee Box */}
+                  <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-secondary-container flex-shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">security</span>
+                      </div>
+                      <div>
+                        <p className="font-label-md text-label-md text-on-surface">Encrypted Protection</p>
+                        <p className="font-body-sm text-body-sm text-on-surface-variant">Compliant with Level 1 PCI-DSS financial standards.</p>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeCoupon()}
-                      className="text-[10px] text-[#77736C] hover:text-[#181817] underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
                   </div>
-                ) : (
-                  <form onSubmit={handleApplyCoupon} className="relative">
-                    <input
-                      type="text"
-                      placeholder="GIFT CARD OR PROMO CODE"
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value)}
-                      className="w-full border-b border-[#DDD8CF] py-2.5 text-xs text-[#181817] bg-transparent focus:outline-none focus:border-[#2D4438] placeholder-[#99948D] tracking-widest uppercase font-mono"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#181817] uppercase tracking-widest hover:text-[#55524D] cursor-pointer"
-                    >
-                      APPLY
-                    </button>
-                  </form>
-                )}
-                {couponError && (
-                  <p className="text-[10px] text-[#8B0000] mt-2 font-mono">
-                    {couponError}
-                  </p>
-                )}
+                </aside>
+
               </div>
-
-              {/* Financial Lines */}
-              <div className="space-y-3 text-sm text-[#55524D] mb-8">
-                <div className="flex items-center justify-between">
-                  <span>Subtotal</span>
-                  <span className="font-mono text-[#181817]">₹{subtotal.toLocaleString('en-IN')}</span>
-                </div>
-
-                {discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-[#2D4438]">
-                    <span>Discount</span>
-                    <span className="font-mono">- ₹{discountAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <span>Shipping</span>
-                  <span className="font-mono text-[#181817]">
-                    {shippingCost === 0 ? 'COMPLIMENTARY' : `₹${shippingCost}`}
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-[#181817] flex items-center justify-between">
-                <span className="text-base text-[#181817] font-medium tracking-wide">Total</span>
-                <span className="font-mono text-xl text-[#181817] font-bold">
-                  ₹{total.toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="text-right mt-1">
-                 <span className="text-[9px] text-[#99948D] uppercase font-mono tracking-widest">Includes all taxes</span>
-              </div>
-
-              {/* Trust Indicators */}
-              <div className="mt-10 pt-6 border-t border-[#DDD8CF] space-y-3 text-[10px] font-mono uppercase tracking-widest text-[#77736C]">
-                <div className="flex items-center gap-3">
-                  <Truck size={14} className="text-[#2D4438] shrink-0" />
-                  <span>Complimentary Express Dispatch</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ShieldCheck size={14} className="text-[#2D4438] shrink-0" />
-                  <span>Secure 256-Bit Encrypted Checkout</span>
-                </div>
-              </div>
-
             </div>
           </div>
-
-        </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 }

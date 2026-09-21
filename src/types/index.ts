@@ -59,6 +59,7 @@ export interface Product {
   heroColor?: string;
   accentColor?: string;
   badge?: string;
+  scentProfile?: string;
   ingredientsList: string[];
   keyIngredients: Ingredient[];
   ritual: RitualStep[];
