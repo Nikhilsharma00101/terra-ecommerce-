@@ -34,54 +34,54 @@ const benefits = [
 
 export const FaceWashBenefits = () => {
   return (
-    <section className="py-24 bg-[#F9F8F5] relative overflow-hidden border-t border-[#E5E0D8]">
+    <section className="py-16 bg-[#F9F8F5] relative overflow-hidden border-t border-[#E5E0D8]">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,_rgba(45,68,56,0.05)_0%,_transparent_60%)] -translate-y-1/2 translate-x-1/3 pointer-events-none blur-[40px]" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16 max-w-2xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex items-center justify-center gap-4 mb-6"
-          >
-            <div className="w-8 h-[1px] bg-[#D1C9BE]" />
-            <span className="text-[10px] uppercase tracking-[0.25em] text-[#77736C] font-semibold">
-              The Benefits
-            </span>
-            <div className="w-8 h-[1px] bg-[#D1C9BE]" />
-          </motion.div>
-
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-serif text-[#181817] mb-6 font-light"
-          >
-            Why Your Skin Will Love It
-          </motion.h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {benefits.map((benefit, index) => (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8">
+          {/* Left Sticky Header */}
+          <div className="lg:col-span-5 lg:sticky lg:top-[120px] self-start">
             <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white border border-[#E5E0D8] p-8 rounded-2xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_-10px_rgba(0,0,0,0.08)] transition-all duration-300"
+              className="flex flex-col gap-5"
             >
-              <div className="w-12 h-12 rounded-full bg-[#FAF8F5] border border-[#E5E0D8] flex items-center justify-center mb-6">
-                <benefit.icon className="w-5 h-5 text-[#2D4438] stroke-[1.5]" />
+              <div className="flex items-center gap-4">
+                <span className="w-8 h-[1px] bg-[#181817]/20" />
+                <span className="text-[9px] uppercase tracking-[0.3em] text-[#181817]/70 font-bold">
+                  The Benefits
+                </span>
               </div>
-              <h3 className="text-xl font-serif text-[#181817] mb-3">{benefit.title}</h3>
-              <p className="text-[#55524D] text-sm leading-relaxed font-light">
-                {benefit.desc}
-              </p>
+              <h2 className="text-[24px] sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-serif font-light whitespace-nowrap tracking-tight inline-block bg-gradient-to-r from-black via-[#990000] to-[#FF3333] bg-clip-text text-transparent pb-1">
+                Why Your Skin Will Love It
+              </h2>
             </motion.div>
-          ))}
+          </div>
+
+          {/* Right Content Grid */}
+          <div className="lg:col-span-7">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-10">
+              {benefits.map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group flex flex-col"
+                >
+                  <div className="w-10 h-10 rounded-full bg-white border border-[#E5E0D8] flex items-center justify-center mb-4 group-hover:bg-[#FAF8F5] transition-colors">
+                    <benefit.icon className="w-4 h-4 text-[#2D4438] stroke-[1.5]" />
+                  </div>
+                  <h3 className="text-lg font-serif text-[#181817] mb-2">{benefit.title}</h3>
+                  <p className="text-[#55524D] text-sm leading-relaxed font-light">
+                    {benefit.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

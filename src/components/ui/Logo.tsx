@@ -57,25 +57,25 @@ export const Logo: React.FC<LogoProps> = ({
   const renderWordmark = (isHorizontal = false) => (
     <div className={`flex flex-col ${isHorizontal ? 'items-start text-left' : 'items-center text-center'} leading-none select-none group/wordmark`}>
       {/* Main Brand Title: TERRA */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden pt-2 -mt-2">
         <span
           style={{ color: textColor }}
-          className={`font-serif font-normal tracking-[0.4em] sm:tracking-[0.44em] uppercase transition-all duration-500 block group-hover/logo:text-[#C4A482] ${
+          className={`font-serif font-normal antialiased tracking-[0.4em] sm:tracking-[0.44em] uppercase transition-all duration-500 block group-hover/logo:text-[#C4A482] ${
             compact ? 'text-sm sm:text-base' : 'text-base sm:text-xl'
           }`}
         >
-          TERRA<sup className="inline-block -translate-y-[8px] text-[0.45em] tracking-normal font-sans -ml-[0.3em] opacity-70">&trade;</sup>
+          TERRA<sup className="inline-block -translate-y-[8px] text-[0.6em] tracking-normal font-sans font-semibold antialiased -ml-[0.2em]">&trade;</sup>
         </span>
         {/* Subtle Luxury Shimmer Reflection Wave */}
         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C4A482]/50 to-transparent -translate-x-full group-hover/logo:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
       </div>
 
       {/* Subtitle Tagline: MEN'S CO. with Warm Gold Hairline Accent Lines */}
-      <div className="flex items-center gap-2 mt-1.5">
+      <div className="flex items-center gap-2 mt-0.5 sm:mt-1.5">
         <span className="w-2 sm:w-3 h-[1px] bg-[#C4A482]/50 group-hover/logo:w-4 sm:group-hover/logo:w-5 group-hover/logo:bg-[#C4A482] transition-all duration-500" />
         <span
           style={{ color: textColor }}
-          className={`font-sans font-bold tracking-[0.52em] uppercase opacity-70 transition-all duration-500 group-hover/logo:opacity-100 group-hover/logo:text-[#A88B68] ${
+          className={`font-sans font-bold antialiased tracking-[0.52em] uppercase transition-all duration-500 group-hover/logo:text-[#A88B68] ${
             compact ? 'text-[6px] sm:text-[6.5px]' : 'text-[7px] sm:text-[8px]'
           }`}
         >

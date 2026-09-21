@@ -16,69 +16,81 @@ const ingredients = [
 
 export const BeardOilIngredients = () => {
   return (
-    <section className="py-24 bg-white relative border-t border-[#E5E0D8]">
+    <section className="py-16 bg-white relative border-t border-[#E5E0D8]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Header */}
-        <div className="text-center mb-16 max-w-3xl mx-auto">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8C6D46] font-bold block mb-4">
-            Powered By Nature&apos;s Nourishing Oils
-          </span>
-          <h2 className="text-3xl md:text-5xl font-serif text-[#181817] mb-6 font-light">
-            7 Premium Cold-Pressed Oils
-          </h2>
-          <p className="text-[#55524D] text-lg font-light leading-relaxed">
-            A thoughtfully formulated beard oil designed for everyday beard care. We selected the finest natural oils to condition, soften, and smooth.
-          </p>
-        </div>
-
-        {/* Ingredients Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-20">
-          {ingredients.map((ing, i) => (
-            <motion.div 
-              key={ing.name}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8">
+          {/* Left Sticky Header */}
+          <div className="lg:col-span-5 lg:sticky lg:top-[120px] self-start">
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className="p-6 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl flex flex-col"
+              className="flex flex-col gap-5"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#8C6D46]" />
-                <h3 className="font-serif text-[#181817] text-lg">{ing.name}</h3>
+              <div className="flex items-center gap-4">
+                <span className="w-8 h-[1px] bg-[#181817]/20" />
+                <span className="text-[9px] uppercase tracking-[0.3em] text-[#181817]/70 font-bold">
+                  Key Ingredients
+                </span>
               </div>
-              <p className="text-[#77736C] text-sm leading-relaxed font-light">
-                {ing.desc}
+              <h2 className="text-[24px] sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl font-serif font-light whitespace-nowrap tracking-tight inline-block bg-gradient-to-r from-black via-[#990000] to-[#FF3333] bg-clip-text text-transparent pb-1">
+                7 Cold-Pressed Oils
+              </h2>
+              <p className="text-[#55524D] text-sm font-light leading-relaxed max-w-sm">
+                A thoughtfully formulated beard oil designed for everyday care. We selected the finest natural oils to condition, soften, and smooth.
               </p>
             </motion.div>
-          ))}
+          </div>
+
+          {/* Right Content Grid */}
+          <div className="lg:col-span-7">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-8 mb-12">
+              {ingredients.map((ing, i) => (
+                <motion.div 
+                  key={ing.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  className="flex flex-col border-b border-[#E5E0D8] pb-6"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#8C6D46]" />
+                    <h3 className="font-serif text-[#181817] text-lg">{ing.name}</h3>
+                  </div>
+                  <p className="text-[#77736C] text-sm leading-relaxed font-light">
+                    {ing.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* BHT-Free Banner */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-[#181817] text-white p-8 rounded-2xl flex flex-col xl:flex-row items-center justify-between gap-6 shadow-xl"
+            >
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-full bg-[#8C6D46]/20 flex items-center justify-center shrink-0 border border-[#8C6D46]/30">
+                  <CheckCircle2 className="w-6 h-6 text-[#A88B63]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-serif mb-1 tracking-wide">BHT-FREE FORMULA</h3>
+                  <p className="text-white/60 text-[11px] font-light uppercase tracking-[0.1em]">
+                    Made without added BHT.
+                  </p>
+                </div>
+              </div>
+              <div className="xl:text-right max-w-sm">
+                <p className="text-white/80 font-light leading-relaxed text-xs">
+                  We focus on purity and performance, ensuring your daily grooming routine is safe, natural, and effective.
+                </p>
+              </div>
+            </motion.div>
+          </div>
         </div>
-
-        {/* BHT-Free Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-4xl mx-auto bg-[#181817] text-white p-10 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl"
-        >
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-full bg-[#8C6D46]/20 flex items-center justify-center shrink-0 border border-[#8C6D46]/30">
-              <CheckCircle2 className="w-7 h-7 text-[#A88B63]" />
-            </div>
-            <div>
-              <h3 className="text-xl font-serif mb-1 tracking-wide">BHT-FREE FORMULA</h3>
-              <p className="text-white/60 text-sm font-light uppercase tracking-[0.1em]">
-                Made without added BHT.
-              </p>
-            </div>
-          </div>
-          <div className="md:text-right max-w-sm">
-            <p className="text-white/80 font-light leading-relaxed text-sm">
-              We focus on purity and performance, ensuring your daily grooming routine is safe, natural, and effective.
-            </p>
-          </div>
-        </motion.div>
-
       </div>
     </section>
   );

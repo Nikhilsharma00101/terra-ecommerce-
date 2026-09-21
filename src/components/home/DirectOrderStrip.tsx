@@ -149,7 +149,7 @@ export const DirectOrderStrip: React.FC = () => {
                   </span>
                   <div className="flex items-center gap-0.5 text-amber-600 text-[10px] font-medium">
                     <Star size={11} className="fill-amber-500 text-amber-500" />
-                    <span>4.9</span>
+                    <span>{faceWash.rating ? faceWash.rating.toFixed(1) : '4.9'}</span>
                   </div>
                 </div>
 
@@ -224,7 +224,7 @@ export const DirectOrderStrip: React.FC = () => {
                   </span>
                   <div className="flex items-center gap-0.5 text-amber-600 text-[10px] font-medium">
                     <Star size={11} className="fill-amber-500 text-amber-500" />
-                    <span>4.95</span>
+                    <span>{beardOil.rating ? beardOil.rating.toFixed(1) : '4.9'}</span>
                   </div>
                 </div>
 
@@ -292,7 +292,7 @@ export const DirectOrderStrip: React.FC = () => {
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <span className="absolute top-1.5 left-1.5 bg-[#8B0000] text-white text-[9px] font-semibold px-1.5 py-0.5 tracking-wider uppercase">
-                {bundleProduct?.badge ? bundleProduct.badge.toUpperCase() : 'COMPLETE SET'}
+                COMBO
               </span>
             </div>
 
@@ -305,7 +305,7 @@ export const DirectOrderStrip: React.FC = () => {
                   </span>
                   <div className="flex items-center gap-0.5 text-amber-600 text-[10px] font-medium">
                     <Star size={11} className="fill-amber-500 text-amber-500" />
-                    <span>{bundleProduct?.rating || 4.98}</span>
+                    <span>{bundleProduct?.rating ? bundleProduct.rating.toFixed(1) : '5.0'}</span>
                   </div>
                 </div>
 

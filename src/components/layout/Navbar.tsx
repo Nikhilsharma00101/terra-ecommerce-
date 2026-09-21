@@ -2,20 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { useUI } from '@/context/UIContext';
 import { useAuth } from '@/context/AuthContext';
-import { Menu } from 'lucide-react';
+import { Menu, Heart, ShoppingBag, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const { totalItems } = useCart();
+  const { wishlist } = useWishlist();
   const { openMobileNav } = useUI();
   const { user, isAuthenticated } = useAuth();
 
   const [scrolled, setScrolled] = useState(false);
+  const [promoIndex, setPromoIndex] = useState(0);
+
+  const promos = [
+    "Free Delivery Pan-India",
+    "100% Authentic Products",
+    "Easy 7-Day Returns"
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPromoIndex((prev) => (prev + 1) % promos.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [promos.length]);
 
   useEffect(() => {
     let rafId: number | null = null;
@@ -61,7 +78,7 @@ export const Navbar: React.FC = () => {
         {/* TIER 1: UTILITIES & BRANDING */}
         <div className="flex items-center justify-between h-[70px] sm:h-[85px]">
           
-          {/* Left: Mobile Menu & Clean Whitespace */}
+          {/* Left: Mobile Menu & Promo Text */}
           <div className="flex-1 flex items-center justify-start">
             <button
               onClick={openMobileNav}
@@ -70,6 +87,27 @@ export const Navbar: React.FC = () => {
             >
               <Menu size={24} strokeWidth={1.5} />
             </button>
+            
+            {/* Dynamic Promo Text (Desktop Only) */}
+            <div className="hidden lg:flex items-center gap-2 overflow-hidden h-6 w-[240px]">
+              <span className="text-[#DC143C]">✦</span>
+              <div className="relative h-full w-full flex flex-col justify-center">
+                {promos.map((promo, idx) => (
+                  <span 
+                    key={promo}
+                    className={`absolute left-0 whitespace-nowrap text-[10px] tracking-[0.2em] font-semibold uppercase text-white transition-all duration-700 ease-in-out ${
+                      idx === promoIndex 
+                        ? 'opacity-100 translate-y-0' 
+                        : idx < promoIndex || (promoIndex === 0 && idx === promos.length - 1)
+                          ? 'opacity-0 -translate-y-4'
+                          : 'opacity-0 translate-y-4'
+                    }`}
+                  >
+                    {promo}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Center: Brand Logo */}
@@ -91,24 +129,56 @@ export const Navbar: React.FC = () => {
               className="group flex items-center gap-2.5 text-white hover:text-[#DC143C] transition-all focus:outline-none cursor-pointer"
               aria-label={isAuthenticated ? 'My Account' : 'Sign In'}
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/15 flex items-center justify-center group-hover:border-[#DC143C] group-hover:bg-[#DC143C]/10 group-hover:shadow-[0_0_15px_rgba(220,20,60,0.3)] transition-all duration-300">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform duration-300 group-hover:scale-110"
-                >
-                  <circle cx="12" cy="7" r="4" />
-                  <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
-                </svg>
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden group-hover:border-[#DC143C] group-hover:bg-[#DC143C]/10 group-hover:shadow-[0_0_15px_rgba(220,20,60,0.3)] transition-all duration-300">
+                {isAuthenticated && user?.image ? (
+                  <Image
+                    src={user.image}
+                    alt={user.name || 'Account'}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                ) : (
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform duration-300 group-hover:scale-110"
+                  >
+                    <circle cx="12" cy="7" r="4" />
+                    <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
+                  </svg>
+                )}
               </div>
               <span className="hidden lg:inline text-[10px] tracking-[0.22em] font-semibold uppercase">
                 {isAuthenticated ? (user?.name?.split(' ')[0] || 'ACCOUNT') : 'SIGN IN'}
+              </span>
+            </Link>
+
+            {/* Wishlist Button (Desktop Only) */}
+            <Link
+              href="/wishlist"
+              className="hidden lg:flex group items-center gap-2.5 text-white hover:text-[#DC143C] transition-all focus:outline-none cursor-pointer"
+              aria-label="View Wishlist"
+            >
+              <div className="relative w-9 h-9 flex items-center justify-center transition-all duration-300">
+                <div className="relative flex items-center justify-center">
+                  <Heart size={20} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+
+                  {/* Minimal Badge */}
+                  {wishlist.length > 0 && (
+                    <div className="absolute -top-1.5 -right-2 flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[#DC143C] text-white text-[9px] font-bold pointer-events-none shadow-sm">
+                      {wishlist.length > 99 ? '99+' : wishlist.length}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="hidden lg:inline text-[10px] tracking-[0.22em] font-semibold uppercase">
+                WISHLIST
               </span>
             </Link>
 
@@ -118,36 +188,17 @@ export const Navbar: React.FC = () => {
               className="group flex items-center gap-2.5 text-white hover:text-[#DC143C] transition-all focus:outline-none cursor-pointer"
               aria-label={`View shopping bag (${totalItems} items)`}
             >
-              <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/5 border border-white/15 flex items-center justify-center group-hover:border-[#DC143C] group-hover:bg-[#DC143C]/10 group-hover:shadow-[0_0_15px_rgba(220,20,60,0.3)] transition-all duration-300">
-                {/* Cyber-Speed Cart Icon */}
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3"
-                >
-                  <path d="M2 3.5h3.2l2.2 10a1.5 1.5 0 0 0 1.5 1.2h9.6a1.5 1.5 0 0 0 1.5-1.1l2.2-7.8H5.8" />
-                  <line x1="8" y1="9.5" x2="19.5" y2="9.5" strokeWidth="1.2" strokeOpacity="0.45" />
-                  <circle cx="9.5" cy="19" r="1.8" />
-                  <circle cx="17.5" cy="19" r="1.8" />
-                  <circle cx="9.5" cy="19" r="0.6" fill="currentColor" />
-                  <circle cx="17.5" cy="19" r="0.6" fill="currentColor" />
-                </svg>
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center transition-all duration-300">
+                <div className="relative flex items-center justify-center">
+                  <ShoppingBag size={20} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
 
-                {/* HUD Cargo Badge */}
-                {totalItems > 0 && (
-                  <div className="absolute -top-1.5 -right-2 sm:-right-2.5 flex items-center h-[17px] px-1.5 rounded-[4px] bg-[#0A0A0A] border border-[#DC143C]/70 shadow-[0_0_12px_rgba(220,20,60,0.5)] backdrop-blur-md transition-all duration-300 group-hover:border-[#DC143C] group-hover:shadow-[0_0_18px_rgba(220,20,60,0.7)] pointer-events-none">
-                    <span className="text-[7.5px] font-mono text-[#DC143C] font-black mr-0.5 tracking-tighter select-none">{'//'}</span>
-                    <span className="text-[9px] font-mono font-black tracking-tight text-white leading-none">
-                      {totalItems < 10 ? `0${totalItems}` : totalItems > 99 ? '99+' : totalItems}
-                    </span>
-                  </div>
-                )}
+                  {/* Minimal Badge */}
+                  {totalItems > 0 && (
+                    <div className="absolute -top-1.5 -right-2 flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[#DC143C] text-white text-[9px] font-bold pointer-events-none shadow-sm">
+                      {totalItems > 99 ? '99+' : totalItems}
+                    </div>
+                  )}
+                </div>
               </div>
               <span className="hidden sm:inline-block text-[10px] tracking-[0.22em] font-semibold uppercase">
                 BAG
