@@ -204,6 +204,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           p.slug === product.slug
       ) || product;
 
+    let finalQuantity = quantity;
+
     setItems((prev) => {
       const existingIndex = prev.findIndex(
         (item) =>
@@ -213,17 +215,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       if (existingIndex > -1) {
-        return prev.map((item, idx) =>
-          idx === existingIndex
-            ? { ...item, product: latestProduct, quantity: item.quantity + quantity }
-            : item
-        );
+        return prev.map((item, idx) => {
+          if (idx === existingIndex) {
+            let newQuantity = item.quantity + quantity;
+            if (latestProduct.stock !== undefined && newQuantity > latestProduct.stock) {
+              newQuantity = latestProduct.stock;
+              finalQuantity = Math.max(0, newQuantity - item.quantity);
+            }
+            return { ...item, product: latestProduct, quantity: newQuantity };
+          }
+          return item;
+        });
       }
-      return [...prev, { product: latestProduct, quantity }];
+      
+      if (latestProduct.stock !== undefined && quantity > latestProduct.stock) {
+        finalQuantity = latestProduct.stock;
+      }
+      
+      // If stock is 0, don't add
+      if (latestProduct.stock === 0) {
+        return prev;
+      }
+
+      return [...prev, { product: latestProduct, quantity: finalQuantity }];
     });
-    setLastAddedItem({ product: latestProduct, quantity, timestamp: Date.now() });
-    setIsAddedNotificationOpen(true);
-    setIsCartOpen(true);
+
+    if (latestProduct.stock !== 0 && finalQuantity > 0) {
+      setLastAddedItem({ product: latestProduct, quantity: finalQuantity, timestamp: Date.now() });
+      setIsAddedNotificationOpen(true);
+      setIsCartOpen(true);
+    }
   };
 
 
@@ -238,9 +259,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     setItems((prev) =>
-      prev.map((item) =>
-        matchesId(item.product, productId) ? { ...item, quantity } : item
-      )
+      prev.map((item) => {
+        if (matchesId(item.product, productId)) {
+          let newQuantity = quantity;
+          if (item.product.stock !== undefined && newQuantity > item.product.stock) {
+            newQuantity = item.product.stock;
+          }
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      })
     );
   };
 

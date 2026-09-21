@@ -11,6 +11,7 @@ export interface AuthUser {
   role: 'user' | 'admin';
   tier?: string;
   phone?: string;
+  image?: string;
   addresses?: Array<any>;
   createdAt?: string;
 }
@@ -42,6 +43,7 @@ const AuthProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }
         id: (session.user as any).id || '',
         name: session.user.name || '',
         email: session.user.email || '',
+        image: session.user.image || undefined,
         role: (session.user as any).role || 'user',
         tier: (session.user as any).tier,
       };

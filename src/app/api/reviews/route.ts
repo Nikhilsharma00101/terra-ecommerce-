@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const productSlug = searchParams.get('productSlug');
     const status = searchParams.get('status');
+    const email = searchParams.get('email');
     const finalStatus = status !== null ? status : 'approved';
 
     await connectToDatabase();
@@ -19,7 +20,11 @@ export async function GET(req: NextRequest) {
       query.productSlug = productSlug;
     }
     
-    // Only return approved reviews to the public, unless explicitly asked otherwise (for admin)
+    if (email) {
+      query.email = email;
+    }
+
+    // Only return approved reviews to the public, unless explicitly asked otherwise (for admin or user checking their own)
     if (finalStatus && finalStatus !== 'all' && finalStatus !== '') {
       query.status = finalStatus;
     }
@@ -57,6 +62,19 @@ export async function GET(req: NextRequest) {
       }
   
       await connectToDatabase();
+  
+      // Check if the user has already reviewed this product
+      const existingReview = await Review.findOne({
+        email: authUser.email,
+        productSlug: productSlug,
+      });
+
+      if (existingReview) {
+        return NextResponse.json(
+          { error: 'You have already submitted a review for this product.' },
+          { status: 403 }
+        );
+      }
   
       // Verify that the user has a "Delivered" order for this product
       const userOrders = await Order.find({

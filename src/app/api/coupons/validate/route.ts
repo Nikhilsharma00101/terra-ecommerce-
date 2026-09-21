@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Order } from '@/models/Order';
+import { getAuthUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    // M-3: Require authentication for coupon validation
+    const authUser = await getAuthUser();
+    if (!authUser) {
+      return NextResponse.json({ success: false, error: 'Please sign in to apply a coupon.' }, { status: 401 });
+    }
+
     const body = await req.json();
-    const { code, email } = body;
+    const { code } = body;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ success: false, error: 'Coupon code is required.' }, { status: 400 });
@@ -18,10 +25,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid coupon code. Try WELCOME10.' }, { status: 400 });
     }
 
-    if (c === 'WELCOME10' && email) {
+    if (c === 'WELCOME10') {
+      // M-3: Always use authenticated user's email, not client-supplied
+      const userEmail = authUser.email.toLowerCase().trim();
       await connectToDatabase();
       const existingOrdersCount = await Order.countDocuments({
-        customerEmail: email.toLowerCase().trim()
+        customerEmail: userEmail,
       });
 
       if (existingOrdersCount > 0) {

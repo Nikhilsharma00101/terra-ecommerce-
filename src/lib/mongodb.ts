@@ -18,6 +18,15 @@ if (!cached) {
   cached = global.mongooseCache = { conn: null, promise: null };
 }
 
+/**
+ * Connects to MongoDB using Mongoose.
+ * Implements a connection caching strategy using the global object to prevent 
+ * connection limits being exceeded during Next.js Hot Module Replacement (HMR) 
+ * in development environments, while remaining efficient in production.
+ * 
+ * @returns {Promise<typeof mongoose>} The active Mongoose connection object.
+ * @throws {Error} If MONGODB_URI is not defined in the environment variables.
+ */
 export async function connectToDatabase(): Promise<typeof mongoose> {
   if (!MONGODB_URI) {
     throw new Error(

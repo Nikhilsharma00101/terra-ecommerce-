@@ -8,6 +8,13 @@ import { products as initialSeedProducts } from '@/data/products';
 // Cache GET responses for 60 seconds, allow stale for 5 minutes while revalidating
 export const revalidate = 60;
 
+/**
+ * Fetches the product catalog from MongoDB with filtering and search capabilities.
+ * Incorporates Next.js caching via stale-while-revalidate for high performance.
+ * 
+ * @param {NextRequest} req - The incoming HTTP request.
+ * @returns {NextResponse} JSON response containing the list of products.
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -41,20 +48,40 @@ export async function GET(req: NextRequest) {
         query.purpose = purpose;
       }
       if (search) {
+        // [SECURITY FIX] Escape regex characters to prevent Regex Denial of Service (ReDoS)
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const safeSearch = escapeRegex(search).substring(0, 100);
+        
         query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { shortDescription: { $regex: search, $options: 'i' } },
-          { tagline: { $regex: search, $options: 'i' } },
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { shortDescription: { $regex: safeSearch, $options: 'i' } },
+          { tagline: { $regex: safeSearch, $options: 'i' } },
         ];
       }
 
       const dbProducts = await Product.find(query).sort({ createdAt: -1 });
 
+      // Dynamically calculate stock for Terra Set
+      let modifiedProducts = dbProducts.map(p => p.toObject ? p.toObject() : p);
+      
+      const faceWash = modifiedProducts.find((p: any) => p.slug === 'face-wash' || p.slug === 'terra-face-wash');
+      const beardOil = modifiedProducts.find((p: any) => p.slug === 'beard-oil' || p.slug === 'terra-beard-oil');
+      
+      if (faceWash && beardOil) {
+        const avgStock = Math.floor(((beardOil.stock || 0) + (faceWash.stock || 0)) / 2);
+        modifiedProducts = modifiedProducts.map((p: any) => {
+          if (p.slug === 'terra-set' || p.isBundle || (p.name && p.name.toLowerCase().includes('set'))) {
+            return { ...p, stock: avgStock };
+          }
+          return p;
+        });
+      }
+
       return NextResponse.json(
         {
-          products: dbProducts,
+          products: modifiedProducts,
           source: 'mongodb',
-          count: dbProducts.length,
+          count: modifiedProducts.length,
         },
         {
           headers: {
@@ -153,12 +180,12 @@ export async function POST(req: NextRequest) {
       images: Array.isArray(body.images) && body.images.length > 0
         ? body.images
         : [
-            {
-              url: featuredImage,
-              alt: name,
-              caption: tagline || name,
-            },
-          ],
+          {
+            url: featuredImage,
+            alt: name,
+            caption: tagline || name,
+          },
+        ],
       stock: stock !== undefined ? Number(stock) : 100,
       isPublished: true,
       badge: badge || undefined,
@@ -167,8 +194,8 @@ export async function POST(req: NextRequest) {
       ingredientsList: Array.isArray(ingredientsList)
         ? ingredientsList
         : ingredientsList
-        ? ingredientsList.split(',').map((s: string) => s.trim())
-        : [],
+          ? ingredientsList.split(',').map((s: string) => s.trim())
+          : [],
       keyIngredients: keyIngredients || [],
       ritual: ritual || [],
       specs: specs || [],

@@ -32,7 +32,11 @@ export async function verifyPassword(
 }
 
 /**
- * Extracts and verifies the authenticated user from cookies in Next.js Server Components or Route Handlers using NextAuth
+ * Extracts and verifies the authenticated user from the current request session.
+ * Used primarily in Next.js Server Components or Route Handlers.
+ * Relies on `getServerSession` from NextAuth.
+ * 
+ * @returns {Promise<UserJwtPayload | null>} The authenticated user payload, or null if no session exists or extraction fails.
  */
 export async function getAuthUser(): Promise<UserJwtPayload | null> {
   try {
@@ -53,7 +57,13 @@ export async function getAuthUser(): Promise<UserJwtPayload | null> {
 }
 
 /**
- * Route protection helper: Ensures request has a valid logged in user
+ * Route protection helper: Ensures request has a valid logged in user.
+ * 
+ * @returns An object containing either the `user` payload, or an `errorResponse` (NextResponse) that should be immediately returned by the API route.
+ * @example
+ * const auth = await requireAuth();
+ * if (auth.errorResponse) return auth.errorResponse;
+ * const user = auth.user;
  */
 export async function requireAuth(): Promise<
   { user: UserJwtPayload; errorResponse?: never } | { user?: never; errorResponse: NextResponse }
@@ -71,7 +81,12 @@ export async function requireAuth(): Promise<
 }
 
 /**
- * Route protection helper: Ensures request is from an authorized Administrator
+ * Route protection helper: Ensures request is from an authorized Administrator.
+ * 
+ * @returns An object containing either the admin `user` payload, or an `errorResponse` (NextResponse) with 401/403 status that should be returned.
+ * @example
+ * const adminCheck = await requireAdmin();
+ * if (adminCheck.errorResponse) return adminCheck.errorResponse;
  */
 export async function requireAdmin(): Promise<
   { user: UserJwtPayload; errorResponse?: never } | { user?: never; errorResponse: NextResponse }

@@ -39,7 +39,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Auto-upgrade to admin if email matches
-        const adminEmails = ['nikhil18981@gmail.com', 'lavinlavi007@gmail.com'];
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
         if (adminEmails.includes(user.email.toLowerCase().trim()) && user.role !== 'admin') {
           user.role = 'admin';
           await user.save();
@@ -60,14 +60,18 @@ export const authOptions: NextAuthOptions = {
     maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   callbacks: {
+    /**
+     * Executes when a user signs in.
+     * Handles account creation for OAuth providers and auto-upgrades admins.
+     */
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
         await connectToDatabase();
-        
+
         let existingUser = await User.findOne({ email: user.email });
-        const adminEmails = ['nikhil18981@gmail.com', 'lavinlavi007@gmail.com'];
+        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
         const isAdminEmail = adminEmails.includes(user.email?.toLowerCase().trim() || '');
-        
+
         if (!existingUser) {
           existingUser = await User.create({
             name: user.name || 'Google User',
@@ -80,16 +84,21 @@ export const authOptions: NextAuthOptions = {
           existingUser.role = 'admin';
           await existingUser.save();
         }
-        
+
         // Attach DB id and custom fields to the user object passed to jwt
         user.id = existingUser._id.toString();
         (user as any).role = existingUser.role;
         (user as any).tier = existingUser.tier;
-        
+
         return true;
       }
       return true;
     },
+    
+    /**
+     * Called whenever a JSON Web Token is created or updated.
+     * Maps user attributes to the token payload.
+     */
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
@@ -97,10 +106,18 @@ export const authOptions: NextAuthOptions = {
         token.tier = (user as any).tier || 'Terra Club Member';
       }
       if (trigger === 'update' && session) {
-        token = { ...token, ...session };
+        // [SECURITY FIX] Whitelist allowed fields to prevent privilege escalation (e.g. injecting role: admin)
+        if (session.name) token.name = session.name;
+        if (session.image) token.image = session.image;
+        if (session.email) token.email = session.email;
       }
       return token;
     },
+    
+    /**
+     * Called whenever a session is checked on the client.
+     * Exposes specific token data to the client-side session object.
+     */
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as any).id = token.id;

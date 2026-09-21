@@ -36,7 +36,15 @@ export async function GET(req: NextRequest, context: RouteContext) {
       const product = await Product.findOne(query);
 
       if (product) {
-        return NextResponse.json({ product, source: 'mongodb' });
+        let pObj = product.toObject ? product.toObject() : product;
+        if (pObj.slug === 'terra-set' || pObj.isBundle || (pObj.name && pObj.name.toLowerCase().includes('set'))) {
+          const faceWash = await Product.findOne({ slug: { $in: ['face-wash', 'terra-face-wash'] } });
+          const beardOil = await Product.findOne({ slug: { $in: ['beard-oil', 'terra-beard-oil'] } });
+          if (faceWash && beardOil) {
+            pObj.stock = Math.floor(((beardOil.stock || 0) + (faceWash.stock || 0)) / 2);
+          }
+        }
+        return NextResponse.json({ product: pObj, source: 'mongodb' });
       }
     } catch (err: any) {
       console.warn('MongoDB fetch error, attempting fallback:', err);
