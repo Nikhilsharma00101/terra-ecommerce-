@@ -236,10 +236,51 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
       )}
 
       {/* Quantity & CTA Buttons */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center gap-3">
+      <div className="space-y-2.5 sm:space-y-3 pt-2">
+        {/* Mobile-only Quantity & Wishlist row (< sm) */}
+        <div className="flex items-center gap-2.5 sm:hidden">
           {/* Quantity Selector */}
-          <div className="flex items-center border border-[#DDD8CF] bg-white h-12 px-2 shrink-0 rounded-xl shadow-2xs">
+          <div className="flex-1 flex items-center justify-between border border-[#DDD8CF] bg-white h-12 px-3 rounded-xl shadow-2xs">
+            <button
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="p-2 text-[#77736C] hover:text-[#181817] transition-colors cursor-pointer"
+              aria-label="Decrease quantity"
+            >
+              <Minus size={15} />
+            </button>
+            <div className="flex items-center gap-1.5 font-mono">
+              <span className="text-[10px] uppercase tracking-wider text-[#77736C]">QTY</span>
+              <span className="text-sm font-bold text-[#181817]">{quantity}</span>
+            </div>
+            <button
+              onClick={() => setQuantity((q) => q + 1)}
+              className="p-2 text-[#77736C] hover:text-[#181817] transition-colors cursor-pointer"
+              aria-label="Increase quantity"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+
+          {/* Wishlist Button (Mobile) */}
+          <button
+            onClick={() => toggleWishlist(productId)}
+            className="border border-[#DDD8CF] bg-white h-12 px-4 flex items-center justify-center gap-2 text-[#181817] hover:border-[#181817] transition-colors shrink-0 rounded-xl shadow-2xs cursor-pointer active:scale-95"
+            aria-label="Save to wishlist"
+          >
+            <Heart
+              size={18}
+              className={isWished ? 'fill-[#8B0000] text-[#8B0000]' : 'text-[#181817]'}
+            />
+            <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-[#181817]">
+              {isWished ? 'Saved' : 'Save'}
+            </span>
+          </button>
+        </div>
+
+        {/* Add to Bag CTA (Desktop row with quantity + wishlist, full-width on mobile) */}
+        <div className="flex items-center gap-3">
+          {/* Quantity Selector (Desktop only, >= sm) */}
+          <div className="hidden sm:flex items-center border border-[#DDD8CF] bg-white h-12 px-2 shrink-0 rounded-xl shadow-2xs">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               className="p-2 text-[#77736C] hover:text-[#181817] transition-colors cursor-pointer"
@@ -259,10 +300,10 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
             </button>
           </div>
 
-          {/* Add to Bag CTA */}
+          {/* Add to Bag CTA Button */}
           <button
             onClick={handleAddToCart}
-            className="flex-1 bg-[#181817] hover:bg-[#2D4438] text-white h-12 px-6 text-[10px] font-extrabold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-xl shadow-sm hover:shadow-md cursor-pointer active:scale-[0.99]"
+            className="w-full sm:flex-1 bg-[#181817] hover:bg-[#2D4438] text-white h-12 px-4 sm:px-6 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-[0.15em] sm:tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-xl shadow-sm hover:shadow-md cursor-pointer active:scale-[0.99] whitespace-nowrap"
           >
             {addedToast ? (
               <span className="flex items-center gap-1.5 text-[#C4A482]">
@@ -276,10 +317,10 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
             )}
           </button>
 
-          {/* Wishlist Button */}
+          {/* Wishlist Button (Desktop only, >= sm) */}
           <button
             onClick={() => toggleWishlist(productId)}
-            className="border border-[#DDD8CF] bg-white h-12 w-12 flex items-center justify-center text-[#181817] hover:border-[#181817] transition-colors shrink-0 rounded-xl shadow-2xs cursor-pointer active:scale-95"
+            className="hidden sm:flex border border-[#DDD8CF] bg-white h-12 w-12 items-center justify-center text-[#181817] hover:border-[#181817] transition-colors shrink-0 rounded-xl shadow-2xs cursor-pointer active:scale-95"
             aria-label="Save to wishlist"
           >
             <Heart
@@ -292,7 +333,7 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
         {/* Buy Now Direct */}
         <button
           onClick={handleBuyNow}
-          className="w-full relative overflow-hidden group bg-[#8B0000] hover:bg-[#A50000] text-white py-3.5 text-[10px] font-bold uppercase tracking-[0.25em] transition-all flex items-center justify-center gap-2 cursor-pointer rounded-xl shadow-sm hover:shadow-md active:scale-[0.99]"
+          className="w-full relative overflow-hidden group bg-[#8B0000] hover:bg-[#A50000] text-white h-12 text-[10px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.25em] transition-all flex items-center justify-center gap-2 cursor-pointer rounded-xl shadow-sm hover:shadow-md active:scale-[0.99] whitespace-nowrap"
         >
           <span className="relative z-10">BUY NOW — INSTANT CHECKOUT</span>
           <div className="absolute inset-0 bg-white/15 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-in-out pointer-events-none" />

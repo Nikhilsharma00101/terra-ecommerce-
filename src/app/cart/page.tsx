@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
@@ -43,6 +43,11 @@ export default function CartPage() {
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoError, setPromoError] = useState('');
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [hasOrdered, setHasOrdered] = useState(true);
+
+  useEffect(() => {
+    setHasOrdered(localStorage.getItem('terra_has_ordered') === 'true');
+  }, []);
 
   // Complementary recommendations logic
   const hasFaceWash = items.some((i) => i.product.slug === 'face-wash' || i.product.slug === 'terra-face-wash');
@@ -139,6 +144,35 @@ export default function CartPage() {
         </div>
       ) : (
         <>
+          {/* Welcome Banner for First-Time Users */}
+          {!hasOrdered && appliedCoupon !== 'WELCOME10' && (
+            <section className="w-full bg-[#FAF8F5] border-b border-[#E5E0D8]">
+              <div className="max-w-screen-2xl mx-auto px-4 md:px-8 lg:px-12 py-3 sm:py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Sparkles size={14} className="text-[#A88B63]" />
+                    <span className="uppercase tracking-widest font-mono text-[10px] font-semibold text-[#181817]">Welcome Offer</span>
+                  </div>
+                  <div className="flex flex-col xs:flex-row sm:items-center justify-between w-full sm:w-auto gap-3 sm:gap-4">
+                    <p className="uppercase tracking-widest text-[9.5px] sm:text-[10px] text-[#55524D] leading-[1.6]">
+                      Get 10% off your first order with code <span className="font-bold text-[#181817] bg-white px-1.5 py-0.5 border border-[#E5E0D8] rounded inline-block xs:ml-1 shadow-2xs">WELCOME10</span>
+                    </p>
+                    <button 
+                      onClick={async () => {
+                        const res = await applyCoupon('WELCOME10', user?.email);
+                        if (!res.success) setPromoError(res.error || 'Failed to apply coupon.');
+                      }}
+                      disabled={isApplyingPromo}
+                      className="w-full xs:w-auto text-[10px] uppercase tracking-[0.2em] font-bold bg-[#181817] text-white px-5 py-2.5 sm:py-2 hover:bg-[#A88B63] transition-colors rounded-full shrink-0 disabled:opacity-50 shadow-sm"
+                    >
+                      {isApplyingPromo ? '...' : 'Apply Code'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Free Shipping Notification Banner */}
           <section className="w-full bg-[#F2F4F7] px-4 md:px-8 lg:px-12 pt-8">
             <div className="w-full">
@@ -369,6 +403,32 @@ export default function CartPage() {
                     </form>
                   )}
                   {promoError && <p className="text-[13px] text-red-500 font-medium -mt-4">{promoError}</p>}
+
+                  {/* Welcome Callout for First-Time Users - Below Input */}
+                  {!hasOrdered && !appliedCoupon && (
+                    <div className="bg-[#FAF8F5] border border-[#E5E0D8] rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-2xs mt-[-4px]">
+                      <div className="flex items-start sm:items-center gap-2.5">
+                        <Sparkles size={16} className="text-[#A88B63] shrink-0 mt-0.5 sm:mt-0" />
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-bold text-[#181817] uppercase tracking-wider">Welcome Offer</span>
+                          <span className="text-[9.5px] sm:text-[10px] text-[#55524D] uppercase tracking-wider leading-relaxed mt-0.5">Get 10% off your first order.</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsApplyingPromo(true);
+                          const res = await applyCoupon('WELCOME10', user?.email);
+                          if (!res.success) setPromoError(res.error || 'Failed to apply.');
+                          setIsApplyingPromo(false);
+                        }}
+                        disabled={isApplyingPromo}
+                        className="w-full sm:w-auto text-[10px] uppercase tracking-widest font-bold bg-[#181817] text-white px-5 py-2.5 hover:bg-[#A88B63] transition-colors rounded-full shrink-0 disabled:opacity-50 shadow-sm"
+                      >
+                        {isApplyingPromo ? '...' : 'Apply WELCOME10'}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Total Calculation */}
                   <div className="flex flex-col gap-2 pt-2">

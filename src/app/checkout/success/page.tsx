@@ -269,11 +269,13 @@ export default function CheckoutSuccessPage() {
       </div>
 
       {/* REGULAR SCREEN CONTENT */}
-      <div className="w-full bg-background flex flex-col min-h-screen text-on-surface">
+      <div className="w-full bg-background flex flex-col min-h-screen text-on-surface overflow-x-hidden">
         {/* Top Notification Bar */}
-        <div className="w-full bg-surface-container-lowest border-b border-surface-container-highest/30 px-6 py-2 text-center relative z-10">
-          <p className="font-label-sm text-xs tracking-[0.2em] text-secondary uppercase font-semibold">
-            ORDER CONFIRMED <span className="text-outline/40 mx-2">|</span> FREE EXPRESS DELIVERY
+        <div className="w-full bg-surface-container-lowest border-b border-surface-container-highest/30 px-4 sm:px-6 py-2 sm:py-2.5 text-center relative z-10">
+          <p className="font-label-sm text-[10px] sm:text-xs tracking-widest sm:tracking-[0.2em] text-secondary uppercase font-semibold flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span>ORDER CONFIRMED</span>
+            <span className="text-outline/40 hidden sm:inline">|</span>
+            <span>FREE EXPRESS DELIVERY</span>
           </p>
         </div>
 
@@ -285,35 +287,35 @@ export default function CheckoutSuccessPage() {
           <div className="w-full px-4 sm:px-8 xl:px-12 py-12 flex flex-col gap-12">
 
             {/* HERO & GRATITUDE ARCHITECTURE */}
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
+            <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4 w-full">
 
               {/* Left side: Thank you message */}
-              <div className="lg:col-span-7 flex flex-col items-start text-left gap-6">
+              <div className="lg:col-span-7 flex flex-col items-start text-left gap-6 w-full">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5 }}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high border border-surface-container-highest"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high border border-surface-container-highest max-w-full"
                 >
-                  <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse"></span>
-                  <span className="font-label-sm text-xs text-secondary uppercase tracking-[0.25em] font-semibold">
+                  <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse shrink-0"></span>
+                  <span className="font-label-sm text-xs text-secondary uppercase tracking-[0.25em] font-semibold truncate">
                     Order Confirmed
                   </span>
-                  <CheckCircle2 size={15} className="text-secondary" />
+                  <CheckCircle2 size={15} className="text-secondary shrink-0" />
                 </motion.div>
 
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.6 }}
-                  className="flex flex-col gap-3"
+                  className="flex flex-col gap-3 w-full"
                 >
-                  <h1 className="font-headline-lg text-4xl sm:text-5xl lg:text-6xl tracking-tight text-on-surface leading-tight">
+                  <h1 className="font-headline-lg text-4xl sm:text-5xl lg:text-6xl tracking-tight text-on-surface leading-tight break-words hyphens-auto">
                     Thank You, {firstName}.<br />
                     <span className="italic font-normal text-secondary block mt-2 text-3xl sm:text-4xl lg:text-5xl">Your order is confirmed.</span>
                   </h1>
                   <p className="font-body-lg text-lg text-outline max-w-2xl mt-4 leading-relaxed">
-                    We have received your order <strong className="text-on-surface font-semibold tracking-wider">#{order.orderNumber}</strong>. We are now processing it and will ship it out soon.
+                    We have received your order <strong className="text-on-surface font-semibold tracking-wider break-all">#{order.orderNumber}</strong>. We are now processing it and will ship it out soon.
                   </p>
                 </motion.div>
               </div>
@@ -399,15 +401,15 @@ export default function CheckoutSuccessPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 font-body-sm text-sm">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col min-w-0">
                       <span className="font-label-sm text-[10px] uppercase text-outline tracking-wider font-semibold">Order Number</span>
-                      <span className="font-mono text-on-surface font-bold tracking-wider mt-1">#{order.orderNumber}</span>
+                      <span className="font-mono text-on-surface font-bold tracking-wider mt-1 break-all">#{order.orderNumber}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="font-label-sm text-[10px] uppercase text-outline tracking-wider font-semibold">Date</span>
-                      <span className="font-body-sm text-on-surface mt-1">{orderDate}</span>
+                      <span className="font-body-sm text-on-surface mt-1 break-words">{orderDate}</span>
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col col-span-2 sm:col-span-1">
                       <span className="font-label-sm text-[10px] uppercase text-outline tracking-wider font-semibold">Shipping Method</span>
                       <span className="font-body-sm text-secondary flex items-center gap-1.5 mt-1 font-medium">
                         <Send size={14} /> Express Air
@@ -419,9 +421,9 @@ export default function CheckoutSuccessPage() {
                 {/* Items Ordered Mosaic */}
                 <div className="flex flex-col gap-3">
                   {order.items.map((item, idx) => (
-                    <div key={idx} className="bg-surface-container-low rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-surface-container transition-colors shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 bg-surface-container-lowest rounded-md overflow-hidden shrink-0 relative border border-surface-container-highest">
+                    <div key={idx} className="bg-surface-container-low rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-surface-container transition-colors shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-4 w-full sm:w-auto overflow-hidden">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-surface-container-lowest rounded-md overflow-hidden shrink-0 relative border border-surface-container-highest">
                           {item.image ? (
                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
@@ -433,16 +435,16 @@ export default function CheckoutSuccessPage() {
                             Qty {item.quantity}
                           </span>
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1 min-w-0">
                           <span className="font-label-sm text-[10px] text-secondary tracking-widest uppercase font-semibold mb-1">Product</span>
-                          <h3 className="font-headline-sm text-lg text-on-surface font-semibold leading-snug">{item.name}</h3>
-                          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-outline font-body-sm text-xs">
-                            <span>Ref: {item.productId.slice(0, 8).toUpperCase()}</span>
+                          <h3 className="font-headline-sm text-base sm:text-lg text-on-surface font-semibold leading-snug truncate">{item.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-1.5 text-outline font-body-sm text-xs">
+                            <span className="truncate">Ref: {item.productId.slice(0, 8).toUpperCase()}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right self-end sm:self-center shrink-0">
-                        <span className="font-mono text-xl text-on-surface font-semibold">₹{item.price.toLocaleString('en-IN')}</span>
+                      <div className="text-left sm:text-right self-start sm:self-center shrink-0 mt-2 sm:mt-0">
+                        <span className="font-mono text-lg sm:text-xl text-on-surface font-semibold">₹{item.price.toLocaleString('en-IN')}</span>
                         <span className="block font-label-sm text-[10px] text-outline uppercase tracking-wider mt-0.5">Incl. GST</span>
                       </div>
                     </div>

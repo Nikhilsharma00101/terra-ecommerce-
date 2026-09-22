@@ -116,6 +116,12 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [hasOrdered, setHasOrdered] = useState(true);
+
+  useEffect(() => {
+    setHasOrdered(localStorage.getItem('terra_has_ordered') === 'true');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   // Saved Address States
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -334,6 +340,7 @@ export default function CheckoutPage() {
               });
 
               if (verifyRes.ok) {
+                localStorage.setItem('terra_has_ordered', 'true');
                 clearCart();
                 router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
               } else {
@@ -388,6 +395,7 @@ export default function CheckoutPage() {
         rzp.open();
       } else {
         // COD logic: order is already created, just redirect
+        localStorage.setItem('terra_has_ordered', 'true');
         clearCart();
         router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
       }
@@ -813,6 +821,32 @@ export default function CheckoutPage() {
 
                     {/* Promo Code Input & Applied Chip */}
                     <div className="bg-surface-container-low p-3.5 rounded-xl space-y-3">
+                      {/* Welcome Callout for First-Time Users */}
+                      {!hasOrdered && !appliedCoupon && (
+                        <div className="bg-[#FAF8F5] border border-[#E5E0D8] rounded-lg p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-2xs">
+                          <div className="flex items-start sm:items-center gap-2.5">
+                            <Sparkles size={16} className="text-[#A88B63] shrink-0 mt-0.5 sm:mt-0" />
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-[#181817] uppercase tracking-wider">Welcome Offer</span>
+                              <span className="text-[9.5px] sm:text-[10px] text-[#55524D] uppercase tracking-wider leading-relaxed mt-0.5">Get 10% off your first order.</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setIsApplyingCoupon(true);
+                              const res = await applyCoupon('WELCOME10', formData.email || user?.email);
+                              if (!res.success) setCouponError(res.error || 'Failed to apply.');
+                              setIsApplyingCoupon(false);
+                            }}
+                            disabled={isApplyingCoupon}
+                            className="w-full sm:w-auto text-[10px] uppercase tracking-widest font-bold bg-[#181817] text-white px-5 py-2.5 hover:bg-[#A88B63] transition-colors rounded-full shrink-0 disabled:opacity-50 shadow-sm"
+                          >
+                            {isApplyingCoupon ? '...' : 'Apply WELCOME10'}
+                          </button>
+                        </div>
+                      )}
+
                       {appliedCoupon ? (
                         <>
                           <div className="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">

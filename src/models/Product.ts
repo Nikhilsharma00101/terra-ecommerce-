@@ -75,9 +75,9 @@ const RitualStepSchema = new Schema<IRitualStep>(
   {
     number: { type: String, required: true },
     title: { type: String, required: true },
-    timing: { type: String, required: true },
+    timing: { type: String, default: '' },
     action: { type: String, required: true },
-    tip: { type: String, required: true },
+    tip: { type: String, default: '' },
   },
   { _id: false }
 );

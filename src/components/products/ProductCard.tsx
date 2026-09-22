@@ -60,19 +60,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {/* Top Image Container — Revamped with balanced aspect ratio and edge-to-edge luxury presentation */}
       <div className="relative aspect-4/3 sm:aspect-square w-full bg-[#1A1918] overflow-hidden">
         {/* Badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 pointer-events-none">
+        <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-2 pointer-events-none">
+          {/* Primary label badge — dark, editorial */}
           {product.badge ? (
-            <span className="text-[9px] uppercase tracking-[0.2em] font-mono px-2.5 py-1 font-bold rounded-full bg-white/95 text-[#181817] shadow-sm backdrop-blur-xs border border-[#E5E0D8]">
+            <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em] font-mono px-3 py-1.5 font-bold bg-white/95 text-[#111915] backdrop-blur-sm shadow-md border border-[#E5E0D8] rounded-sm">
+              <span className="w-1 h-1 rounded-full bg-[#8B0000] inline-block shrink-0"></span>
               {product.badge}
             </span>
           ) : product.category ? (
-            <span className="text-[9px] uppercase tracking-[0.2em] font-mono px-2.5 py-1 font-bold rounded-full bg-white/95 text-[#181817] shadow-sm backdrop-blur-xs border border-[#E5E0D8]">
+            <span className="inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.22em] font-mono px-3 py-1.5 font-bold bg-white/95 text-[#111915] backdrop-blur-sm shadow-md border border-[#E5E0D8] rounded-sm">
+              <span className="w-1 h-1 rounded-full bg-[#8B0000] inline-block shrink-0"></span>
               {product.category}
             </span>
           ) : null}
 
+          {/* Discount badge — warm gold accent */}
           {discountAmount > 0 && (
-            <span className="text-[9px] uppercase tracking-[0.15em] font-mono px-2.5 py-0.5 font-bold rounded-full bg-[#8B0000] text-white shadow-sm">
+            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.15em] font-mono px-2.5 py-1 font-bold bg-[#8B0000] text-white shadow-md rounded-sm">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0"><path d="M4 0.5L5 3H7.5L5.5 4.75L6.25 7.25L4 5.75L1.75 7.25L2.5 4.75L0.5 3H3L4 0.5Z" fill="currentColor"/></svg>
               SAVE ₹{discountAmount}
             </span>
           )}
@@ -91,9 +96,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         >
           <Heart
             size={14}
-            className={`transition-all ${
-              isWished ? 'fill-[#8B0000] text-[#8B0000]' : 'text-[#181817] hover:text-[#8B0000]'
-            }`}
+            className={`transition-all ${isWished ? 'fill-[#8B0000] text-[#8B0000]' : 'text-[#181817] hover:text-[#8B0000]'
+              }`}
           />
         </button>
 
@@ -105,9 +109,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             alt={product.name}
             fill
             priority={priority}
-            className={`object-cover transition-opacity duration-700 ease-out ${
-              secondaryHoverImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'
-            }`}
+            className={`object-cover transition-opacity duration-700 ease-out ${secondaryHoverImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'
+              }`}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
           {/* Secondary hover image — pre-loaded, fades in on hover */}
@@ -126,11 +129,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <button
             onClick={handleQuickAdd}
-            className={`w-full py-2.5 px-4 text-[10px] uppercase font-bold tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg ${
-              addedToast
+            className={`w-full py-2.5 px-4 text-[10px] uppercase font-bold tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg ${addedToast
                 ? 'bg-[#2D4438] text-white'
                 : 'bg-white hover:bg-[#8B0000] text-[#181817] hover:text-white active:scale-[0.98]'
-            }`}
+              }`}
           >
             {addedToast ? (
               <>

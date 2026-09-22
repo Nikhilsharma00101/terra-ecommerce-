@@ -69,13 +69,13 @@ export const BeardOilRitual = () => {
           viewport={{ once: true }}
           className="pt-16 border-t border-white/10"
         >
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-[#A88B63] font-serif text-xl md:text-2xl italic mb-10">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-8 text-[#A88B63] font-serif text-sm sm:text-lg md:text-2xl italic mb-10">
             <span>Nourish</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Soften</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Smooth</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Groom</span>
           </div>
           

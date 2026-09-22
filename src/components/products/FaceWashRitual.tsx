@@ -66,13 +66,13 @@ export const FaceWashRitual = () => {
           viewport={{ once: true }}
           className="pt-16 border-t border-white/10"
         >
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-[#3B5947] font-serif text-xl md:text-2xl italic mb-10">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-8 text-[#3B5947] font-serif text-sm sm:text-lg md:text-2xl italic mb-10">
             <span>Cleanse</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Purify</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Balance</span>
-            <span className="hidden md:inline text-white/20">→</span>
+            <span className="text-white/20">→</span>
             <span>Refresh</span>
           </div>
           
