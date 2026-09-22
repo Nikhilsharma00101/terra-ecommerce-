@@ -51,6 +51,8 @@ import {
   Activity,
   Star,
   MessageSquare,
+  Settings,
+  List,
 } from 'lucide-react';
 
 interface AdminSelectOption<T extends string = string> {
@@ -313,6 +315,15 @@ export default function AdminPage() {
     secondaryImage?: string;
     badge: string;
     images: Array<{ url: string; alt: string; caption?: string }>;
+    heroColor: string;
+    accentColor: string;
+    shippingInfo: string;
+    isBundle: boolean;
+    pairingProductSlug: string;
+    ingredientsList: string;
+    keyIngredients: Array<{ name: string; role: string; description: string }>;
+    ritual: Array<{ number: string; title: string; timing: string; action: string; tip: string }>;
+    specs: Array<{ label: string; value: string }>;
   }>({
     name: '',
     slug: '',
@@ -329,6 +340,15 @@ export default function AdminPage() {
     secondaryImage: '',
     badge: 'Bestseller',
     images: [],
+    heroColor: '#2D4438',
+    accentColor: '#3B5947',
+    shippingInfo: 'Dispatched within 24 hours. Complimentary express courier across India.',
+    isBundle: false,
+    pairingProductSlug: '',
+    ingredientsList: '',
+    keyIngredients: [],
+    ritual: [],
+    specs: [],
   });
 
   const fetchStats = useCallback(async () => {
@@ -441,6 +461,15 @@ export default function AdminPage() {
       secondaryImage: '',
       badge: '',
       images: [],
+      heroColor: '#2D4438',
+      accentColor: '#3B5947',
+      shippingInfo: 'Dispatched within 24 hours. Complimentary express courier across India.',
+      isBundle: false,
+      pairingProductSlug: '',
+      ingredientsList: '',
+      keyIngredients: [],
+      ritual: [],
+      specs: [],
     });
     setIsProductModalOpen(true);
   };
@@ -472,6 +501,15 @@ export default function AdminPage() {
       secondaryImage: p.secondaryImage || (existingImages[1]?.url || ''),
       badge: p.badge || '',
       images: existingImages,
+      heroColor: p.heroColor || '#2D4438',
+      accentColor: p.accentColor || '#3B5947',
+      shippingInfo: p.shippingInfo || '',
+      isBundle: p.isBundle || false,
+      pairingProductSlug: p.pairingProductSlug || '',
+      ingredientsList: Array.isArray(p.ingredientsList) ? p.ingredientsList.join(', ') : (p.ingredientsList || ''),
+      keyIngredients: p.keyIngredients || [],
+      ritual: p.ritual || [],
+      specs: p.specs || [],
     });
     setIsProductModalOpen(true);
   };
@@ -591,6 +629,9 @@ export default function AdminPage() {
           productForm.images && productForm.images.length > 1
             ? productForm.images[1].url
             : '',
+        ingredientsList: typeof productForm.ingredientsList === 'string' 
+          ? productForm.ingredientsList.split(',').map((s: string) => s.trim()).filter(Boolean) 
+          : productForm.ingredientsList,
       };
 
       if (editingProduct) {
@@ -3423,6 +3464,119 @@ export default function AdminPage() {
                     placeholder="https://..."
                     className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-xs font-mono text-[#181817] focus:outline-none focus:border-[#2D4438] focus:bg-[#FFFFFF] transition-colors"
                   />
+                </div>
+              </div>
+
+              {/* SECTION 5: DETAILS, COLORS & SHIPPING */}
+              <div className="bg-[#FFFFFF] border border-[#DDD8CF] p-6 space-y-5 shadow-2xs">
+                <div className="flex items-center gap-2 pb-3 border-b border-[#EAE5DC]">
+                  <Settings size={16} className="text-[#2D4438]" />
+                  <h4 className="text-xs uppercase font-bold tracking-widest text-[#181817]">
+                    5. Details, Colors & Shipping
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">Hero Color</label>
+                    <input type="text" value={productForm.heroColor} onChange={(e) => setProductForm({...productForm, heroColor: e.target.value})} className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-sm focus:outline-none focus:border-[#2D4438]" placeholder="#2D4438" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">Accent Color</label>
+                    <input type="text" value={productForm.accentColor} onChange={(e) => setProductForm({...productForm, accentColor: e.target.value})} className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-sm focus:outline-none focus:border-[#2D4438]" placeholder="#3B5947" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">Pairing Product Slug</label>
+                    <input type="text" value={productForm.pairingProductSlug} onChange={(e) => setProductForm({...productForm, pairingProductSlug: e.target.value})} className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-sm focus:outline-none focus:border-[#2D4438]" placeholder="e.g. terra-beard-oil" />
+                  </div>
+                  <div className="flex items-center mt-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={productForm.isBundle} onChange={(e) => setProductForm({...productForm, isBundle: e.target.checked})} className="w-4 h-4 text-[#2D4438] bg-[#FAF8F5] border-[#DDD8CF] focus:ring-[#2D4438] focus:ring-2" />
+                      <span className="text-[11px] uppercase font-bold tracking-wider text-[#44403C]">Is this a Bundle/Set?</span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">Shipping Info</label>
+                  <textarea rows={2} value={productForm.shippingInfo} onChange={(e) => setProductForm({...productForm, shippingInfo: e.target.value})} className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-sm focus:outline-none focus:border-[#2D4438]"></textarea>
+                </div>
+              </div>
+
+              {/* SECTION 6: RICH CONTENT & INGREDIENTS */}
+              <div className="bg-[#FFFFFF] border border-[#DDD8CF] p-6 space-y-6 shadow-2xs">
+                <div className="flex items-center gap-2 pb-3 border-b border-[#EAE5DC]">
+                  <List size={16} className="text-[#2D4438]" />
+                  <h4 className="text-xs uppercase font-bold tracking-widest text-[#181817]">
+                    6. Rich Content
+                  </h4>
+                </div>
+
+                {/* Ingredients List */}
+                <div>
+                  <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C] block mb-1.5">Full Ingredients List (Comma separated)</label>
+                  <textarea rows={3} value={productForm.ingredientsList} onChange={(e) => setProductForm({...productForm, ingredientsList: e.target.value})} placeholder="Aqua, Salicylic Acid, Green Tea Extract..." className="w-full bg-[#FAF8F5] border border-[#DDD8CF] p-3 text-sm focus:outline-none focus:border-[#2D4438]"></textarea>
+                </div>
+
+                {/* Specs */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C]">Specifications</label>
+                    <button type="button" onClick={() => setProductForm({...productForm, specs: [...productForm.specs, {label: '', value: ''}]})} className="text-[10px] bg-[#EAE5DC] px-2 py-1 uppercase font-bold hover:bg-[#DDD8CF] transition-colors">+ Add Spec</button>
+                  </div>
+                  {productForm.specs.map((spec, i) => (
+                    <div key={i} className="flex gap-3 mb-2 items-center">
+                      <input type="text" placeholder="Label (e.g. Benefit)" value={spec.label} onChange={(e) => { const newSpecs = [...productForm.specs]; newSpecs[i].label = e.target.value; setProductForm({...productForm, specs: newSpecs}); }} className="w-1/3 bg-[#FAF8F5] border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                      <input type="text" placeholder="Value (e.g. Deeply Cleanses)" value={spec.value} onChange={(e) => { const newSpecs = [...productForm.specs]; newSpecs[i].value = e.target.value; setProductForm({...productForm, specs: newSpecs}); }} className="w-2/3 bg-[#FAF8F5] border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                      <button type="button" onClick={() => { const newSpecs = [...productForm.specs]; newSpecs.splice(i, 1); setProductForm({...productForm, specs: newSpecs}); }} className="p-2 text-red-600 hover:bg-red-50"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Key Ingredients */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C]">Key Ingredients</label>
+                    <button type="button" onClick={() => setProductForm({...productForm, keyIngredients: [...productForm.keyIngredients, {name: '', role: '', description: ''}]})} className="text-[10px] bg-[#EAE5DC] px-2 py-1 uppercase font-bold hover:bg-[#DDD8CF] transition-colors">+ Add Key Ingredient</button>
+                  </div>
+                  {productForm.keyIngredients.map((ki, i) => (
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3 p-3 bg-[#FAF8F5] border border-[#DDD8CF] relative">
+                      <div className="sm:col-span-4 space-y-2">
+                        <input type="text" placeholder="Name (e.g. Salicylic Acid)" value={ki.name} onChange={(e) => { const newKi = [...productForm.keyIngredients]; newKi[i].name = e.target.value; setProductForm({...productForm, keyIngredients: newKi}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                        <input type="text" placeholder="Role (e.g. Deep Pore Cleanser)" value={ki.role} onChange={(e) => { const newKi = [...productForm.keyIngredients]; newKi[i].role = e.target.value; setProductForm({...productForm, keyIngredients: newKi}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                      </div>
+                      <div className="sm:col-span-7">
+                        <textarea placeholder="Description" rows={3} value={ki.description} onChange={(e) => { const newKi = [...productForm.keyIngredients]; newKi[i].description = e.target.value; setProductForm({...productForm, keyIngredients: newKi}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438] h-full"></textarea>
+                      </div>
+                      <div className="sm:col-span-1 flex items-center justify-center">
+                        <button type="button" onClick={() => { const newKi = [...productForm.keyIngredients]; newKi.splice(i, 1); setProductForm({...productForm, keyIngredients: newKi}); }} className="p-2 text-red-600 hover:bg-red-50"><Trash2 size={14}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rituals */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[11px] uppercase font-bold tracking-wider text-[#44403C]">Usage Ritual</label>
+                    <button type="button" onClick={() => setProductForm({...productForm, ritual: [...productForm.ritual, {number: '01', title: '', timing: '', action: '', tip: ''}]})} className="text-[10px] bg-[#EAE5DC] px-2 py-1 uppercase font-bold hover:bg-[#DDD8CF] transition-colors">+ Add Step</button>
+                  </div>
+                  {productForm.ritual.map((r, i) => (
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-3 p-3 bg-[#FAF8F5] border border-[#DDD8CF] relative">
+                      <div className="sm:col-span-4 space-y-2">
+                        <div className="flex gap-2">
+                          <input type="text" placeholder="No. (e.g. 01)" value={r.number} onChange={(e) => { const newR = [...productForm.ritual]; newR[i].number = e.target.value; setProductForm({...productForm, ritual: newR}); }} className="w-1/3 border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                          <input type="text" placeholder="Title (e.g. Pump & Lather)" value={r.title} onChange={(e) => { const newR = [...productForm.ritual]; newR[i].title = e.target.value; setProductForm({...productForm, ritual: newR}); }} className="w-2/3 border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                        </div>
+                        <input type="text" placeholder="Timing (e.g. Morning & Night)" value={r.timing} onChange={(e) => { const newR = [...productForm.ritual]; newR[i].timing = e.target.value; setProductForm({...productForm, ritual: newR}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]" />
+                      </div>
+                      <div className="sm:col-span-7 space-y-2">
+                        <textarea placeholder="Action description..." rows={2} value={r.action} onChange={(e) => { const newR = [...productForm.ritual]; newR[i].action = e.target.value; setProductForm({...productForm, ritual: newR}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]"></textarea>
+                        <textarea placeholder="Tip (optional)..." rows={1} value={r.tip} onChange={(e) => { const newR = [...productForm.ritual]; newR[i].tip = e.target.value; setProductForm({...productForm, ritual: newR}); }} className="w-full border border-[#DDD8CF] p-2 text-xs focus:outline-none focus:border-[#2D4438]"></textarea>
+                      </div>
+                      <div className="sm:col-span-1 flex items-center justify-center">
+                        <button type="button" onClick={() => { const newR = [...productForm.ritual]; newR.splice(i, 1); setProductForm({...productForm, ritual: newR}); }} className="p-2 text-red-600 hover:bg-red-50"><Trash2 size={14}/></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

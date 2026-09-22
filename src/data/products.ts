@@ -3,34 +3,35 @@ import { Product } from '@/types';
 export const products: Product[] = [
   {
     id: 'terra-face-wash',
-    slug: 'face-wash',
+    slug: 'terra-face-wash',
     name: 'Terra Face Wash',
     category: 'Face',
     purpose: 'Cleanse',
-    tagline: 'Cleanse. Purify. Balance. Refresh.',
-    shortDescription: 'A gentle, daily gel cleanser formulated with Salicylic Acid, Green Tea, and Aloe Vera to wash away deep dirt, control excess oil, and keep your skin fresh without leaving it feeling dry or stretchy.',
-    fullDescription: 'Why your skin will love it: Washes away trapped city dust, sweat, and pollution from deep within the pores. Helps clear away sticky, greasy buildup and uncomfortable mid-day shine while preventing breakouts. Leaves your skin feeling refreshed, cool, and comfortably moisturized—never tight or dry.',
-    price: 699,
-    size: '100ml | Premium Skincare',
-    rating: 4.9,
-    reviewCount: 248,
+    tagline: 'DEEP PORE CLARITY, ZERO TIGHTNESS',
+    shortDescription: 'A gentle, daily gel cleanser with Salicylic Acid and Green Tea to clear deep dirt, control excess oil, and keep your skin fresh without dryness.',
+    fullDescription: 'The first step of the Terra Routine. Specially crafted for men whose skin faces daily city dust, pollution, and sweat. Terra Face Wash gently cleans deep inside pores, removes sticky excess oil, and softens beard hair without making your face feel dry or stretchy.',
+    price: 259,
+    compareAtPrice: 399,
+    size: '100ml',
+    rating: 5,
+    reviewCount: 0,
     images: [
       {
-        url: '/images/home/hero-products.jpeg',
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789548703/terra-products/bi8lfhpm57rnnfmruti6.jpg',
         alt: 'Terra Face Wash 100ml bottle on stone plinth',
         caption: 'The Daily Cleanse in matte forest green bottle'
       },
       {
-        url: '/images/home/hero-products.jpeg',
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789548469/terra-products/uolqbgtd4l6imbdg9rmr.jpg',
         alt: 'Terra Daily Grooming Routine in studio setting',
         caption: 'Made for everyday morning and evening use'
       }
     ],
-    featuredImage: '/images/home/hero-products.jpeg',
-    secondaryImage: '/images/home/hero-products.jpeg',
+    featuredImage: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789548703/terra-products/bi8lfhpm57rnnfmruti6.jpg',
+    secondaryImage: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789548469/terra-products/uolqbgtd4l6imbdg9rmr.jpg',
     heroColor: '#2D4438',
     accentColor: '#3B5947',
-    badge: 'Sulfate-Free Formula',
+    badge: '',
     ingredientsList: [
       'Aqua (Purified Water)',
       'Cocamidopropyl Betaine (Coconut Derived)',
@@ -77,7 +78,7 @@ export const products: Product[] = [
         number: '01',
         title: 'Pump & Lather',
         timing: 'Morning & Night',
-        action: 'Take 1 to 2 pumps of Terra Men’s Co. Face Wash onto wet palms and rub gently to work up a light lather.',
+        action: "Take 1 to 2 pumps of Terra Men's Co. Face Wash onto wet palms and rub gently to work up a light lather.",
         tip: 'Use normal or lukewarm water. Avoid hot water as it dries out facial skin.'
       },
       {
@@ -95,39 +96,50 @@ export const products: Product[] = [
       { label: 'Formula', value: 'Sulfate-Free Formula' },
       { label: 'Skin Feel', value: 'Fresh, clean, non-greasy, zero tightness' }
     ],
-    shippingInfo: 'Free delivery across India on orders above ₹999. Dispatched within 24 hours via express courier.',
-    pairingProductSlug: 'beard-oil'
+    shippingInfo: 'Dispatched within 24 hours. Complimentary express courier across India.',
+    pairingProductSlug: 'terra-beard-oil'
   },
   {
     id: 'terra-beard-oil',
-    slug: 'beard-oil',
+    slug: 'terra-beard-oil',
     name: 'Terra Beard Oil',
     category: 'Beard',
     purpose: 'Nourish',
-    tagline: 'Nourish. Soften. Smooth. Groom.',
-    shortDescription: 'A premium beard conditioning oil formulated with nourishing oils and Vitamin E to help reduce dryness, soften rough beard hair and keep your beard smooth, manageable and well-groomed.',
-    fullDescription: 'Why your beard will love it: Helps nourish and condition beard hair, leaving it feeling softer and smoother. It helps moisturise dry-feeling beard hair and improve its overall feel, while soothing the uncomfortable itchy feeling associated with a dry beard. Leaves your beard looking groomed with a natural-looking shine.',
-    price: 899,
-    size: '30ml | Premium Beard Care',
-    rating: 4.95,
-    reviewCount: 312,
+    tagline: '7 COLD-PRESSED BOTANICALS, ZERO GREASE',
+    shortDescription: 'A premium blend of 7 cold-pressed natural oils to soften rough beard hair, stop beard itch, and keep the skin underneath healthy.',
+    fullDescription: 'The second essential step in the Terra Routine. A lightweight, non-sticky beard oil made with pure Sweet Almond, Jojoba, Argan, Castor, Black Seed (Kalonji), Lavender, and Vitamin E. It absorbs quickly into beard strands to give a natural smooth feel, while calming dry skin and beard dandruff.',
+    price: 449,
+    compareAtPrice: 599,
+    size: '30ml',
+    rating: 5,
+    reviewCount: 0,
     images: [
       {
-        url: '/images/home/hero-products.jpeg',
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789399134/terra-products/pzyjt7swzrdqpnhuienc.jpg',
         alt: 'Terra Beard Oil 30ml amber glass bottle with glass dropper',
         caption: 'Premium Beard Oil in amber apothecary glass'
       },
       {
-        url: '/images/home/hero-products.jpeg',
-        alt: 'Terra Daily Grooming Routine in studio setting',
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789546610/terra-products/cgmaugqsgaknq3tv2zx4.jpg',
+        alt: 'Terra Beard Oil studio shot',
         caption: 'Formulated with nourishing oils and Vitamin E'
+      },
+      {
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789546336/terra-products/v5fh4jhtco0ezx5ritzr.jpg',
+        alt: 'Terra Beard Oil detail shot',
+        caption: '7 Cold-Pressed Botanical Oils'
+      },
+      {
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789548596/terra-products/c6xpl9vacvf6yinqhcui.png',
+        alt: 'Terra Beard Oil ingredients flat lay',
+        caption: 'Zero Grease Formula'
       }
     ],
-    featuredImage: '/images/home/hero-products.jpeg',
-    secondaryImage: '/images/home/hero-products.jpeg',
-    heroColor: '#8C6D46',
-    accentColor: '#A88B63',
-    badge: 'BHT-Free Formula',
+    featuredImage: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789399134/terra-products/pzyjt7swzrdqpnhuienc.jpg',
+    secondaryImage: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789546610/terra-products/cgmaugqsgaknq3tv2zx4.jpg',
+    heroColor: '#2D4438',
+    accentColor: '#3B5947',
+    badge: 'bestseller',
     ingredientsList: [
       'Argan Oil',
       'Castor Oil',
@@ -180,7 +192,7 @@ export const products: Product[] = [
         number: '01',
         title: 'Take Drops',
         timing: 'Daily',
-        action: 'Take a few drops of Terra Men’s Co. Beard Oil onto your palm.',
+        action: "Take a few drops of Terra Men's Co. Beard Oil onto your palm.",
         tip: 'Apply after washing your face or beard for a smooth, conditioned feel.'
       },
       {
@@ -198,8 +210,8 @@ export const products: Product[] = [
       { label: 'Finish', value: 'Natural-Looking Shine' },
       { label: 'Formula', value: 'BHT-Free Formula for everyday care' }
     ],
-    shippingInfo: 'Free delivery across India on orders above ₹999. Dispatched within 24 hours via express courier.',
-    pairingProductSlug: 'face-wash'
+    shippingInfo: 'Dispatched within 24 hours. Complimentary express courier across India.',
+    pairingProductSlug: 'terra-face-wash'
   },
   {
     id: 'terra-method-bundle',
@@ -210,29 +222,19 @@ export const products: Product[] = [
     tagline: 'TWO STEPS. NOTHING UNNECESSARY.',
     shortDescription: 'The complete daily routine set for men. Includes Terra Face Wash (100ml) and Terra Beard Oil (30ml) at a special combo price.',
     fullDescription: 'The complete two-step grooming routine. You do not need a shelf full of complicated bottles. True grooming is simple: Cleanse with Terra Face Wash, then Nourish with Terra Beard Oil. Together, they keep your face clean, fresh, and your beard soft and comfortable all day long.',
-    price: 1399,
-    compareAtPrice: 1598,
+    price: 699,
+    compareAtPrice: 999,
     size: '100ml Face Wash + 30ml Beard Oil',
     rating: 4.98,
     reviewCount: 520,
     images: [
       {
-        url: '/images/home/hero-products.jpeg',
+        url: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789658731/terra-products/jc8fueqkwlfju7x5n4so.jpg',
         alt: 'The Complete Terra Method Set with Face Wash and Beard Oil',
         caption: 'The Daily Cleanse + The Daily Nourish together'
-      },
-      {
-        url: '',
-        alt: 'Terra Face Wash Step 01 Cleanse',
-        caption: 'Step 01 — Cleanse'
-      },
-      {
-        url: '',
-        alt: 'Terra Beard Oil Step 02 Nourish',
-        caption: 'Step 02 — Nourish'
       }
     ],
-    featuredImage: '/images/home/hero-products.jpeg',
+    featuredImage: 'https://res.cloudinary.com/rh7aum3g/image/upload/v1789658731/terra-products/jc8fueqkwlfju7x5n4so.jpg',
     secondaryImage: '',
     heroColor: '#202A24',
     accentColor: '#C4A482',

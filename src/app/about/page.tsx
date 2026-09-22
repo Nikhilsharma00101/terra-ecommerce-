@@ -1,27 +1,73 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useProducts } from '@/context/ProductContext';
-import { useCart } from '@/context/CartContext';
-import { Product } from '@/types';
+import { Metadata } from 'next';
 import {
   ArrowRight,
   ShieldCheck,
   Compass,
   Sparkles,
-  ChevronDown,
   Droplets,
   Leaf,
   CheckCircle2,
   Lock,
   XCircle,
-  ShoppingBag,
   Check,
   Star,
   FlaskConical
 } from 'lucide-react';
+import { connectToDatabase } from '@/lib/mongodb';
+import { Product as ProductModel } from '@/models/Product';
+import { Product } from '@/types';
+import { PhilosophyTabs } from './components/PhilosophyTabs';
+import { FaqAccordion } from './components/FaqAccordion';
+import { AboutQuickBuyButton } from './components/AboutQuickBuyButton';
+
+export const metadata: Metadata = {
+  title: "About The Terra Method | Brand Philosophy & Formulation Standards",
+  description:
+    'Learn about Terra Men\'s Co. and The Terra Method: disciplined luxury grooming fundamentals crafted with clinically proven bio-compatibles, cold-pressed botanicals, and radical ingredient transparency.',
+  alternates: {
+    canonical: '/about',
+  },
+  openGraph: {
+    title: "About The Terra Method | TERRA MEN'S CO.",
+    description:
+      'Disciplined luxury grooming fundamentals. Two steps. No unnecessary steps, no synthetic fragrances, no compromise.',
+    url: 'https://www.terramensco.com/about',
+    siteName: "TERRA MEN'S CO.",
+    images: [
+      {
+        url: '/images/og/og-image.jpeg',
+        width: 1200,
+        height: 630,
+        alt: "The Terra Method — Philosophy",
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@terramensco',
+    title: "About The Terra Method | TERRA MEN'S CO.",
+    description:
+      'Disciplined luxury grooming fundamentals. Two steps. No unnecessary steps.',
+    images: ['/images/og/og-image.jpeg'],
+  },
+};
+
+const aboutJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: "About The Terra Method",
+  url: 'https://www.terramensco.com/about',
+  description:
+    'Disciplined luxury grooming fundamentals crafted with clinically proven bio-compatibles and cold-pressed botanicals.',
+  mainEntity: {
+    '@type': 'Organization',
+    name: "TERRA MEN'S CO.",
+    url: 'https://www.terramensco.com',
+  },
+};
 
 function resolveProductImage(prod?: Product | null): string {
   if (!prod) return '/images/home/hero-products.jpeg';
@@ -38,66 +84,29 @@ function resolveProductImage(prod?: Product | null): string {
   return '/images/home/hero-products.jpeg';
 }
 
-export default function AboutPage() {
-  const { products } = useProducts();
-  const { addItem, openCart } = useCart();
+export default async function AboutPage() {
+  let bundleProduct: any = null;
+  try {
+    await connectToDatabase();
+    bundleProduct = await ProductModel.findOne({
+      $or: [{ slug: 'terra-set' }, { isBundle: true }, { category: 'Sets' }],
+    }).lean();
+    if (!bundleProduct) {
+      bundleProduct = await ProductModel.findOne({
+        $or: [{ slug: 'face-wash' }, { category: 'Face' }],
+      }).lean();
+    }
+    if (!bundleProduct) {
+      bundleProduct = await ProductModel.findOne().lean();
+    }
+  } catch (error) {
+    console.error('Error fetching bundle product:', error);
+  }
 
-  const [activeTab, setActiveTab] = useState<number>(0);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [addedProductSlug, setAddedProductSlug] = useState<string | null>(null);
-
-  // Find The Method bundle or fallback flagship product from live DB
-  const bundleProduct =
-    products.find((p) => p.slug === 'terra-set' || p.isBundle || p.category === 'Sets') ||
-    products.find((p) => p.slug === 'face-wash' || p.category === 'Face') ||
-    products[0];
-
-  const handleQuickBuy = (e: React.MouseEvent, prod: Product) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addItem(prod, 1);
-    setAddedProductSlug(prod.slug);
-    setTimeout(() => {
-      setAddedProductSlug(null);
-      openCart();
-    }, 1200);
-  };
-
-  const philosophyTabs = [
-    {
-      id: 'excess',
-      label: 'THE PROBLEM WITH EXCESS',
-      title: 'The Fallacy of the 10-Step Regimen',
-      excerpt:
-        'The modern grooming market was built to sell redundant bottles, not dermal results. Layering competing synthetic actives alters skin pH, causes contact redness, and creates friction every morning.',
-      detail:
-        'We eliminated the fluff. Facial grooming does not require artificial toners, alcohol splashes, or chemical fragrance extenders. It requires just two bio-compatible fundamentals practiced daily with discipline.',
-      image: '/images/journal/products-flat.jpeg',
-      tag: 'Minimalist Architecture',
-    },
-    {
-      id: 'restraint',
-      label: 'THE POWER OF RESTRAINT',
-      title: 'Formulating Dermal Biocompatibility',
-      excerpt:
-        'Terra relies on balanced purification paired with first cold-pressed botanical lipids. By utilizing plant oils that mirror natural sebum molecularly, absorption happens in under 90 seconds without grease.',
-      detail:
-        'A targeted Salicylic cleanser dissolves trapped pollution and sebum from pores, while seven nutrient-dense plant oils fortify coarse facial hair down to the follicle beneath.',
-      image: '/images/journal/morning_routine_mirror.png',
-      tag: 'Cellular Compatibility',
-    },
-    {
-      id: 'craft',
-      label: 'MATERIALITY & CRAFT',
-      title: 'Heavy UV Apothecary Glass Preservation',
-      excerpt:
-        'Pure cold-pressed botanicals are sensitive to sunlight and oxidation. We house our formulations exclusively in dark amber and forest green apothecary glass to shield against photolytic degradation.',
-      detail:
-        'Beyond chemistry, heavy glass feels substantial and intentional in your hands every morning—grounding your sink counter with quiet elegance and zero loud plastic marketing.',
-      image: '/images/about-page/hero-section.jpeg',
-      tag: 'Sustainable Tactility',
-    },
-  ];
+  // Fallback serialization
+  const product: Product | null = bundleProduct
+    ? JSON.parse(JSON.stringify(bundleProduct))
+    : null;
 
   const pillars = [
     {
@@ -143,32 +152,12 @@ export default function AboutPage() {
     ],
   };
 
-  const faqs = [
-    {
-      q: 'Why does Terra advocate for only two products?',
-      a: 'We believe men do not need an endless shelf of complicated bottles. By formulating a high-potency, pore-clearing cleanser and pairing it with a bio-compatible seven-oil botanical elixir, we address dermal purification and hair conditioning completely in just four minutes each day.',
-    },
-    {
-      q: 'Can I use Terra Face Wash if I don’t have a full beard?',
-      a: 'Absolutely. Terra Face Wash is engineered for all men’s facial skin, whether clean-shaven, stubbled, or fully bearded. It clears overnight sebum, lifts city pollution, and prevents post-shave ingrown hairs and bumps.',
-    },
-    {
-      q: 'Will Terra Beard Oil leave my face feeling oily or greasy?',
-      a: 'No. Our formula is built with lightweight, cold-pressed plant oils like Golden Jojoba and Sweet Almond that mirror human skin sebum. It absorbs cleanly into the dermis in under 90 seconds, leaving a soft, natural matte touch with zero greasy shine.',
-    },
-    {
-      q: 'Are Terra formulations suitable for all skin types, including sensitive skin?',
-      a: 'Yes. Every formula is acid-balanced and crafted for daily use across all skin types—including sensitive, dry, oily, and acne-prone skin. We strictly exclude harsh sulfates, synthetic fragrances, and pore-clogging mineral oils to ensure gentle, non-irritating care.',
-    },
-    {
-      q: 'What is your shipping and satisfaction policy?',
-      a: 'We provide complimentary express delivery across India on all orders above ₹999. Orders are packed in recyclable cardboard and dispatched within 24 hours. If you are not satisfied within 30 days of daily use, our team offers a hassle-free refund.',
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#181817] pb-24 selection:bg-[#2D4438] selection:text-white">
-      
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
+      />
       {/* Top Banner / Breadcrumb Bar */}
       <div className="border-b border-[#E8E2D7] bg-white/80 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#77736C]">
@@ -290,86 +279,7 @@ export default function AboutPage() {
         {/* ========================================================================= */}
         {/* INTERACTIVE PHILOSOPHY TABBED MODULE                                      */}
         {/* ========================================================================= */}
-        <div className="space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-[#E8E2D7]">
-            <div>
-              <span className="text-[11px] uppercase tracking-[0.25em] font-mono font-semibold text-[#2D4438] block mb-2">
-                Core Convictions
-              </span>
-              <h2 className="font-serif text-3xl sm:text-5xl text-[#181817] font-light">
-                Our Formulative Truths
-              </h2>
-            </div>
-
-            {/* Interactive Tabs Switcher */}
-            <div className="flex flex-wrap gap-2">
-              {philosophyTabs.map((tab, idx) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(idx)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-semibold font-mono uppercase tracking-wider transition-all cursor-pointer ${
-                    activeTab === idx
-                      ? 'bg-[#181817] text-white shadow-xs'
-                      : 'bg-white text-[#55524D] border border-[#E8E2D7] hover:border-[#181817] hover:text-[#181817]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Active Tab Content Card */}
-          {(() => {
-            const current = philosophyTabs[activeTab];
-            return (
-              <div className="bg-white rounded-3xl border border-[#E8E2D7] p-8 sm:p-12 shadow-xs transition-all duration-500">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-                  
-                  <div className="lg:col-span-7 space-y-5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-[#8C6D46] uppercase tracking-widest font-semibold border border-[#8C6D46]/30 px-3 py-1 rounded-full inline-block bg-[#FAF8F5]">
-                        Principle 0{activeTab + 1}
-                      </span>
-                      <span className="text-[10px] font-mono text-[#2D4438] uppercase tracking-wider">
-                        {current.tag}
-                      </span>
-                    </div>
-
-                    <h3 className="font-serif text-3xl sm:text-4xl text-[#181817] font-medium leading-snug">
-                      {current.title}
-                    </h3>
-
-                    <p className="font-serif text-lg text-[#77736C] italic font-light leading-relaxed">
-                      &quot;{current.excerpt}&quot;
-                    </p>
-
-                    <p className="text-xs sm:text-sm text-[#55524D] leading-relaxed font-light">
-                      {current.detail}
-                    </p>
-
-                    <div className="pt-2 flex items-center gap-2 text-xs font-mono text-[#2D4438] font-semibold">
-                      <CheckCircle2 size={16} />
-                      <span>Verified Terra Formulation Standard</span>
-                    </div>
-                  </div>
-
-                  <div className="lg:col-span-5">
-                    <div className="relative aspect-4/3 w-full bg-[#EAE5DC] rounded-2xl border border-[#E8E2D7] overflow-hidden shadow-xs">
-                      <Image
-                        src={current.image}
-                        alt={current.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <PhilosophyTabs />
 
         {/* ========================================================================= */}
         {/* TACTILE PACKAGING & CRAFT SHOWCASE (DARK FOREST CONTAINER)                */}
@@ -543,64 +453,24 @@ export default function AboutPage() {
                 Frequently Asked Questions
               </h2>
             </div>
-
-            <div className="space-y-3">
-              {faqs.map((faq, i) => {
-                const isOpen = openFaq === i;
-                return (
-                  <div
-                    key={i}
-                    className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
-                      isOpen
-                        ? 'bg-[#FAF8F5] border-[#2D4438] shadow-xs'
-                        : 'bg-white border-[#E8E2D7] hover:border-[#181817]'
-                    }`}
-                  >
-                    <button
-                      onClick={() => setOpenFaq(isOpen ? null : i)}
-                      className="w-full text-left p-5 sm:p-6 flex items-center justify-between gap-4 font-serif text-lg sm:text-xl text-[#181817] font-medium cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs text-[#8C6D46] font-semibold">
-                          0{i + 1}.
-                        </span>
-                        <span>{faq.q}</span>
-                      </div>
-                      <ChevronDown
-                        size={18}
-                        className={`text-[#77736C] shrink-0 transition-transform duration-300 ${
-                          isOpen ? 'rotate-180 text-[#2D4438]' : ''
-                        }`}
-                      />
-                    </button>
-                    {isOpen && (
-                      <div className="px-5 sm:px-6 pb-6 pt-1 border-t border-[#E8E2D7]/60">
-                        <p className="text-xs sm:text-sm text-[#55524D] font-light leading-relaxed">
-                          {faq.a}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <FaqAccordion />
           </div>
         </section>
 
         {/* ========================================================================= */}
         {/* LIVE DB FORMULATION CALL TO ACTION CONVERSION CARD                        */}
         {/* ========================================================================= */}
-        {bundleProduct && (
+        {product && (
           <div className="bg-white rounded-3xl border border-[#E8E2D7] p-8 sm:p-12 shadow-sm">
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
               
               <div className="flex items-center gap-6">
                 <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-2xl bg-[#1A1918] overflow-hidden relative shrink-0 border border-[#E8E2D7] shadow-xs">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={resolveProductImage(bundleProduct)}
-                    alt={bundleProduct.name}
-                    className="w-full h-full object-cover"
+                  <Image
+                    src={resolveProductImage(product)}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
                   />
                 </div>
 
@@ -613,16 +483,16 @@ export default function AboutPage() {
                     Experience The Terra Method
                   </h3>
                   <div className="flex items-center gap-3 font-mono text-sm">
-                    <span className="font-bold text-[#181817]">₹{bundleProduct.price}</span>
-                    {bundleProduct.compareAtPrice && bundleProduct.compareAtPrice > bundleProduct.price && (
+                    <span className="font-bold text-[#181817]">₹{product.price}</span>
+                    {product.compareAtPrice && product.compareAtPrice > product.price && (
                       <span className="text-xs text-[#77736C] line-through">
-                        ₹{bundleProduct.compareAtPrice}
+                        ₹{product.compareAtPrice}
                       </span>
                     )}
-                    {bundleProduct.rating && (
+                    {product.rating && (
                       <span className="text-xs text-[#8C6D46] flex items-center gap-0.5">
                         <Star size={11} className="fill-[#8C6D46]" />
-                        {bundleProduct.rating} ({bundleProduct.reviewCount})
+                        {product.rating} ({product.reviewCount})
                       </span>
                     )}
                   </div>
@@ -633,25 +503,10 @@ export default function AboutPage() {
               </div>
 
               <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
-                <button
-                  onClick={(e) => handleQuickBuy(e, bundleProduct)}
-                  className="bg-[#181817] text-white px-7 py-3.5 rounded-xl text-xs uppercase tracking-wider font-semibold hover:bg-[#2D4438] transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
-                >
-                  {addedProductSlug === bundleProduct.slug ? (
-                    <>
-                      <Check size={14} className="text-[#C4A482]" />
-                      <span>Added to Bag</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingBag size={14} />
-                      <span>Order Now • ₹{bundleProduct.price}</span>
-                    </>
-                  )}
-                </button>
+                <AboutQuickBuyButton product={product} />
 
                 <Link
-                  href={`/shop/${bundleProduct.slug}`}
+                  href={`/shop/${product.slug}`}
                   className="border border-[#E8E2D7] text-[#181817] px-5 py-3.5 rounded-xl text-xs font-semibold uppercase tracking-wider hover:border-[#181817] transition-colors flex items-center gap-1.5 cursor-pointer bg-white"
                 >
                   <span>Explore</span>

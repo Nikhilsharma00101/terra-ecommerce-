@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           const faceWash = await Product.findOne({ slug: { $in: ['face-wash', 'terra-face-wash'] } });
           const beardOil = await Product.findOne({ slug: { $in: ['beard-oil', 'terra-beard-oil'] } });
           if (faceWash && beardOil) {
-            pObj.stock = Math.floor(((beardOil.stock || 0) + (faceWash.stock || 0)) / 2);
+            pObj.stock = Math.min((beardOil.stock || 0), (faceWash.stock || 0));
           }
         }
         return NextResponse.json({ product: pObj, source: 'mongodb' });

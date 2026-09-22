@@ -68,10 +68,10 @@ export async function GET(req: NextRequest) {
       const beardOil = modifiedProducts.find((p: any) => p.slug === 'beard-oil' || p.slug === 'terra-beard-oil');
       
       if (faceWash && beardOil) {
-        const avgStock = Math.floor(((beardOil.stock || 0) + (faceWash.stock || 0)) / 2);
+        const minStock = Math.min(beardOil.stock || 0, faceWash.stock || 0);
         modifiedProducts = modifiedProducts.map((p: any) => {
           if (p.slug === 'terra-set' || p.isBundle || (p.name && p.name.toLowerCase().includes('set'))) {
-            return { ...p, stock: avgStock };
+            return { ...p, stock: minStock };
           }
           return p;
         });
