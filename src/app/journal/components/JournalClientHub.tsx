@@ -588,7 +588,7 @@ export function JournalClientHub() {
                             {dbProduct && (
                               <div className="p-2.5 bg-[#FAF8F5] rounded-xl border border-[#E8E2D7] flex items-center justify-between gap-2 mb-2">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-9 h-10 rounded-lg overflow-hidden bg-[#1A1918] shrink-0 border border-[#E8E2D7]">
+                                  <div className="relative w-9 h-10 rounded-lg overflow-hidden bg-[#1A1918] shrink-0 border border-[#E8E2D7]">
                                     <Image
                                       src={resolveProductImage(dbProduct)}
                                       alt={dbProduct.name || "Product"}
