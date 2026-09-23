@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
-import { Heart, ShoppingBag, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function WishlistPage() {
@@ -30,11 +30,9 @@ export default function WishlistPage() {
   }, []);
 
   const wishlistedProducts = products.filter(
-    // @ts-ignore - Handle missing _id in local types gracefully
-    (p) => wishlist.includes(p._id) || wishlist.includes(p.id) || wishlist.includes(p.slug)
+    (p) => (p._id && wishlist.includes(p._id)) || (p.id && wishlist.includes(p.id)) || (p.slug && wishlist.includes(p.slug))
   );
 
-  // @ts-ignore
   const getProductImage = (p: any): string => {
     if (p?.featuredImage && typeof p.featuredImage === 'string' && p.featuredImage.trim() !== '') {
       return p.featuredImage;
@@ -101,10 +99,9 @@ export default function WishlistPage() {
              </div>
           ) : wishlistedProducts.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 mb-12">
-              {wishlistedProducts.map((p, idx) => {
+              {wishlistedProducts.map((p) => {
                 const imgSrc = getProductImage(p);
-                // @ts-ignore
-                const id = p._id || p.id || p.slug;
+                const id = (p._id || p.id || p.slug) as string;
                 
                 return (
                   <article key={id} className="group relative bg-white border border-[#E5E0D8] p-5 sm:p-7 transition-all duration-300 hover:border-[#C8BFB0] hover:shadow-lg flex flex-col md:flex-row items-center md:items-stretch gap-6 sm:gap-8">
@@ -233,12 +230,3 @@ export default function WishlistPage() {
   );
 }
 
-function InfoIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-secondary flex-shrink-0">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="16" x2="12" y2="12"></line>
-      <line x1="12" y1="8" x2="12.01" y2="8"></line>
-    </svg>
-  );
-}

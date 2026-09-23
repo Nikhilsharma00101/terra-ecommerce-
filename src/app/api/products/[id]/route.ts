@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       const product = await Product.findOne(query);
 
       if (product) {
-        let pObj = product.toObject ? product.toObject() : product;
+        const pObj = product.toObject ? product.toObject() : product;
         if (pObj.slug === 'terra-set' || pObj.isBundle || (pObj.name && pObj.name.toLowerCase().includes('set'))) {
           const faceWash = await Product.findOne({ slug: { $in: ['face-wash', 'terra-face-wash'] } });
           const beardOil = await Product.findOne({ slug: { $in: ['beard-oil', 'terra-beard-oil'] } });
