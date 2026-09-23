@@ -36,8 +36,13 @@ import {
   Loader2,
   Star,
   X,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { OrderDetailsDrawer } from '@/components/account/OrderDetailsDrawer';
+import { PrintableTaxInvoice, OrderData } from '@/components/account/PrintableTaxInvoice';
+
 
 function AccountPageContent() {
   const { user, isAdmin, isLoading, logout, refreshUser } = useAuth();
@@ -58,7 +63,49 @@ function AccountPageContent() {
   }, [tabParam]);
 
   const { wishlist, toggleWishlist } = useWishlist();
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
+
+  const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
+  const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
+  const [orderToPrint, setOrderToPrint] = useState<OrderData | null>(null);
+
+  const handleOpenOrderDetails = (order: any) => {
+    setSelectedOrder(order);
+    setIsOrderDrawerOpen(true);
+  };
+
+  const handlePrintInvoice = (order: any) => {
+    setOrderToPrint(order);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
+  const handleReorderItem = (item: any) => {
+    const mockProduct = {
+      id: item.productId,
+      slug: item.productId,
+      name: item.name,
+      price: item.price,
+      featuredImage: item.image,
+    } as any;
+    addItem(mockProduct, 1);
+    openCart();
+  };
+
+  const handleReorderAll = (items: any[]) => {
+    items.forEach(item => {
+      const mockProduct = {
+        id: item.productId,
+        slug: item.productId,
+        name: item.name,
+        price: item.price,
+        featuredImage: item.image,
+      } as any;
+      addItem(mockProduct, item.quantity);
+    });
+    openCart();
+  };
 
   // Database Data States — Zero Mock / Hardcoded Data
   const [products, setProducts] = useState<Product[]>([]);
@@ -783,139 +830,84 @@ function AccountPageContent() {
                           return (
                             <article
                               key={order._id || order.id || order.orderNumber}
-                              className="bg-[#FFFFFF] rounded-xl p-5 md:p-6 shadow-sm transition-all hover:shadow-md"
+                              className="bg-[#FFFFFF] rounded-2xl p-5 border border-[#E2E3DF] shadow-sm transition-all hover:shadow-md hover:border-[#D5D0C8] relative overflow-hidden"
                             >
-                              <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-[#E2E3DF] gap-2">
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <span className="text-[15px] text-[#1A1C1A] font-semibold">
-                                    Order #{order.orderNumber}
-                                  </span>
-                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${isDelivered ? 'bg-[#baebd1] text-[#3e6b57]' : isShipped ? 'bg-[#F4F4F0] text-[#1A1C1A]' : 'bg-[#E2E3DF] text-[#45464C]'
-                                    }`}>
-                                    {isDelivered && <CheckCircle2 size={12} />}
-                                    {isShipped && <Truck size={12} />}
-                                    {isProcessing && <Clock size={12} />}
-                                    <span>{order.status}</span>
-                                  </span>
+                              {/* Order Card Header */}
+                              <div className="flex flex-col md:flex-row md:items-start justify-between pb-6 border-b border-[#E2E3DF] gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-lg text-[#1A1C1A] font-serif tracking-tight">
+                                      Order #{order.orderNumber}
+                                    </span>
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold ${isDelivered ? 'bg-[#baebd1]/40 text-[#3e6b57]' : isShipped ? 'bg-[#F4F4F0] text-[#1A1C1A]' : 'bg-[#E2E3DF]/50 text-[#45464C]'}`}>
+                                      {isDelivered && <CheckCircle2 size={12} />}
+                                      {isShipped && <Truck size={12} />}
+                                      {isProcessing && <Clock size={12} />}
+                                      <span>{order.status}</span>
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[12px] text-[#77736C] font-medium">
+                                    <span>Placed on {new Date(order.createdAt || '2024-01-01').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                    <span className="w-1 h-1 rounded-full bg-[#D5D0C8]" />
+                                    <span className="flex items-center gap-1"><MapPin size={12} /> {order.shippingAddress.city}, {order.shippingAddress.state}</span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-[13px] text-[#45464C]">
-                                    Placed {new Date(order.createdAt || '2024-01-01').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                  </span>
-                                  <span className="text-[15px] text-[#1A1C1A] font-medium">₹{order.total?.toLocaleString('en-IN')}</span>
+                                <div className="flex flex-col items-start md:items-end gap-1">
+                                  <span className="text-[18px] text-[#1A1C1A] font-medium tracking-tight">₹{order.total?.toLocaleString('en-IN')}</span>
+                                  <span className="text-[11px] uppercase tracking-widest text-[#77736C] font-semibold">{order.items?.length || 0} Items</span>
                                 </div>
                               </div>
 
-                              {/* Premium Animated Visual Progress Stepper */}
-                              <div className="py-8 px-2 sm:px-4">
-                                <div className="relative flex items-center justify-between max-w-2xl mx-auto">
-                                  {/* Background Track */}
-                                  <div className="absolute left-0 top-5 h-1 w-full bg-[#F4F4F0] rounded-full z-0"></div>
-                                  
-                                  {/* Animated Fill Track */}
-                                  <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: isDelivered ? '100%' : isShipped ? '66%' : '33%' }}
-                                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-                                    className="absolute left-0 top-5 h-1 bg-[#3A6753] rounded-full z-0 shadow-[0_0_8px_rgba(58,103,83,0.4)]"
-                                  ></motion.div>
 
-                                  {/* Steps */}
-                                  {[
-                                    { label: 'Placed', active: true, icon: CheckCircle2 },
-                                    { label: 'Formulated', active: isShipped || isDelivered, icon: isShipped || isDelivered ? CheckCircle2 : Package },
-                                    { label: 'Dispatched', active: isShipped || isDelivered, icon: isDelivered ? CheckCircle2 : isShipped ? Truck : Truck },
-                                    { label: 'Delivered', active: isDelivered, icon: isDelivered ? CheckCircle2 : MapPin }
-                                  ].map((step, idx) => {
-                                    const isCurrentStep = 
-                                      (idx === 3 && isDelivered) || 
-                                      (idx === 2 && isShipped && !isDelivered) || 
-                                      (idx === 1 && !isShipped && !isDelivered);
 
+                              {/* Products List & Quick Info */}
+                              <div className="flex flex-col md:flex-row gap-6 mt-5 items-center">
+                                {/* Thumbnails */}
+                                <div className="flex -space-x-4">
+                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                  {order.items?.slice(0, 3).map((item: any, idx: number) => {
+                                    const itemImgSrc = getOrderItemImage(item);
                                     return (
-                                      <div key={idx} className="flex flex-col items-center gap-3 z-10 w-16 sm:w-24">
-                                        <div className="bg-[#FFFFFF] px-2 py-1 relative">
-                                          {isCurrentStep && (
-                                            <motion.div 
-                                              initial={{ scale: 0.8, opacity: 0 }}
-                                              animate={{ scale: 1.5, opacity: 0 }}
-                                              transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
-                                              className="absolute inset-0 rounded-full bg-[#3A6753]/20 z-0 m-1"
-                                            />
-                                          )}
-                                          <motion.div
-                                            initial={{ scale: 0.5, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ duration: 0.5, delay: 0.3 + (idx * 0.15), type: "spring", stiffness: 200 }}
-                                            className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-sm border-2 transition-colors duration-700 z-10 ${
-                                              step.active 
-                                                ? 'bg-[#3A6753] border-[#3A6753] text-[#FFFFFF]' 
-                                                : 'bg-[#FFFFFF] border-[#E2E3DF] text-[#c6c6cd]'
-                                            }`}
-                                          >
-                                            <step.icon size={16} className={isCurrentStep && !isDelivered ? "animate-pulse" : ""} />
-                                          </motion.div>
-                                        </div>
-                                        <motion.span 
-                                          initial={{ opacity: 0, y: 5 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          transition={{ duration: 0.4, delay: 0.6 + (idx * 0.1) }}
-                                          className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold text-center ${
-                                            step.active ? 'text-[#1A1C1A]' : 'text-[#c6c6cd]'
-                                          }`}
-                                        >
-                                          {step.label}
-                                        </motion.span>
-                                      </div>
+                                      <Link key={idx} href={`/shop/${item.productId}`} className="w-14 h-14 rounded-full bg-[#F4F4F0] overflow-hidden relative border-2 border-[#FFFFFF] shadow-sm z-[10] hover:z-[20] transition-transform hover:scale-110">
+                                        <Image src={itemImgSrc} alt={item.name} fill className="object-cover" />
+                                      </Link>
                                     );
                                   })}
-                                </div>
-                              </div>
-
-                              {/* Products List */}
-                              <div className="flex flex-col gap-4">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {order.items?.map((item: any, idx: number) => {
-                                  const itemImgSrc = getOrderItemImage(item);
-                                  return (
-                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-3">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-16 h-16 rounded-lg bg-[#F4F4F0] overflow-hidden flex-shrink-0">
-                                          <Image src={itemImgSrc} alt={item.name} width={64} height={64} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div>
-                                          <h3 className="text-[15px] text-[#1A1C1A] font-medium">{item.name}</h3>
-                                          <p className="text-[13px] text-[#45464C]">Qty: {item.quantity} · ₹{item.price}</p>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2 self-start sm:self-auto mt-2 sm:mt-0">
-                                        {isDelivered && !userReviews.some(r => r.productSlug === item.productId || r.productSlug === item.slug) && (
-                                          <button
-                                            onClick={() => openReviewModal(item)}
-                                            className="px-4 py-2 rounded-lg bg-[#000000] text-[#FFFFFF] hover:opacity-90 text-[12px] uppercase tracking-wider flex items-center gap-1.5 transition-opacity"
-                                          >
-                                            <Star size={14} />
-                                            Leave a Review
-                                          </button>
-                                        )}
-                                        {!isDelivered && isShipped && (
-                                          <button className="px-4 py-2 rounded-lg bg-[#F4F4F0] text-[#1A1C1A] hover:bg-[#E2E3DF] text-[12px] uppercase tracking-wider transition-colors">
-                                            Track Status
-                                          </button>
-                                        )}
-                                      </div>
+                                  {order.items?.length > 3 && (
+                                    <div className="w-14 h-14 rounded-full bg-[#F4F4F0] flex items-center justify-center border-2 border-[#FFFFFF] shadow-sm z-[5] text-[11px] font-medium text-[#45464C]">
+                                      +{order.items.length - 3}
                                     </div>
-                                  );
-                                })}
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 text-center md:text-left">
+                                  <p className="text-[14px] text-[#1A1C1A] font-medium leading-snug">
+                                    {order.items?.[0]?.name}
+                                    {order.items?.length > 1 && <span className="text-[#77736C] font-normal"> and {order.items.length - 1} other item{order.items.length > 2 ? 's' : ''}</span>}
+                                  </p>
+                                </div>
+
+                                {/* Main Action */}
+                                <button
+                                  onClick={() => handleOpenOrderDetails(order)}
+                                  className="w-full md:w-auto px-6 py-2.5 rounded-full bg-[#181817] text-[#FFFFFF] text-[11px] uppercase tracking-widest font-bold hover:bg-[#3A6753] transition-colors shadow-sm whitespace-nowrap"
+                                >
+                                  View Details
+                                </button>
                               </div>
 
                               {/* Order Card Footer */}
-                              <div className="pt-4 mt-4 border-t border-[#E2E3DF] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[13px] text-[#45464C]">
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck size={16} />
-                                  <span>{order.paymentMethod || 'UPI'} Payment Confirmed</span>
+                              <div className="mt-5 pt-4 border-t border-[#E2E3DF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] uppercase tracking-wider font-semibold text-[#77736C]">
+                                <div className="flex items-center gap-1.5">
+                                  <ShieldCheck size={14} className="text-[#3A6753]" />
+                                  <span>{order.paymentMethod || 'UPI'} Payment Verified</span>
                                 </div>
-                                <span>{order.trackingNumber ? `Courier: ${order.trackingNumber}` : 'Standard Shipping'}</span>
+                                {order.trackingNumber && (
+                                  <div className="flex items-center gap-1.5 bg-[#F4F4F0] px-2 py-1 rounded-md text-[#1A1C1A]">
+                                    <Truck size={12} />
+                                    <span>AWB: {order.trackingNumber}</span>
+                                  </div>
+                                )}
                               </div>
                             </article>
                           );
@@ -1618,10 +1610,22 @@ function AccountPageContent() {
           )}
         </AnimatePresence>
 
+        <OrderDetailsDrawer
+          isOpen={isOrderDrawerOpen}
+          onClose={() => setIsOrderDrawerOpen(false)}
+          order={selectedOrder}
+          onReorderItem={handleReorderItem}
+          onReorderAll={handleReorderAll}
+          onPrintInvoice={() => handlePrintInvoice(selectedOrder)}
+          onLeaveReview={openReviewModal}
+          userReviews={userReviews}
+        />
+
+        <PrintableTaxInvoice order={orderToPrint} />
       </div>
-      );
+  );
 }
-      export default function AccountPage() {
+export default function AccountPage() {
   return (
       <ErrorBoundary
         fallbackRender={({ error, resetErrorBoundary }) => (
