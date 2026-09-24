@@ -4,12 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Heart } from 'lucide-react';
-import { useProducts, PRODUCTS_UPDATED_EVENT } from '@/context/ProductContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { Product } from '@/types';
 
-export const ProductShowcase: React.FC = () => {
-  const { products, refreshProducts } = useProducts();
+interface ProductShowcaseProps {
+  faceWash: any;
+  beardOil: any;
+}
+
+export const ProductShowcase: React.FC<ProductShowcaseProps> = ({ faceWash, beardOil }) => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -20,19 +23,6 @@ export const ProductShowcase: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Listen to product updates from admin / DB mutations
-  useEffect(() => {
-    const handleProductsUpdated = () => {
-      if (refreshProducts) {
-        refreshProducts();
-      }
-    };
-    window.addEventListener(PRODUCTS_UPDATED_EVENT, handleProductsUpdated);
-    return () => {
-      window.removeEventListener(PRODUCTS_UPDATED_EVENT, handleProductsUpdated);
-    };
-  }, [refreshProducts]);
 
   // Robust resolver for live database product images (Cloudinary / DB images / fallback)
   const resolveProductImage = (prod?: Product | null): string => {
@@ -48,25 +38,6 @@ export const ProductShowcase: React.FC = () => {
     }
     return '/images/home/hero-products.jpeg';
   };
-
-  // Find foundational essential products from live MongoDB catalog
-  const faceWash =
-    products.find(
-      (p) =>
-        p.slug === 'terra-face-wash' ||
-        p.slug === 'face-wash' ||
-        p.category === 'Face' ||
-        p.purpose?.toLowerCase() === 'cleanse'
-    ) || products[0];
-
-  const beardOil =
-    products.find(
-      (p) =>
-        p.slug === 'terra-beard-oil' ||
-        p.slug === 'beard-oil' ||
-        p.category === 'Beard' ||
-        p.purpose?.toLowerCase() === 'nourish'
-    ) || (products.length > 1 ? products[1] : products[0]);
 
   if (!faceWash || !beardOil) return null;
 
@@ -158,9 +129,9 @@ export const ProductShowcase: React.FC = () => {
               <div
                 key={productId}
                 className="relative overflow-hidden cursor-pointer group transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]"
-                style={{ flex: isActive ? 3 : isHovered ? 1 : 2 }}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
+                style={{ flex: isActive ? 3 : (isHovered && !isMobile) ? 1 : 2 }}
+                onMouseEnter={() => !isMobile && setActiveIndex(index)}
+                onMouseLeave={() => !isMobile && setActiveIndex(null)}
                 onClick={() => setActiveIndex(index)}
               >
                 {/* Background Image from DB */}

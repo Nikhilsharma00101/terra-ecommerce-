@@ -19,7 +19,7 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="auto"
           poster="/images/home/hero-products.jpeg"
           style={{ backgroundColor: '#121212' }}
           className="absolute w-full h-full lg:h-[150%] lg:-top-[15%] lg:scale-y-[0.8] object-cover pointer-events-none"

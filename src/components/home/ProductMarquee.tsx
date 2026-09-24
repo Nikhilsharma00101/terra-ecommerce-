@@ -2,16 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useProducts } from '@/context/ProductContext';
+import Image from 'next/image';
 
-export const ProductMarquee: React.FC = () => {
-  const { products, getProductBySlug } = useProducts();
-  
-  const faceWash =
-    products.find(p => p.slug === 'terra-face-wash' || p.slug === 'face-wash' || p.category === 'Face') || products[0];
-  const beardOil =
-    products.find(p => p.slug === 'terra-beard-oil' || p.slug === 'beard-oil' || p.category === 'Beard') || (products.length > 1 ? products[1] : products[0]);
+interface ProductMarqueeProps {
+  faceWash: any;
+  beardOil: any;
+}
 
+export const ProductMarquee: React.FC<ProductMarqueeProps> = ({ faceWash, beardOil }) => {
   if (!faceWash || !beardOil) return null;
 
   // Duplicate items many times to create a seamless infinite scroll effect
@@ -46,11 +44,13 @@ export const ProductMarquee: React.FC = () => {
             className="flex items-center gap-3 sm:gap-4 px-6 sm:px-10 group cursor-pointer shrink-0"
           >
             {/* Dynamic Product Image */}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 group-hover:border-[#DC143C] transition-colors duration-500 shrink-0">
-              <img 
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 group-hover:border-[#DC143C] transition-colors duration-500 shrink-0 relative">
+              <Image 
                 src={product.featuredImage || product.images?.[0]?.url || '/images/home/hero-products.jpeg'} 
-                alt={product.name} 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" 
+                alt={product.name}
+                fill
+                sizes="(max-width: 640px) 32px, 40px"
+                className="object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100" 
               />
             </div>
             

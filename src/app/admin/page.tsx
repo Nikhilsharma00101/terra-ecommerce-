@@ -213,6 +213,49 @@ function AdminCustomSelect<T extends string = string>({
   );
 }
 
+const compressImage = async (file: File, maxWidth = 1600, quality = 0.85): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (maxWidth * height) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              }));
+            } else {
+              reject(new Error('Canvas to Blob failed'));
+            }
+          },
+          'image/jpeg',
+          quality // quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function AdminPage() {
   const { user, isAdmin, isLoading, logout } = useAuth();
   const router = useRouter();
@@ -540,7 +583,19 @@ export default function AdminPage() {
 
     try {
       const newImages = [...currentImages];
-      for (const file of filesToUpload) {
+      for (const originalFile of filesToUpload) {
+        let file = originalFile;
+        
+        // Compress images larger than 5MB to bring them down (typically ~1-3MB)
+        if (file.size > 5 * 1024 * 1024) {
+          try {
+            // High resolution (3000px max) and high quality (0.95) to keep it around 2-3MB
+            file = await compressImage(file, 3000, 0.95);
+          } catch (err) {
+            console.warn('Compression failed, attempting original file:', err);
+          }
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 

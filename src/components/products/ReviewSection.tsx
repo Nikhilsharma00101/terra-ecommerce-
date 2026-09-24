@@ -301,21 +301,21 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 rotateY = 0;
                 zIndex = 10;
                 opacity = 0;
-                blur = '2px';
+                blur = '0px';
               } else if (diff === -1 || (diff === count - 1 && count > 2)) {
                 x = '-100%';
                 scale = 0.94;
                 rotateY = 0;
                 zIndex = 10;
                 opacity = 0;
-                blur = '2px';
+                blur = '0px';
               } else {
                 x = diff > 0 ? '110%' : '-110%';
                 scale = 0.85;
                 rotateY = 0;
                 zIndex = 5;
                 opacity = 0;
-                blur = '4px';
+                blur = '0px';
               }
             } else {
               if (diff === 0) {
@@ -333,7 +333,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 rotateY = -18;
                 zIndex = 20;
                 opacity = 0.72;
-                blur = '1px';
+                blur = '0px';
               } else if (diff === -1 || (diff === count - 1 && count > 2)) {
                 // Left Card
                 x = '-52%';
@@ -341,7 +341,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 rotateY = 18;
                 zIndex = 20;
                 opacity = 0.72;
-                blur = '1px';
+                blur = '0px';
               } else if (diff === 2 || diff === -2) {
                 // Background Cards
                 x = diff > 0 ? '90%' : '-90%';
@@ -349,7 +349,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                 rotateY = diff > 0 ? -30 : 30;
                 zIndex = 10;
                 opacity = 0.2;
-                blur = '3px';
+                blur = '0px';
               }
             }
 
@@ -375,7 +375,6 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
                   rotateY,
                   zIndex,
                   opacity,
-                  filter: blur,
                 }}
                 transition={{
                   type: 'spring',

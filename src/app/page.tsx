@@ -4,9 +4,8 @@ import { HeroCinematic } from '@/components/home/HeroCinematic';
 import { ProductMarquee } from '@/components/home/ProductMarquee';
 import { ProductShowcase } from '@/components/home/ProductShowcase';
 import { connectToDatabase } from '@/lib/mongodb';
-import { Review as ReviewModel } from '@/models/Review';
 import { Product as ProductModel } from '@/models/Product';
-import { Review } from '@/types';
+import { ReviewSectionWrapper } from '@/components/home/ReviewSectionWrapper';
 
 // Lazy-load everything below the fold — these are NOT needed for initial paint
 const BundleUpsell = dynamic(() =>
@@ -14,9 +13,6 @@ const BundleUpsell = dynamic(() =>
 );
 const DirectOrderStrip = dynamic(() =>
   import('@/components/home/DirectOrderStrip').then((m) => m.DirectOrderStrip)
-);
-const ReviewSection = dynamic(() =>
-  import('@/components/products/ReviewSection').then((m) => m.ReviewSection)
 );
 const ProblemsSolved = dynamic(() =>
   import('@/components/home/ProblemsSolved').then((m) => m.ProblemsSolved)
@@ -28,22 +24,6 @@ const SectionSkeleton = () => (
 );
 
 export const revalidate = 60;
-
-async function fetchAllReviews(): Promise<Review[]> {
-  try {
-    await connectToDatabase();
-    const dbReviews = await ReviewModel.find({ status: 'approved' }).sort({ createdAt: -1 }).lean();
-    return dbReviews.map((r: any) => ({
-      ...r,
-      _id: r._id.toString(),
-      createdAt: r.createdAt?.toISOString(),
-      updatedAt: r.updatedAt?.toISOString()
-    })) as Review[];
-  } catch (error) {
-    console.error('Failed to fetch reviews:', error);
-    return [];
-  }
-}
 
 async function fetchProducts() {
   try {
@@ -57,7 +37,6 @@ async function fetchProducts() {
 }
 
 export default async function HomePage() {
-  const reviews = await fetchAllReviews();
   const products = await fetchProducts();
   
   const faceWash = products.find((p: any) => p.slug === 'terra-face-wash' || p.slug === 'face-wash' || p.category === 'Face') || products[0];
@@ -69,10 +48,10 @@ export default async function HomePage() {
       <HeroCinematic faceWash={faceWash} beardOil={beardOil} />
 
       {/* 01.5 — Scrolling Product Marquee */}
-      <ProductMarquee />
+      <ProductMarquee faceWash={faceWash} beardOil={beardOil} />
 
       {/* 02 — Product Showcase */}
-      <ProductShowcase />
+      <ProductShowcase faceWash={faceWash} beardOil={beardOil} />
 
       {/* 03 — The Hard Sell (below fold — lazy loaded) */}
       <Suspense fallback={<SectionSkeleton />}>
@@ -86,11 +65,7 @@ export default async function HomePage() {
 
       {/* 04 — Social Proof (below fold — lazy loaded) */}
       <Suspense fallback={<SectionSkeleton />}>
-        <ReviewSection
-          reviews={reviews}
-          title="What Our Customers Say"
-          subtitle="Real feedback from guys using our products every day."
-        />
+        <ReviewSectionWrapper />
       </Suspense>
 
       {/* 05 — Problems Solved */}

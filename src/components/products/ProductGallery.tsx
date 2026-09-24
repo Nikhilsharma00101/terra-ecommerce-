@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { ProductImage } from '@/types';
@@ -18,6 +18,9 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  
+  // Touch tracking for mobile swipe
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -62,6 +65,48 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
   return (
     <div className="flex flex-col gap-3.5 select-none w-full">
+      {/* Top Controls Bar - Rendered ABOVE the image so it doesn't hinder the view */}
+      <div className="flex items-center justify-between w-full px-1">
+        {/* Sequence Badge Counter */}
+        {displayImages.length > 1 ? (
+          <div className="bg-white text-[#181817] text-[10px] font-mono font-semibold tracking-widest px-3 py-1.5 rounded-full border border-[#E5E0D8] shadow-xs">
+            {selectedIndex + 1} / {displayImages.length}
+          </div>
+        ) : <div />}
+
+        {/* Nav Controls & Zoom Hint */}
+        <div className="flex items-center gap-2">
+          {displayImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                className="w-9 h-9 bg-white text-[#181817] transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md rounded-full flex items-center justify-center group/btn active:scale-95"
+                aria-label="Previous Image"
+              >
+                <ChevronLeft size={16} className="group-hover/btn:-translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                className="w-9 h-9 bg-white text-[#181817] transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md rounded-full flex items-center justify-center group/btn active:scale-95"
+                aria-label="Next Image"
+              >
+                <ChevronRight size={16} className="group-hover/btn:translate-x-0.5 transition-transform" />
+              </button>
+            </>
+          )}
+          <div 
+            className="w-9 h-9 rounded-full bg-white border border-[#E5E0D8] flex items-center justify-center text-[#77736C] cursor-pointer shadow-sm hover:text-[#181817] transition-colors"
+            onClick={() => setIsZoomed(true)}
+            aria-label="Zoom Image"
+          >
+            <ZoomIn size={14} />
+          </div>
+        </div>
+      </div>
+
       {/* Main Presentation Stage — Controlled vertical height */}
       <div 
         className="relative w-full bg-white border border-[#E5E0D8] rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.03)] overflow-hidden group flex items-center justify-center cursor-pointer"
@@ -71,55 +116,25 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-[#FBF9F5] via-white to-[#F6F3ED]/40 pointer-events-none" />
 
         <div className="relative w-full p-4 sm:p-6 flex items-center justify-center">
-          <Image
-            src={currentImage.url}
-            alt={currentImage.alt || productName}
-            width={1200}
-            height={1200}
-            priority
-            className="w-full h-auto max-h-[70vh] object-contain transition-transform duration-700 group-hover:scale-105"
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
+          {displayImages.map((img, idx) => (
+            <Image
+              key={idx}
+              src={img.url}
+              alt={img.alt || productName}
+              width={1200}
+              height={1200}
+              priority={idx === 0}
+              className={`w-full h-auto max-h-[70vh] object-contain transition-all duration-300 group-hover:scale-105 ${
+                idx === selectedIndex ? 'opacity-100 z-10 relative block' : 'opacity-0 z-0 absolute inset-0 m-auto pointer-events-none'
+              }`}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
+          ))}
         </div>
-
-        {/* Sequence Badge Counter — Minimal Luxury Light Pill */}
-        {displayImages.length > 1 && (
-          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-[#181817] text-[10px] font-mono font-semibold tracking-widest px-3 py-1 rounded-full border border-[#E5E0D8] shadow-xs z-10">
-            {selectedIndex + 1} / {displayImages.length}
-          </div>
-        )}
-
-        {/* Zoom Hint Icon */}
-        <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md border border-[#E5E0D8] flex items-center justify-center text-[#77736C] opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-xs pointer-events-none">
-          <ZoomIn size={14} />
-        </div>
-
-        {/* Next / Previous Circular Controls */}
-        {displayImages.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white text-[#181817] backdrop-blur-md transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md z-10 rounded-full flex items-center justify-center group/btn active:scale-95"
-              aria-label="Previous Image"
-            >
-              <ChevronLeft size={18} className="group-hover/btn:-translate-x-0.5 transition-transform" />
-            </button>
-
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleNext(); }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white text-[#181817] backdrop-blur-md transition-all duration-200 cursor-pointer border border-[#E5E0D8] hover:border-[#181817] shadow-sm hover:shadow-md z-10 rounded-full flex items-center justify-center group/btn active:scale-95"
-              aria-label="Next Image"
-            >
-              <ChevronRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
-            </button>
-          </>
-        )}
 
         {/* Caption Pill */}
         {currentImage.caption && (
-          <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-auto bg-white/90 backdrop-blur-md text-[#55524D] text-[10px] uppercase tracking-[0.16em] px-3.5 py-1.5 font-mono z-10 border border-[#E5E0D8] rounded-full shadow-xs truncate max-w-[90%]">
+          <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-auto bg-white/90 backdrop-blur-md text-[#55524D] text-[10px] uppercase tracking-[0.16em] px-3.5 py-1.5 font-mono z-10 border border-[#E5E0D8] rounded-full shadow-xs truncate max-w-[90%] pointer-events-none">
             {currentImage.caption}
           </div>
         )}
@@ -155,9 +170,23 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
 
       {/* Full Screen Zoom Modal via Portal */}
       {isZoomed && isMounted && createPortal(
-        <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#181817]/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-200"
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#181817]/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-200 touch-none"
           onClick={() => setIsZoomed(false)}
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const touchEndX = e.changedTouches[0].clientX;
+            const diffX = touchStartX.current - touchEndX;
+            
+            if (Math.abs(diffX) > 40) { // Threshold for swipe
+              if (diffX > 0) handleNext(); // Swiped left -> next
+              else handlePrev(); // Swiped right -> prev
+            }
+            touchStartX.current = null;
+          }}
         >
           <button
             type="button"
@@ -168,13 +197,18 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
           </button>
           
           <div className="relative w-full max-w-5xl h-full max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={currentImage.url}
-              alt={currentImage.alt || productName}
-              fill
-              className="object-contain"
-              sizes="100vw"
-            />
+            {displayImages.map((img, idx) => (
+              <Image
+                key={idx}
+                src={img.url}
+                alt={img.alt || productName}
+                fill
+                className={`object-contain transition-opacity duration-300 ${
+                  idx === selectedIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+                sizes="100vw"
+              />
+            ))}
           </div>
           
           {displayImages.length > 1 && (
@@ -182,14 +216,14 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-                  className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full flex items-center justify-center group/btn active:scale-95 z-50"
+                  className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full hidden sm:flex items-center justify-center group/btn active:scale-95 z-50"
                 >
                   <ChevronLeft size={24} className="group-hover/btn:-translate-x-0.5 transition-transform" />
                 </button>
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleNext(); }}
-                  className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full flex items-center justify-center group/btn active:scale-95 z-50"
+                  className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all duration-200 cursor-pointer rounded-full hidden sm:flex items-center justify-center group/btn active:scale-95 z-50"
                 >
                   <ChevronRight size={24} className="group-hover/btn:translate-x-0.5 transition-transform" />
                 </button>
