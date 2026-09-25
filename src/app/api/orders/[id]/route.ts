@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (paymentStatus) updateFields.paymentStatus = paymentStatus;
 
     const updated = await Order.findOneAndUpdate(query, updateFields, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

@@ -97,7 +97,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     const query = isMongoId ? { _id: id } : { slug: id };
 
     const updated = await Product.findOneAndUpdate(query, body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

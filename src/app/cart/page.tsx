@@ -387,7 +387,7 @@ export default function CartPage() {
                     
                     <div className="flex justify-between items-center text-[15px]">
                       <span className="text-[#5A6474]">Taxes</span>
-                      <span className="text-[#5A6474]">Calculated at checkout</span>
+                      <span className="font-semibold text-[#0F141C]">₹0</span>
                     </div>
                   </div>
 

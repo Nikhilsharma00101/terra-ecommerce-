@@ -525,7 +525,7 @@ export default function CheckoutSuccessPage() {
                       </div>
                       <div className="flex flex-col">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-headline-sm text-sm text-on-surface font-bold">1. Order Placed</span>
+                          <span className="font-headline-sm text-sm text-on-surface font-bold">1. Order Confirmed</span>
                           <span className="font-label-sm text-[10px] text-outline">Done</span>
                         </div>
                         <p className="font-body-sm text-xs text-outline mt-1">We have received your payment and order details.</p>
@@ -539,7 +539,7 @@ export default function CheckoutSuccessPage() {
                       </div>
                       <div className="flex flex-col">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-headline-sm text-sm text-primary font-bold">2. Processing Order</span>
+                          <span className="font-headline-sm text-sm text-primary font-bold">2. Packing Order</span>
                           <span className="font-label-sm text-[10px] text-secondary font-semibold">In Progress</span>
                         </div>
                         <p className="font-body-sm text-xs text-on-surface-variant mt-1">Your items are being packed and prepared for shipping.</p>
@@ -553,7 +553,7 @@ export default function CheckoutSuccessPage() {
                       </div>
                       <div className="flex flex-col">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-headline-sm text-sm text-on-surface font-medium">3. Ready to Ship</span>
+                          <span className="font-headline-sm text-sm text-on-surface font-medium">3. Dispatched</span>
                         </div>
                         <p className="font-body-sm text-xs text-outline mt-1">Waiting to be picked up by our delivery partner.</p>
                       </div>

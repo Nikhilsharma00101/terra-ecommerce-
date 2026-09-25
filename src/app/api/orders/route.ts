@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
       const pendingCodOrders = await Order.countDocuments({
         customerEmail: customerEmail.toLowerCase().trim(),
         paymentMethod: 'cod',
-        status: { $in: ['Processing', 'Shipped'] },
+        status: { $in: ['Confirmation', 'Packed', 'Dispatched', 'Out for delivery'] },
       });
       if (pendingCodOrders >= 2) {
         return NextResponse.json(
@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
       total: calculatedTotal,
       couponCode: appliedCoupon || undefined,
       discountAmount: discountAmount,
-      status: 'Processing',
+      status: 'Confirmation',
       paymentStatus: 'Pending',
       paymentMethod: paymentMethod || 'upi',
       shippingAddress: {

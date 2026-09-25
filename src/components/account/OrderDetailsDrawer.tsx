@@ -70,8 +70,14 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
   if (!order) return null;
 
   const isDelivered = (order as any).status === 'Delivered';
-  const isShipped = (order as any).status === 'Shipped';
-  const isProcessing = (order as any).status === 'Processing';
+  const isOutForDelivery = (order as any).status === 'Out for delivery';
+  const isDispatched = (order as any).status === 'Dispatched';
+  const isPacked = (order as any).status === 'Packed';
+  const isConfirmation = (order as any).status === 'Confirmation';
+  
+  const statusIndex = ['Confirmation', 'Packed', 'Dispatched', 'Out for delivery', 'Delivered'].indexOf((order as any).status);
+  const activeStep = statusIndex >= 0 ? statusIndex : 0;
+
   const trackingNumber = (order as any).trackingNumber || null;
 
   const handleCopyAWB = () => {
@@ -132,10 +138,8 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
               <div className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#E2E3DF] shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDelivered ? 'bg-[#baebd1] text-[#3e6b57]' : isShipped ? 'bg-[#F4F4F0] text-[#1A1C1A]' : 'bg-[#E2E3DF] text-[#45464C]'}`}>
-                      {isDelivered && <CheckCircle2 size={16} />}
-                      {isShipped && <Truck size={16} />}
-                      {isProcessing && <Clock size={16} />}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDelivered ? 'bg-[#baebd1] text-[#3e6b57]' : activeStep > 0 ? 'bg-[#F4F4F0] text-[#1A1C1A]' : 'bg-[#E2E3DF] text-[#45464C]'}`}>
+                      {isDelivered ? <CheckCircle2 size={16} /> : activeStep >= 2 ? <Truck size={16} /> : activeStep === 1 ? <Package size={16} /> : <Clock size={16} />}
                     </div>
                     <div>
                       <span className="text-[11px] uppercase tracking-widest text-[#77736C] font-semibold block">Status</span>
@@ -157,25 +161,26 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
                   <div className="absolute left-0 top-3 h-1 w-full bg-[#F4F4F0] rounded-full"></div>
                   <div 
                     className="absolute left-0 top-3 h-1 bg-[#3A6753] rounded-full"
-                    style={{ width: isDelivered ? '100%' : isShipped ? '66%' : '33%' }}
+                    style={{ width: `${(activeStep / 4) * 100}%` }}
                   ></div>
                   <div className="relative flex justify-between">
                     {[
-                      { label: 'Placed', icon: CheckCircle2, active: true },
-                      { label: 'Formulated', icon: Package, active: isShipped || isDelivered },
-                      { label: 'Dispatched', icon: Truck, active: isShipped || isDelivered },
-                      { label: 'Delivered', icon: MapPin, active: isDelivered }
+                      { label: 'Confirmation', icon: CheckCircle2, active: activeStep >= 0 },
+                      { label: 'Packed', icon: Package, active: activeStep >= 1 },
+                      { label: 'Dispatched', icon: Truck, active: activeStep >= 2 },
+                      { label: 'Out for delivery', icon: Truck, active: activeStep >= 3 },
+                      { label: 'Delivered', icon: MapPin, active: activeStep >= 4 }
                     ].map((step, idx) => (
-                      <div key={idx} className="flex flex-col items-center">
+                      <div key={idx} className="flex flex-col items-center flex-1">
                         <div className={`w-3 h-3 rounded-full mt-2 mb-2 border-2 ${step.active ? 'bg-[#3A6753] border-[#3A6753]' : 'bg-[#FFFFFF] border-[#E2E3DF]'}`} />
-                        <span className={`text-[10px] uppercase tracking-wider font-semibold absolute top-8 ${step.active ? 'text-[#1A1C1A]' : 'text-[#c6c6cd]'}`}>{step.label}</span>
+                        <span className={`text-[10px] uppercase tracking-wider font-semibold text-center mt-2 ${step.active ? 'text-[#1A1C1A]' : 'text-[#c6c6cd]'}`}>{step.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Tracking Details if Shipped */}
-                {(isShipped || isDelivered) && trackingNumber && (
+                {/* Tracking Details if Dispatched */}
+                {activeStep >= 2 && trackingNumber && (
                   <div className="mt-8 pt-4 border-t border-[#E2E3DF] flex items-center justify-between">
                     <div>
                       <span className="text-[11px] uppercase tracking-widest text-[#77736C] font-semibold block mb-1">Carrier Tracking</span>

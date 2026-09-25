@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       review = await Review.findByIdAndUpdate(
         id,
         { $set: updateData },
-        { new: true }
+        { returnDocument: 'after' }
       );
     }
 
@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       review = await Review.findOneAndUpdate(
         { id },
         { $set: updateData },
-        { new: true }
+        { returnDocument: 'after' }
       );
     }
 

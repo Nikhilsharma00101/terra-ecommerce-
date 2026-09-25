@@ -27,7 +27,7 @@ export async function GET() {
         ]);
 
       const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-      const processingOrders = orders.filter((o) => o.status === 'Processing').length;
+      const processingOrders = orders.filter((o) => o.status === 'Confirmation').length;
       const deliveredOrders = orders.filter((o) => o.status === 'Delivered').length;
 
       return NextResponse.json({

@@ -120,12 +120,18 @@ function AdminCustomSelect<T extends string = string>({
     }`;
   } else if (variant === 'status-order') {
     const isDelivered = value === 'Delivered';
-    const isShipped = value === 'Shipped';
+    const isOutForDelivery = value === 'Out for delivery';
+    const isDispatched = value === 'Dispatched';
+    const isPacked = value === 'Packed';
     const isCancelled = value === 'Cancelled';
     const colorStyle = isDelivered
       ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-      : isShipped
+      : isOutForDelivery
+      ? 'bg-lime-50 text-lime-800 border-lime-300'
+      : isDispatched
       ? 'bg-sky-50 text-sky-800 border-sky-300'
+      : isPacked
+      ? 'bg-purple-50 text-purple-800 border-purple-300'
       : isCancelled
       ? 'bg-rose-50 text-rose-800 border-rose-300'
       : 'bg-amber-50 text-amber-900 border-amber-300';
@@ -873,7 +879,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingNumber: tracking, status: 'Shipped' }),
+        body: JSON.stringify({ trackingNumber: tracking, status: 'Dispatched' }),
       });
       if (res.ok) {
         if (directTracking !== undefined) {
@@ -887,7 +893,7 @@ export default function AdminPage() {
       fetchStats();
         if (selectedOrder && (selectedOrder._id === orderId || selectedOrder.orderNumber === orderId)) {
           setSelectedOrder((prev: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) =>
-            prev ? { ...prev, trackingNumber: tracking, status: 'Shipped' } : null
+            prev ? { ...prev, trackingNumber: tracking, status: 'Dispatched' } : null
           );
         }
       }
@@ -1669,16 +1675,28 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     {
-                      label: 'Processing',
-                      count: orders.filter((o) => o.status === 'Processing').length,
+                      label: 'Confirmation',
+                      count: orders.filter((o) => o.status === 'Confirmation').length,
                       color: 'bg-amber-50 text-amber-900 border-amber-300',
                       badgeColor: 'bg-amber-200 text-amber-950',
                     },
                     {
-                      label: 'Shipped',
-                      count: orders.filter((o) => o.status === 'Shipped').length,
+                      label: 'Packed',
+                      count: orders.filter((o) => o.status === 'Packed').length,
+                      color: 'bg-purple-50 text-purple-900 border-purple-300',
+                      badgeColor: 'bg-purple-200 text-purple-950',
+                    },
+                    {
+                      label: 'Dispatched',
+                      count: orders.filter((o) => o.status === 'Dispatched').length,
                       color: 'bg-sky-50 text-sky-900 border-sky-300',
                       badgeColor: 'bg-sky-200 text-sky-950',
+                    },
+                    {
+                      label: 'Out for delivery',
+                      count: orders.filter((o) => o.status === 'Out for delivery').length,
+                      color: 'bg-lime-50 text-lime-900 border-lime-300',
+                      badgeColor: 'bg-lime-200 text-lime-950',
                     },
                     {
                       label: 'Delivered',
@@ -2160,14 +2178,24 @@ export default function AdminPage() {
                     {[
                       { key: 'All', label: 'All Orders', count: orders.length },
                       {
-                        key: 'Processing',
-                        label: 'Processing',
-                        count: orders.filter((o) => o.status === 'Processing').length,
+                        key: 'Confirmation',
+                        label: 'Confirmation',
+                        count: orders.filter((o) => o.status === 'Confirmation').length,
                       },
                       {
-                        key: 'Shipped',
-                        label: 'Shipped',
-                        count: orders.filter((o) => o.status === 'Shipped').length,
+                        key: 'Packed',
+                        label: 'Packed',
+                        count: orders.filter((o) => o.status === 'Packed').length,
+                      },
+                      {
+                        key: 'Dispatched',
+                        label: 'Dispatched',
+                        count: orders.filter((o) => o.status === 'Dispatched').length,
+                      },
+                      {
+                        key: 'Out for delivery',
+                        label: 'Out for Delivery',
+                        count: orders.filter((o) => o.status === 'Out for delivery').length,
                       },
                       {
                         key: 'Delivered',
@@ -2494,14 +2522,16 @@ export default function AdminPage() {
                               <td className="p-4 align-top">
                                 <div className="space-y-2">
                                   <AdminCustomSelect
-                                    value={ord.status || 'Processing'}
+                                    value={ord.status || 'Confirmation'}
                                     onChange={(val) =>
                                       handleUpdateOrderStatus(ord._id || ord.orderNumber, val)
                                     }
                                     variant="status-order"
                                     options={[
-                                      { value: 'Processing', label: 'Processing', dotColor: 'bg-amber-600' },
-                                      { value: 'Shipped', label: 'Shipped', dotColor: 'bg-sky-600' },
+                                      { value: 'Confirmation', label: 'Confirmation', dotColor: 'bg-amber-600' },
+                                      { value: 'Packed', label: 'Packed', dotColor: 'bg-purple-600' },
+                                      { value: 'Dispatched', label: 'Dispatched', dotColor: 'bg-sky-600' },
+                                      { value: 'Out for delivery', label: 'Out for Delivery', dotColor: 'bg-lime-600' },
                                       { value: 'Delivered', label: 'Delivered', dotColor: 'bg-emerald-600' },
                                       { value: 'Cancelled', label: 'Cancelled', dotColor: 'bg-rose-600' },
                                     ]}
@@ -3764,7 +3794,7 @@ export default function AdminPage() {
                         <div className="space-y-3">
                           <span className="text-[10px] font-bold uppercase tracking-widest text-[#77736C]">1. Dispatch Status</span>
                           <div className="flex flex-wrap gap-2">
-                            {(['Processing', 'Shipped', 'Delivered', 'Cancelled'] as const).map((st) => (
+                            {(['Confirmation', 'Packed', 'Dispatched', 'Out for delivery', 'Delivered', 'Cancelled'] as const).map((st) => (
                               <button
                                 key={st}
                                 disabled={updatingOrderStatus || selectedOrder.status === st}
@@ -3825,23 +3855,23 @@ export default function AdminPage() {
                       
                       {/* Order Fulfillment Stepper */}
                       <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-2 text-center">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-2 text-center">
                           {[
-                            { label: '1. Placed', done: true },
+                            { label: '1. Confirmation', done: true },
                             {
-                              label: '2. Processing',
-                              done:
-                                selectedOrder.status === 'Processing' ||
-                                selectedOrder.status === 'Shipped' ||
-                                selectedOrder.status === 'Delivered',
+                              label: '2. Packed',
+                              done: ['Packed', 'Dispatched', 'Out for delivery', 'Delivered'].includes(selectedOrder.status),
                             },
                             {
-                              label: '3. Shipped',
-                              done:
-                                selectedOrder.status === 'Shipped' || selectedOrder.status === 'Delivered',
+                              label: '3. Dispatched',
+                              done: ['Dispatched', 'Out for delivery', 'Delivered'].includes(selectedOrder.status),
                             },
                             {
-                              label: '4. Delivered',
+                              label: '4. Out for delivery',
+                              done: ['Out for delivery', 'Delivered'].includes(selectedOrder.status),
+                            },
+                            {
+                              label: '5. Delivered',
                               done: selectedOrder.status === 'Delivered',
                             },
                           ].map((step, idx) => (

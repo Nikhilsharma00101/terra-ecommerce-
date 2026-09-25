@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
+      returnDocument: 'after',
     }).select('-password');
 
     if (!updatedUser) {

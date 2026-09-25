@@ -768,7 +768,7 @@ export default function CheckoutPage() {
                       </button>
                       <div className="text-center px-4">
                         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                          By placing this order, you agree to VeroStore's
+                          By placing this order, you agree to Terra Men's Co.'s
                           <a className="text-secondary-container font-semibold hover:underline" href="#"> Terms of Service</a>,
                           <a className="text-secondary-container font-semibold hover:underline" href="#"> Privacy Policy</a>, and
                           <a className="text-secondary-container font-semibold hover:underline" href="#"> Return Guarantee</a>.

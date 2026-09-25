@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
     const user = await User.findByIdAndUpdate(
       authUser.userId,
       { $set: { cart: validCart } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!user) {

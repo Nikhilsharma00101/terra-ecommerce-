@@ -21,6 +21,8 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
+  fallback: ['sans-serif'],
+  adjustFontFallback: false,
 });
 
 export const viewport: Viewport = {
