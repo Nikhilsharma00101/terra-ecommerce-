@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { JournalClientHub } from './components/JournalClientHub';
 
 export const metadata: Metadata = {
-  title: "The Terra Journal | Men's Grooming Science & Routine Guides",
+  title: "The Terra Journal | Grooming Guides",
   description:
     'Evidence-based skin science, beard care guides, and routine breakdowns written by the Terra Men\'s Co. formulation team.',
   alternates: {

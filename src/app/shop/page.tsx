@@ -12,7 +12,7 @@ import { Product } from '@/types';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Shop All Formulations | TERRA MEN'S CO.",
+  title: "Shop All Formulations",
   description:
     'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
   alternates: {
@@ -123,6 +123,13 @@ export default async function ShopPage() {
           </Link>
           <span className="opacity-40">/</span>
           <span className="text-[#181817] font-semibold">Formulations</span>
+        </div>
+
+        {/* Main Heading for SEO */}
+        <div className="mb-8 sm:mb-10">
+          <h1 className="font-serif text-4xl sm:text-5xl text-[#181817] font-light tracking-tight">
+            Our Formulations.
+          </h1>
         </div>
 
         {/* Interactive filters + product grid (client component) */}

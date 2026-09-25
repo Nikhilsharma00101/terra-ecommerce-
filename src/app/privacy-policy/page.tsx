@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { PrivacyScrollspy } from './components/PrivacyScrollspy';
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | TERRA MEN'S CO.",
+  title: "Privacy Policy",
   description:
     "Learn how Terra Men's Co. collects, uses, and protects your personal data. We are committed to transparency and strict data security.",
   alternates: {

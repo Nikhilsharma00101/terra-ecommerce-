@@ -24,7 +24,7 @@ import { FaqAccordion } from './components/FaqAccordion';
 import { AboutQuickBuyButton } from './components/AboutQuickBuyButton';
 
 export const metadata: Metadata = {
-  title: "About The Terra Method | Brand Philosophy & Formulation Standards",
+  title: "About The Terra Method",
   description:
     'Learn about Terra Men\'s Co. and The Terra Method: disciplined luxury grooming fundamentals crafted with clinically proven bio-compatibles, cold-pressed botanicals, and radical ingredient transparency.',
   alternates: {

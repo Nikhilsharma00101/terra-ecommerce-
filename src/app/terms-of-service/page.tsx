@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { TermsScrollspy } from './components/TermsScrollspy';
 
 export const metadata: Metadata = {
-  title: "Terms of Service | TERRA MEN'S CO.",
+  title: "Terms of Service",
   description:
     "Read the Terms of Service for Terra Men's Co. Understand your rights, our product policies, billing, medical disclaimers, and how we govern our platform.",
   alternates: {

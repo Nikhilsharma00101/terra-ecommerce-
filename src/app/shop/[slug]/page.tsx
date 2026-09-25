@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = product.shortDescription || product.tagline || `Shop ${product.name} by Terra Men's Co.`;
 
   return {
-    title: `${product.name} | TERRA MEN'S CO.`,
+    title: product.name,
     description,
     alternates: {
       canonical: `/shop/${product.slug}`,
