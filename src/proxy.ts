@@ -109,7 +109,7 @@ export async function proxy(req: NextRequest) {
 
     if (!isPublic && !userPayload && req.method !== 'GET') {
       return NextResponse.json(
-        { error: 'Authentication required.' },
+        { error: 'Please sign in to continue.' },
         { status: 401 }
       );
     }

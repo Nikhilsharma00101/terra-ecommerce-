@@ -72,7 +72,7 @@ export async function requireAuth(): Promise<
   if (!user) {
     return {
       errorResponse: NextResponse.json(
-        { error: 'Authentication required. Please sign in to continue.' },
+        { error: 'Please sign in to continue.' },
         { status: 401 }
       ),
     };
@@ -95,7 +95,7 @@ export async function requireAdmin(): Promise<
   if (!user) {
     return {
       errorResponse: NextResponse.json(
-        { error: 'Authentication required. Please sign in as an admin.' },
+        { error: 'Please sign in to your admin account to continue.' },
         { status: 401 }
       ),
     };

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const authUser = await getAuthUser();
     if (!authUser) {
       return NextResponse.json(
-        { error: 'Authentication required.' },
+        { error: 'Please sign in to continue.' },
         { status: 401 }
       );
     }

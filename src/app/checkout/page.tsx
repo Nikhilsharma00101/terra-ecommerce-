@@ -198,6 +198,7 @@ export default function CheckoutPage() {
   };
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Financial calculations
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
@@ -337,6 +338,7 @@ export default function CheckoutPage() {
           order_id: razorpayOrderId,
           handler: async function (response: any) {
             try {
+              setIsVerifying(true);
               // 2. Snappy Frontend Verification
               const verifyRes = await fetch('/api/orders/verify', {
                 method: 'POST',
@@ -356,11 +358,13 @@ export default function CheckoutPage() {
                 const verifyData = await verifyRes.json();
                 alert('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
                 setIsProcessing(false);
+                setIsVerifying(false);
               }
             } catch (err) {
               console.error(err);
               alert('Payment processing error.');
               setIsProcessing(false);
+              setIsVerifying(false);
             }
           },
           prefill: {
@@ -440,6 +444,26 @@ export default function CheckoutPage() {
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      
+      <AnimatePresence>
+        {isVerifying && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-surface/80 backdrop-blur-sm flex flex-col items-center justify-center"
+          >
+            <div className="bg-surface-container-lowest p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4 text-center max-w-sm w-[90%] mx-auto">
+              <Loader2 className="animate-spin text-secondary-container" size={48} />
+              <div className="space-y-1">
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Confirming your order</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">Please don't close this window or press back.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="min-h-screen bg-surface flex flex-col font-body-md text-on-surface antialiased">
 
 
