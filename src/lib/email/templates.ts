@@ -85,12 +85,7 @@ export const generateOrderConfirmationHtml = (order: OrderEmailData, isPaymentSu
           <!-- Header -->
           <tr>
             <td align="center" style="background-color: #111111; padding: 40px 20px;">
-              <h1 style="margin: 0; font-family: 'Georgia', serif; font-size: 24px; letter-spacing: 0.3em; color: #FFFFFF; text-transform: uppercase;">
-                TERRA<sup style="font-family: sans-serif; font-size: 0.5em;">&trade;</sup>
-              </h1>
-              <p style="margin: 10px 0 0 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; letter-spacing: 0.2em; color: #A88B68; text-transform: uppercase;">
-                Men's Co.
-              </p>
+              <img src="https://www.terramensco.com/images/logo/logo-white.png" alt="Terra Men's Co." style="max-height: 50px; width: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>
 
@@ -134,9 +129,9 @@ export const generateOrderConfirmationHtml = (order: OrderEmailData, isPaymentSu
               ${addressHtml}
 
               <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #E5E0D8; text-align: center;">
-                <p style="margin: 0 0 10px 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #111111; font-weight: bold;">7-Day Returns</p>
+                <p style="margin: 0 0 10px 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #111111; font-weight: bold;">No Returns / Exchanges</p>
                 <p style="margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #666666; line-height: 1.5;">
-                  We accept returns within 7 days of delivery for un-opened, sealed boxes only.<br/>
+                  Due to the cosmetic nature of our products, we do not accept returns or exchanges.<br/>
                   If you have any questions, simply reply to this email.
                 </p>
               </div>

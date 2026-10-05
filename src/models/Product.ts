@@ -53,6 +53,12 @@ export interface IProduct extends Document {
     value: string;
   }[];
   shippingInfo: string;
+  weight?: number;
+  dimensions?: {
+    length: number;
+    breadth: number;
+    height: number;
+  };
   pairingProductSlug?: string;
   isBundle?: boolean;
   createdAt: Date;
@@ -143,6 +149,12 @@ const ProductSchema = new Schema<IProduct>(
     keyIngredients: [IngredientSchema],
     ritual: [RitualStepSchema],
     specs: [SpecSchema],
+    weight: { type: Number, default: 0.5 },
+    dimensions: {
+      length: { type: Number, default: 10 },
+      breadth: { type: Number, default: 10 },
+      height: { type: Number, default: 10 }
+    },
     shippingInfo: {
       type: String,
       default: 'Dispatched within 24 hours. Complimentary express courier across India.',

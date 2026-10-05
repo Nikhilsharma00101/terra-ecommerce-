@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Product } from '@/models/Product';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, getAuthUser } from '@/lib/auth';
 import { products as initialSeedProducts } from '@/data/products';
 
 // Cache GET responses for 60 seconds, allow stale for 5 minutes while revalidating
@@ -21,7 +21,15 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
     const purpose = searchParams.get('purpose');
     const search = searchParams.get('search');
-    const includeUnpublished = searchParams.get('all') === 'true';
+    let includeUnpublished = searchParams.get('all') === 'true';
+
+    // F-AUTHZ-3: Require admin to view unpublished products
+    if (includeUnpublished) {
+      const authUser = await getAuthUser();
+      if (!authUser || authUser.role !== 'admin') {
+        includeUnpublished = false;
+      }
+    }
 
     try {
       await connectToDatabase();
@@ -98,7 +106,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch products', products: [] },
+      { error: 'Failed to fetch products', products: [] },
       { status: 500 }
     );
   }

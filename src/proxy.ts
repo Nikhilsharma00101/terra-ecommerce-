@@ -1,68 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
 
-// H-4: Simple in-memory rate limiter (per-IP, resets every window)
+// Fallback in-memory rate limiter for local development
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimit(ip: string, limit: number, windowMs: number): boolean {
+function fallbackRateLimit(ip: string, limit: number, windowStr: string): boolean {
+  const windowMs = parseInt(windowStr.split(' ')[0]) * 1000;
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
-
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
     return true;
   }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
+  if (entry.count >= limit) return false;
   entry.count++;
   return true;
 }
 
-// Clean up stale entries periodically (every 5 minutes)
+// Clean up stale entries periodically
 if (typeof globalThis !== 'undefined') {
-  const CLEANUP_INTERVAL = 5 * 60 * 1000;
   const cleanupKey = '__rateLimitCleanupRegistered__';
   if (!(globalThis as any)[cleanupKey]) {
     (globalThis as any)[cleanupKey] = true;
     setInterval(() => {
       const now = Date.now();
       for (const [key, value] of rateLimitMap.entries()) {
-        if (now > value.resetAt) {
-          rateLimitMap.delete(key);
-        }
+        if (now > value.resetAt) rateLimitMap.delete(key);
       }
-    }, CLEANUP_INTERVAL);
+    }, 5 * 60 * 1000);
   }
 }
 
-// Rate-limited routes with their limits
-const rateLimitedRoutes: { pattern: string; limit: number; windowMs: number }[] = [
-  { pattern: '/api/orders', limit: 10, windowMs: 60_000 },
-  { pattern: '/api/coupons/validate', limit: 5, windowMs: 60_000 },
-  { pattern: '/api/auth/register', limit: 5, windowMs: 60_000 },
-  { pattern: '/api/auth/forgot-password', limit: 3, windowMs: 3_600_000 },
-  { pattern: '/api/auth/reset-password', limit: 5, windowMs: 3_600_000 },
+// Initialize Upstash Redis if available
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? Redis.fromEnv()
+  : null;
+
+const limiters = new Map<string, Ratelimit>();
+function getUpstashLimiter(limit: number, windowStr: string) {
+  const key = `${limit}-${windowStr}`;
+  if (!limiters.has(key)) {
+    limiters.set(key, new Ratelimit({
+      redis: redis!,
+      limiter: Ratelimit.slidingWindow(limit, windowStr as any),
+      analytics: false,
+    }));
+  }
+  return limiters.get(key)!;
+}
+
+const rateLimitedRoutes: { pattern: string; limit: number; window: string }[] = [
+  { pattern: '/api/orders', limit: 10, window: '60 s' },
+  { pattern: '/api/coupons/validate', limit: 5, window: '60 s' },
+  { pattern: '/api/auth/register', limit: 5, window: '60 s' },
+  { pattern: '/api/auth/callback/credentials', limit: 5, window: '60 s' },
+  { pattern: '/api/auth/forgot-password', limit: 3, window: '3600 s' },
+  { pattern: '/api/auth/reset-password', limit: 5, window: '3600 s' },
 ];
 
-/**
- * Next.js Edge Proxy (Middleware).
- * Executes on the edge before a request is completed.
- * 
- * Responsibilities:
- * 1. Rate-limiting for sensitive API endpoints (e.g. login, checkout) to prevent brute-force and DoS.
- * 2. High-level route guarding for `/admin` paths (redirects to home if not admin).
- * 3. Checking authenticated sessions for generic `/api/` mutations.
- * 
- * Note: This provides Defense in Depth. Individual API routes must still enforce their own strict authorization.
- * 
- * @param {NextRequest} req - The incoming HTTP request.
- * @returns {NextResponse | undefined} A redirect/error response, or undefined to allow the request to proceed.
- */
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const ip =
@@ -70,11 +68,19 @@ export async function proxy(req: NextRequest) {
     req.headers.get('x-real-ip') ||
     'unknown';
 
-  // H-4: Rate limiting on sensitive API routes
   for (const route of rateLimitedRoutes) {
     if (pathname.startsWith(route.pattern)) {
       const key = `${ip}:${route.pattern}`;
-      if (!rateLimit(key, route.limit, route.windowMs)) {
+      let allowed = true;
+      if (redis) {
+        const limiter = getUpstashLimiter(route.limit, route.window);
+        const { success } = await limiter.limit(key);
+        allowed = success;
+      } else {
+        allowed = fallbackRateLimit(key, route.limit, route.window);
+      }
+      
+      if (!allowed) {
         return NextResponse.json(
           { error: 'Too many requests. Please try again later.' },
           { status: 429 }
@@ -142,7 +148,8 @@ export async function proxy(req: NextRequest) {
     if (userPayload) {
       const redirectParam = req.nextUrl.searchParams.get('redirect');
       const defaultTarget = userPayload.role === 'admin' ? '/admin' : '/account';
-      const target = redirectParam || defaultTarget;
+      const isRelative = redirectParam?.startsWith('/') && !redirectParam.startsWith('//');
+      const target = (isRelative ? redirectParam : null) || defaultTarget;
       return NextResponse.redirect(new URL(target, req.url));
     }
   }

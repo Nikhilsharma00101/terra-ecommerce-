@@ -15,6 +15,21 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
 
+    const authUser = await getAuthUser();
+
+    // Authorization checks (F-AUTHZ-2)
+    if (finalStatus === 'all' || finalStatus === 'pending') {
+      if (!authUser || authUser.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized access to review status' }, { status: 403 });
+      }
+    }
+
+    if (email) {
+      if (!authUser || (authUser.role !== 'admin' && authUser.email !== email)) {
+        return NextResponse.json({ error: 'Unauthorized access to user reviews' }, { status: 403 });
+      }
+    }
+
     const query: any = {};
     if (productSlug && productSlug !== 'all') {
       query.productSlug = productSlug;
@@ -132,7 +147,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Submit review error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to submit review.' },
+      { error: 'Failed to submit review.' },
       { status: 500 }
     );
   }

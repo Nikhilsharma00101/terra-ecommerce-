@@ -23,7 +23,16 @@ import {
   Sparkles,
   SmartphoneNfc,
   CreditCard,
-  Landmark
+  Landmark,
+  Check,
+  User,
+  X,
+  MapPinPlus,
+  Phone,
+  FileEdit,
+  Loader2,
+  ShoppingBag,
+  Ticket
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -443,7 +452,7 @@ export default function CheckoutPage() {
                 <div className="flex flex-wrap items-center gap-1 sm:gap-2 font-label-sm sm:font-label-md text-[10px] sm:text-label-md text-on-surface">
                   <div className="flex items-center gap-1 sm:gap-2">
                     <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-tertiary-fixed text-on-tertiary-fixed">
-                      <span className="material-symbols-outlined text-[13px] sm:text-[16px]">check</span>
+                      <Check className="text-[13px] sm:text-[16px]" size={16} />
                     </span>
                     <span className="font-semibold text-on-surface">Cart</span>
                   </div>
@@ -460,7 +469,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex items-center text-on-surface-variant font-label-sm text-label-sm">
                   <div className="flex items-center gap-1 bg-surface-container-low px-2 sm:px-3 py-1 rounded-full text-on-tertiary-container font-semibold">
-                    <span className="material-symbols-outlined text-[15px]">verified</span>
+                    <ShieldCheck className="text-[15px]" size={15} />
                     <span className="hidden sm:inline">Verified Merchant</span>
                   </div>
                 </div>
@@ -480,7 +489,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between p-4 sm:p-5 bg-surface-container-low rounded-none sm:rounded-xl shadow-sm gap-2">
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className="w-10 h-10 rounded-full bg-secondary-container/10 flex items-center justify-center text-secondary-container flex-shrink-0">
-                          <span className="material-symbols-outlined text-[20px]">account_circle</span>
+                          <User className="text-[20px]" size={20} />
                         </div>
                         <div className="min-w-0">
                           <span className="font-label-lg text-label-lg text-on-surface block truncate">Logged in as {user.name}</span>
@@ -489,7 +498,7 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-shrink-0">
                         <span className="bg-surface-container-lowest text-on-tertiary-container font-label-sm text-label-sm px-2 sm:px-2.5 py-1 rounded-full flex items-center gap-1 w-fit">
-                          <span className="material-symbols-outlined text-[14px]">check_circle</span> <span className="hidden sm:inline">Verified</span>
+                          <CheckCircle2 className="text-[14px]" size={14} /> <span className="hidden sm:inline">Verified</span>
                         </span>
                       </div>
                     </div>
@@ -509,7 +518,7 @@ export default function CheckoutPage() {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-low hover:bg-surface-container text-secondary-container font-label-md text-label-md rounded-lg transition-colors"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">{isAddingNewAddress ? 'close' : 'add_location_alt'}</span>
+                            {isAddingNewAddress ? <X size={16} /> : <MapPinPlus size={16} />}
                             <span>{isAddingNewAddress ? 'Cancel' : '+ Add New Address'}</span>
                           </button>
                         )}
@@ -545,7 +554,7 @@ export default function CheckoutPage() {
                                   {addr.city}, {addr.state} {addr.postalCode}
                                 </p>
                                 <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 pt-1">
-                                  <span className="material-symbols-outlined text-[14px]">call</span>
+                                  <Phone className="text-[14px]" size={14} />
                                   {addr.phone || formData.phone}
                                 </p>
                               </div>
@@ -558,7 +567,7 @@ export default function CheckoutPage() {
                       {(!user || savedAddresses.length === 0 || isAddingNewAddress) && (
                         <div className="bg-surface-container-low/60 rounded-xl p-5 mt-2">
                           <div className="flex items-center gap-2 mb-5">
-                            <span className="material-symbols-outlined text-secondary-container text-[20px]">edit_note</span>
+                            <FileEdit className="text-secondary-container text-[20px]" size={20} />
                             <h3 className="font-headline-sm text-headline-sm text-on-surface">Enter Shipping Details</h3>
                           </div>
                           <div className="space-y-4">
@@ -649,7 +658,7 @@ export default function CheckoutPage() {
                           <h2 className="font-headline-md text-headline-md text-on-surface whitespace-nowrap">Payment Method</h2>
                         </div>
                         <div className="flex items-center gap-1.5 bg-surface-container text-on-tertiary-container font-label-sm text-label-sm px-2.5 py-1 rounded-full w-fit">
-                          <span className="material-symbols-outlined text-[15px]">lock</span>
+                          <Lock className="text-[15px]" size={15} />
                           <span>Encrypted &amp; 100% Secure</span>
                         </div>
                       </div>
@@ -761,9 +770,9 @@ export default function CheckoutPage() {
                         className="w-full h-14 bg-secondary-container disabled:opacity-50 hover:bg-secondary text-on-secondary rounded-xl font-headline-sm text-[16px] sm:text-headline-sm flex items-center justify-center gap-2 shadow-lg transition-all transform active:scale-[0.99] cursor-pointer px-2 text-center"
                       >
                         {isProcessing ? (
-                          <><span className="material-symbols-outlined animate-spin text-[20px] sm:text-[22px]">sync</span><span>Securing Transaction...</span></>
+                          <><Loader2 className="animate-spin text-[20px] sm:text-[22px]" size={22} /><span>Securing Transaction...</span></>
                         ) : (
-                          <><span className="material-symbols-outlined text-[20px] sm:text-[22px]">lock</span><span className="truncate">Pay ₹{total.toLocaleString('en-IN')} &amp; Place Order</span></>
+                          <><Lock className="text-[20px] sm:text-[22px]" size={22} /><span className="truncate">Pay ₹{total.toLocaleString('en-IN')} &amp; Place Order</span></>
                         )}
                       </button>
                       <div className="text-center px-4">
@@ -786,7 +795,7 @@ export default function CheckoutPage() {
                     {/* Summary Header */}
                     <div className="flex items-center justify-between pb-4 bg-surface-container-low px-4 py-3 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-secondary-container text-[22px]">shopping_bag</span>
+                        <ShoppingBag className="text-secondary-container text-[22px]" size={22} />
                         <h3 className="font-headline-sm text-headline-sm text-on-surface">Order Summary ({items.length} items)</h3>
                       </div>
                     </div>
@@ -807,7 +816,7 @@ export default function CheckoutPage() {
                                 <span className="font-label-sm text-label-sm text-on-surface-variant">Qty: {quantity}</span>
                                 <span className="text-outline-variant">•</span>
                                 <button onClick={(e) => { e.preventDefault(); removeItem(itemKey); }} className="font-label-sm text-label-sm text-error hover:underline inline-flex items-center gap-0.5" type="button">
-                                  <span className="material-symbols-outlined text-[13px]">delete</span> Remove
+                                  <Trash2 className="text-[13px]" size={13} /> Remove
                                 </button>
                               </div>
                             </div>
@@ -851,16 +860,16 @@ export default function CheckoutPage() {
                         <>
                           <div className="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">
                             <div className="flex items-center gap-1.5 text-on-tertiary-container font-label-md text-label-md font-semibold">
-                              <span className="material-symbols-outlined text-[16px]">local_offer</span>
+                              <Tag className="text-[16px]" size={16} />
                               <span>{appliedCoupon}</span>
                             </div>
                             <button onClick={removeCoupon} className="font-label-sm text-label-sm text-on-surface-variant hover:text-error transition-colors flex items-center gap-0.5" type="button">
-                              <span className="material-symbols-outlined text-[14px]">close</span>
+                              <X className="text-[14px]" size={14} />
                               <span>Remove</span>
                             </button>
                           </div>
                           <p className="font-body-sm text-body-sm text-on-tertiary-container flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                            <CheckCircle2 className="text-[14px]" size={14} />
                             Promo code applied!
                           </p>
                         </>
@@ -868,7 +877,7 @@ export default function CheckoutPage() {
                         <>
                           <div className="flex flex-col sm:flex-row gap-2">
                             <div className="relative w-full sm:flex-1">
-                              <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]">confirmation_number</span>
+                              <Ticket className="absolute left-2.5 top-2.5 text-on-surface-variant text-[18px]" size={18} />
                               <input
                                 type="text"
                                 value={couponInput}
@@ -895,7 +904,7 @@ export default function CheckoutPage() {
                       {discountAmount > 0 && (
                         <div className="flex justify-between items-center font-body-md text-body-md text-on-tertiary-container">
                           <span className="flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[16px]">sell</span>
+                            <Tag className="text-[16px]" size={16} />
                             Discount ({appliedCoupon})
                           </span>
                           <span className="font-semibold">-₹{discountAmount.toLocaleString('en-IN')}</span>
@@ -935,7 +944,7 @@ export default function CheckoutPage() {
                   <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm space-y-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-secondary-container flex-shrink-0">
-                        <span className="material-symbols-outlined text-[20px]">security</span>
+                        <ShieldCheck className="text-[20px]" size={20} />
                       </div>
                       <div>
                         <p className="font-label-md text-label-md text-on-surface">Encrypted Protection</p>

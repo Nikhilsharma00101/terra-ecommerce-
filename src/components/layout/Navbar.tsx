@@ -23,8 +23,7 @@ export const Navbar: React.FC = () => {
 
   const promos = [
     "Free Delivery Pan-India",
-    "100% Authentic Products",
-    "Easy 7-Day Returns"
+    "100% Authentic Products"
   ];
 
   useEffect(() => {

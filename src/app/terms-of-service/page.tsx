@@ -291,15 +291,15 @@ export default function TermsOfServicePage() {
                 <span className="px-2 py-1 bg-[#111915] text-[#FAF7F2] uppercase tracking-widest font-medium">Article 05</span>
               </div>
               <div className="space-y-1">
-                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#111915] tracking-tight">05. Returns & Refunds</h2>
+                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#111915] tracking-tight">05. No Returns or Exchanges</h2>
                 <p className="font-mono text-xs text-[#8C6D46] uppercase tracking-[0.25em]">Customer guarantee</p>
               </div>
               <div className="font-sans text-base sm:text-lg text-[#38403B] leading-relaxed font-light space-y-4">
                 <p>
-                  We offer a 7-day return policy for unopened and unused products in their original packaging. Due to hygiene and safety reasons, we cannot accept returns on opened cosmetics or grooming products.
+                  As our items are cosmetic products, we unfortunately cannot accept any returns or exchanges for hygiene and safety reasons. We appreciate your understanding and support in maintaining the highest standards for all our customers.
                 </p>
                 <p>
-                  If you receive a defective or damaged product, please notify us within 48 hours of delivery with photographic evidence. We will arrange a replacement or process a full refund to your original payment method. Cancellations are only accepted before the order has been dispatched.
+                  If you receive a defective or damaged product, please notify us within 48 hours of delivery with photographic evidence, and we will do our best to assist you. Cancellations are only accepted before the order has been dispatched.
                 </p>
               </div>
             </article>

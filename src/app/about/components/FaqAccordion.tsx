@@ -22,7 +22,7 @@ export const faqs = [
   },
   {
     q: 'What is your shipping and satisfaction policy?',
-    a: 'We provide complimentary express delivery across India on all orders above ₹999. Orders are packed in recyclable cardboard and dispatched within 24 hours. If you are not satisfied within 30 days of daily use, our team offers a hassle-free refund.',
+    a: 'We provide complimentary express delivery across India on all orders above ₹999. Orders are packed in recyclable cardboard and dispatched within 24 hours. Please note that due to the cosmetic nature of our products, we do not accept returns or exchanges.',
   },
 ];
 

@@ -45,13 +45,14 @@ export const authOptions: NextAuthOptions = {
           await user.save();
         }
 
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          tier: user.tier,
-        };
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            tier: user.tier,
+            tokenVersion: user.tokenVersion || 0,
+          };
       },
     }),
   ],
@@ -89,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         user.id = existingUser._id.toString();
         (user as any).role = existingUser.role;
         (user as any).tier = existingUser.tier;
+        (user as any).tokenVersion = existingUser.tokenVersion || 0;
 
         return true;
       }
@@ -104,7 +106,16 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role || 'user';
         token.tier = (user as any).tier || 'Terra Club Member';
+        token.tokenVersion = (user as any).tokenVersion || 0;
+      } else if (token.id) {
+        // F-AUTH-4: Check token version to invalidate old sessions on password reset
+        await connectToDatabase();
+        const dbUser = await User.findById(token.id).select('tokenVersion');
+        if (dbUser && dbUser.tokenVersion !== token.tokenVersion) {
+          throw new Error('Session invalidated. Please log in again.');
+        }
       }
+
       if (trigger === 'update' && session) {
         // [SECURITY FIX] Whitelist allowed fields to prevent privilege escalation (e.g. injecting role: admin)
         if (session.name) token.name = session.name;

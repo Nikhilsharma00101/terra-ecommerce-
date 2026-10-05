@@ -95,10 +95,10 @@ export const HeroCinematic: React.FC<HeroProps> = ({ faceWash, beardOil }) => {
           </div>
 
           {/* Bottom Right: Floating Circular Products & CTA */}
-          <div className="flex flex-col items-start lg:items-end gap-6 animate-fade-in-up mt-0 lg:mr-[35px]" style={{ animationDelay: '700ms' }}>
+          <div className="flex flex-col items-start lg:items-end gap-6 animate-fade-in-up mt-0 lg:mr-0" style={{ animationDelay: '700ms' }}>
 
             {/* The 2 Products */}
-            <div className="flex gap-6 items-end -translate-y-8 sm:-translate-y-4 lg:translate-y-[45px] -translate-x-[5px]">
+            <div className="flex gap-6 items-end -translate-y-8 sm:-translate-y-4 lg:translate-y-[45px] lg:translate-x-[10px]">
 
               {faceWash && (
                 <Link href={`/shop/${faceWash.slug || faceWash.id}`} className="group flex flex-col items-center gap-3 cursor-pointer">

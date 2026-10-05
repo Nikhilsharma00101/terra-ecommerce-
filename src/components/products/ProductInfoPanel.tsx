@@ -148,11 +148,11 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
     },
     {
       id: 'shipping',
-      title: 'SHIPPING & GUARANTEE',
+      title: 'SHIPPING & POLICIES',
       content: (
         <div className="space-y-2 text-xs text-[#55524D] leading-relaxed">
           <p>{product.shippingInfo}</p>
-          <p>We believe in the quality of Terra fundamentals. If this product does not transform your daily routine within 30 days, receive a full refund with zero friction.</p>
+          <p>Please note: Due to the cosmetic nature of our products, we do not accept returns or exchanges. We appreciate your understanding.</p>
         </div>
       ),
     },
@@ -351,8 +351,8 @@ export const ProductInfoPanel: React.FC<ProductInfoPanelProps> = ({ product }) =
           <span className="text-[10px] text-[#55524D] font-medium tracking-wider uppercase">Clean Botanical</span>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-2 justify-center text-center p-2 rounded-lg bg-white border border-[#E5E0D8]/60 shadow-2xs">
-          <RefreshCw size={15} className="text-[#2D4438] shrink-0" />
-          <span className="text-[10px] text-[#55524D] font-medium tracking-wider uppercase">30-Day Guarantee</span>
+          <CheckCircle2 size={15} className="text-[#2D4438] shrink-0" />
+          <span className="text-[10px] text-[#55524D] font-medium tracking-wider uppercase">100% Authentic</span>
         </div>
       </div>
 

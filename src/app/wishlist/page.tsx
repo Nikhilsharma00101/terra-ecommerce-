@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Truck, Ban, ShieldCheck, Lock, Share2, Trash2, ShoppingBag, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function WishlistPage() {
@@ -86,7 +86,7 @@ export default function WishlistPage() {
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-[#E5E0D8] text-xs font-label-caps tracking-widest uppercase text-[#333333] hover:border-[#111111] hover:text-[#111111] transition-colors shadow-sm"
               >
-                <span className="material-symbols-outlined text-[16px]">share</span>
+                <Share2 size={16} />
                 Share List
               </button>
             </div>
@@ -147,7 +147,7 @@ export default function WishlistPage() {
                       {/* Actions */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-6 pt-5 border-t border-[#F0EBE1]">
                         <div className="flex items-center gap-2 text-xs text-[#888888]">
-                          <span className="material-symbols-outlined text-[16px] text-[#777777]">local_shipping</span>
+                          <Truck size={16} className="text-[#777777]" />
                           <span>Complimentary Doorstep Delivery</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ export default function WishlistPage() {
                             }}
                             className="inline-flex items-center justify-center gap-1.5 px-4 py-3 text-xs font-label-caps tracking-widest uppercase text-[#777777] hover:text-[#9B111E] hover:bg-[#FDF2F2] transition-colors border border-transparent hover:border-[#F5C2C7]"
                           >
-                            <span className="material-symbols-outlined text-[16px]">delete_outline</span>
+                            <Trash2 size={16} />
                             <span>Remove</span>
                           </button>
                           <button 
@@ -168,7 +168,7 @@ export default function WishlistPage() {
                             }}
                             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#9B111E] hover:bg-[#800020] text-white text-xs font-label-caps tracking-widest uppercase font-semibold transition-all shadow-sm active:scale-[0.99]"
                           >
-                            <span className="material-symbols-outlined text-[17px]">shopping_bag</span>
+                            <ShoppingBag size={17} />
                             <span>Move to Bag</span>
                           </button>
                         </div>
@@ -181,7 +181,7 @@ export default function WishlistPage() {
           ) : (
             <div className="text-center py-16 bg-white border border-[#E5E0D8] p-8 mb-12">
               <div className="w-16 h-16 bg-[#FAF8F5] rounded-full flex items-center justify-center mx-auto mb-4 text-[#9B111E]">
-                <span className="material-symbols-outlined text-3xl">favorite_border</span>
+                <Heart size={30} />
               </div>
               <h3 className="font-serif text-2xl text-[#111111] mb-2 font-semibold">Your Wishlist is Empty</h3>
               <p className="text-sm text-[#666666] max-w-sm mx-auto mb-6">Explore our curated formulations and save your signature grooming rituals.</p>
@@ -196,28 +196,28 @@ export default function WishlistPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
               <div className="flex flex-col items-center text-center p-4 rounded bg-white/60 border border-[#EFECE6]">
                 <div className="w-12 h-12 rounded-full bg-[#FAF5EB] text-[#9B111E] flex items-center justify-center mb-3">
-                  <span className="material-symbols-outlined text-[24px]">local_shipping</span>
+                  <Truck size={24} />
                 </div>
                 <h4 className="font-label-caps text-xs tracking-wider uppercase text-[#111111] font-bold mb-1">Free Delivery Pan-India</h4>
-                <p className="text-xs text-[#666666]">Delivered to over 19,000 pin codes via express priority air.</p>
+                <p className="text-xs text-[#666666]">Fast and secure delivery to your doorstep.</p>
               </div>
               <div className="flex flex-col items-center text-center p-4 rounded bg-white/60 border border-[#EFECE6]">
                 <div className="w-12 h-12 rounded-full bg-[#FAF5EB] text-[#9B111E] flex items-center justify-center mb-3">
-                  <span className="material-symbols-outlined text-[24px]">published_with_changes</span>
+                  <Ban size={24} />
                 </div>
-                <h4 className="font-label-caps text-xs tracking-wider uppercase text-[#111111] font-bold mb-1">7-Day Returns</h4>
-                <p className="text-xs text-[#666666]">Applicable for un-opened, sealed boxes only.</p>
+                <h4 className="font-label-caps text-xs tracking-wider uppercase text-[#111111] font-bold mb-1">No Returns / Exchanges</h4>
+                <p className="text-xs text-[#666666]">Not applicable as it is a cosmetic product.</p>
               </div>
               <div className="flex flex-col items-center text-center p-4 rounded bg-white/60 border border-[#EFECE6]">
                 <div className="w-12 h-12 rounded-full bg-[#FAF5EB] text-[#9B111E] flex items-center justify-center mb-3">
-                  <span className="material-symbols-outlined text-[24px]">verified</span>
+                  <ShieldCheck size={24} />
                 </div>
                 <h4 className="font-label-caps text-xs tracking-wider uppercase text-[#111111] font-bold mb-1">100% Authentic</h4>
                 <p className="text-xs text-[#666666]">Pure cold-pressed botanicals formulated in our lab.</p>
               </div>
               <div className="flex flex-col items-center text-center p-4 rounded bg-white/60 border border-[#EFECE6]">
                 <div className="w-12 h-12 rounded-full bg-[#FAF5EB] text-[#9B111E] flex items-center justify-center mb-3">
-                  <span className="material-symbols-outlined text-[24px]">lock</span>
+                  <Lock size={24} />
                 </div>
                 <h4 className="font-label-caps text-xs tracking-wider uppercase text-[#111111] font-bold mb-1">Secure Payments</h4>
                 <p className="text-xs text-[#666666]">Instant checkout via UPI, Cards, NetBanking, and COD.</p>

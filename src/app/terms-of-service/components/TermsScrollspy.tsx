@@ -46,7 +46,7 @@ export function TermsScrollspy() {
     { id: 'article-02', num: '02', label: 'Products & Pricing' },
     { id: 'article-03', num: '03', label: 'Medical Disclaimer' },
     { id: 'article-04', num: '04', label: 'Shipping & Delivery' },
-    { id: 'article-05', num: '05', label: 'Returns & Refunds' },
+    { id: 'article-05', num: '05', label: 'No Returns or Exchanges' },
     { id: 'article-06', num: '06', label: 'Billing & Errors' },
     { id: 'article-07', num: '07', label: 'Limitation of Liability' },
     { id: 'article-08', num: '08', label: 'Privacy Policy' },

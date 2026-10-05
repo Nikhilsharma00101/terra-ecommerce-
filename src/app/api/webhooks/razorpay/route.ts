@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Order } from '@/models/Order';
+import { Product } from '@/models/Product';
 import nodemailer from 'nodemailer';
 import { generateOrderConfirmationHtml } from '@/lib/email/templates';
 import { sendAdminTelegramNotification } from '@/lib/telegram';
@@ -66,60 +67,116 @@ export async function POST(req: NextRequest) {
 
       if (razorpayOrderId) {
         await connectToDatabase();
-        const order = await Order.findOne({ razorpayOrderId: razorpayOrderId });
 
-        if (order && order.paymentStatus !== 'Paid') {
-          order.paymentStatus = 'Paid';
-          if (razorpayPaymentId && !order.razorpayPaymentId) {
-            order.razorpayPaymentId = razorpayPaymentId;
+        const updateData: any = { paymentStatus: 'Paid' };
+        if (razorpayPaymentId) {
+          updateData.razorpayPaymentId = razorpayPaymentId;
+        }
+
+        const order = await Order.findOneAndUpdate(
+          { razorpayOrderId: razorpayOrderId, paymentStatus: 'Pending' },
+          { $set: updateData },
+          { returnDocument: 'after' }
+        );
+
+        if (order) {
+          // Decrement stock for Razorpay order (F-PAY-1)
+          if (order.items && order.items.length > 0) {
+            const bulkOperations = order.items.map((item: any) => ({
+              updateOne: {
+                filter: {
+                  $or: [
+                    { _id: item.productId.length === 24 ? item.productId : null },
+                    { slug: item.productId }
+                  ],
+                  stock: { $gte: item.quantity }
+                },
+                update: { $inc: { stock: -item.quantity } },
+              },
+            }));
+
+            bulkOperations.forEach((op: any) => {
+              if (!op.updateOne.filter.$or[0]._id) {
+                op.updateOne.filter.$or.shift();
+              }
+            });
+
+            if (bulkOperations.length > 0) {
+              await Product.bulkWrite(bulkOperations);
+            }
           }
-          await order.save();
 
           // Send Telegram Notification
           await sendAdminTelegramNotification(order);
 
+          // Push to Shiprocket
+          if (!order.shiprocketOrderId) {
+            try {
+              const { shiprocket } = await import('@/lib/shiprocket');
+              const srResponse = await shiprocket.createOrder(order, 'Prepaid');
+              
+              if (srResponse && srResponse.order_id) {
+                await Order.updateOne(
+                  { _id: order._id },
+                  { 
+                    $set: { 
+                      shiprocketOrderId: srResponse.order_id,
+                      shiprocketShipmentId: srResponse.shipment_id,
+                      shipmentStatus: srResponse.status
+                    } 
+                  }
+                );
+              }
+            } catch (srError) {
+              console.error(`Shiprocket Integration Error for Prepaid ${order.orderNumber}:`, srError);
+            }
+          }
+
           // Send confirmation email via Webhook (Fail-safe)
-          try {
-            const transporter = nodemailer.createTransport({
-              host: process.env.EMAIL_SERVER_HOST,
-              port: Number(process.env.EMAIL_SERVER_PORT) || 465,
-              secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
-              auth: {
-                user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
-                pass: process.env.EMAIL_SERVER_PASSWORD,
-              },
-            });
-
-            const mailOptions = {
-              from: process.env.EMAIL_FROM || 'Info@terramensco.com',
-              to: order.customerEmail,
-              subject: `Terra Men's Co - Payment Received for Order ${order.orderNumber}`,
-              html: generateOrderConfirmationHtml({
-                orderNumber: order.orderNumber,
-                customerName: order.customerName,
-                customerEmail: order.customerEmail,
-                items: order.items,
-                subtotal: order.subtotal,
-                discountAmount: order.discountAmount,
-                couponCode: order.couponCode,
-                shipping: order.shipping,
-                total: order.total,
-                shippingAddress: {
-                  firstName: order.shippingAddress.firstName,
-                  lastName: order.shippingAddress.lastName || '',
-                  address1: order.shippingAddress.address1,
-                  address2: order.shippingAddress.address2,
-                  city: order.shippingAddress.city,
-                  state: order.shippingAddress.state,
-                  postalCode: order.shippingAddress.postalCode
+          if (!order.emailSent) {
+            try {
+              const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_SERVER_HOST,
+                port: Number(process.env.EMAIL_SERVER_PORT) || 465,
+                secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+                auth: {
+                  user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
+                  pass: process.env.EMAIL_SERVER_PASSWORD,
                 },
-                paymentMethod: 'razorpay'
-              }, true),
-            };
+              });
 
-            await transporter.sendMail(mailOptions);
-          } catch (emailError) {
-            console.error('Webhook: Failed to send payment confirmation email:', emailError);
+              const mailOptions = {
+                from: '"Terra Men\'s Co." <' + (process.env.EMAIL_FROM || 'info@terramensco.com') + '>',
+                to: order.customerEmail,
+                subject: `Terra Men's Co - Payment Received for Order ${order.orderNumber}`,
+                html: generateOrderConfirmationHtml({
+                  orderNumber: order.orderNumber,
+                  customerName: order.customerName,
+                  customerEmail: order.customerEmail,
+                  items: order.items,
+                  subtotal: order.subtotal,
+                  discountAmount: order.discountAmount,
+                  couponCode: order.couponCode,
+                  shipping: order.shipping,
+                  total: order.total,
+                  shippingAddress: {
+                    firstName: order.shippingAddress.firstName,
+                    lastName: order.shippingAddress.lastName || '',
+                    address1: order.shippingAddress.address1,
+                    address2: order.shippingAddress.address2,
+                    city: order.shippingAddress.city,
+                    state: order.shippingAddress.state,
+                    postalCode: order.shippingAddress.postalCode
+                  },
+                  paymentMethod: 'razorpay'
+                }, true),
+              };
+
+              await transporter.sendMail(mailOptions);
+              await Order.updateOne({ _id: order._id }, { $set: { emailSent: true } });
+            } catch (emailError) {
+              console.error('Webhook: Failed to send payment confirmation email:', emailError);
+            }
           }
         }
       }

@@ -12,16 +12,16 @@ import { Product } from '@/types';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Shop All Formulations",
+  title: "Shop Premium Men's Face Wash & Beard Oil",
   description:
-    'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
+    'Browse the full Terra Men\'s Co. grooming catalog. Discover our pure botanical men\'s face wash and premium beard oil — no fillers, no nonsense.',
   alternates: {
     canonical: '/shop',
   },
   openGraph: {
-    title: "Shop All Formulations | TERRA MEN'S CO.",
+    title: "Shop Premium Men's Face Wash & Beard Oil | TERRA MEN'S CO.",
     description:
-      'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
+      'Browse the full Terra Men\'s Co. grooming catalog. Discover our pure botanical men\'s face wash and premium beard oil — no fillers, no nonsense.',
     url: 'https://www.terramensco.com/shop',
     siteName: "TERRA MEN'S CO.",
     images: [
@@ -29,15 +29,15 @@ export const metadata: Metadata = {
         url: '/images/og/og-image.jpeg',
         width: 1200,
         height: 630,
-        alt: "TERRA MEN'S CO. Shop Collection",
+        alt: "TERRA MEN'S CO. Shop Collection - Face Wash & Beard Oil",
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Shop All Formulations | TERRA MEN'S CO.",
+    title: "Shop Premium Men's Face Wash & Beard Oil | TERRA MEN'S CO.",
     description:
-      'Browse the full Terra Men\'s Co. grooming catalog. Pure botanical face wash and beard oil — no fillers, no nonsense.',
+      'Browse the full Terra Men\'s Co. grooming catalog. Discover our pure botanical men\'s face wash and premium beard oil — no fillers, no nonsense.',
     images: ['/images/og/og-image.jpeg'],
   },
 };
@@ -128,7 +128,7 @@ export default async function ShopPage() {
         {/* Main Heading for SEO */}
         <div className="mb-8 sm:mb-10">
           <h1 className="font-serif text-4xl sm:text-5xl text-[#181817] font-light tracking-tight">
-            Our Formulations.
+            Premium Men's Face Wash & Beard Oil.
           </h1>
         </div>
 

@@ -39,6 +39,7 @@ export interface IUser extends Document {
   cart: IUserCartItem[];
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  tokenVersion?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,7 +99,7 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      minlength: [6, 'Password must be at least 6 characters'],
+      minlength: [8, 'Password must be at least 8 characters'],
       select: false, // Do not return password by default
     },
     role: {
@@ -137,6 +138,10 @@ const UserSchema = new Schema<IUser>(
     },
     resetPasswordExpires: {
       type: Date,
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
   },
   {

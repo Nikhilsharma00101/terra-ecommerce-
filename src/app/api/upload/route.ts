@@ -18,8 +18,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Uploaded file must be an image' }, { status: 400 });
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File size exceeds 5MB limit' }, { status: 400 });
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Uploaded file must be an image (JPEG, PNG, WebP, GIF, SVG)' }, { status: 400 });
     }
 
     // Convert file to Buffer
@@ -72,7 +78,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Image upload endpoint error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to upload image' },
+      { error: 'Failed to upload image' },
       { status: 500 }
     );
   }

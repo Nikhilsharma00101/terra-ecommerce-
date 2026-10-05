@@ -57,15 +57,15 @@ export const Footer: React.FC = () => {
             <Truck size={20} className="text-[#DC143C] shrink-0" />
             <div>
               <h5 className="text-xs font-medium text-white uppercase tracking-wider">Express Dispatch</h5>
-              <p className="text-[10px] text-gray-500">Free delivery over ₹999</p>
+              <p className="text-[10px] text-gray-500">Free delivery Pan-India</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3.5 bg-[#1A1A1A] border border-[#333333] p-4 transition-colors hover:border-[#DC143C]">
             <ShieldCheck size={20} className="text-[#DC143C] shrink-0" />
             <div>
-              <h5 className="text-xs font-medium text-white uppercase tracking-wider">Risk-Free Trial</h5>
-              <p className="text-[10px] text-gray-500">30-day money-back policy</p>
+              <h5 className="text-xs font-medium text-white uppercase tracking-wider">Quality Guarantee</h5>
+              <p className="text-[10px] text-gray-500">100% authentic botanicals</p>
             </div>
           </div>
 

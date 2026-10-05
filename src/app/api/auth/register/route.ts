@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: 'Password must be at least 6 characters in length.' },
+        { error: 'Password must be at least 8 characters in length.' },
         { status: 400 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // SECURITY: Prevent manual registration of admin emails
     // If someone tries to register with an admin email, they must use Google Login to prove ownership
-    const adminEmails = ['nikhil18981@gmail.com', 'lavinlavi007@gmail.com'];
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || [];
     if (adminEmails.includes(email.toLowerCase().trim())) {
       return NextResponse.json(
         { error: 'An account with this email address already exists.' },
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: error.message || 'An error occurred during registration.' },
+      { error: 'An error occurred during registration.' },
       { status: 500 }
     );
   }

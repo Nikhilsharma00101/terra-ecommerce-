@@ -35,7 +35,7 @@ export const AnnouncementBar: React.FC = () => {
     },
     {
       id: 'guarantee',
-      text: '30-DAY SATISFACTION GUARANTEE',
+      text: '100% AUTHENTIC QUALITY',
       linkText: 'PROMISE',
       href: '/about',
     },

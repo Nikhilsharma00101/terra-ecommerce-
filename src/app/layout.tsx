@@ -34,17 +34,19 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.terramensco.com'),
   title: {
-    default: "TERRA MEN'S CO. | Because Men Deserve Better",
+    default: "TERRA MEN'S CO. | Premium Men's Face Wash & Beard Oil",
     template: "%s | TERRA MEN'S CO.",
   },
   description:
-    'Disciplined luxury grooming fundamentals for skin and beard. The Terra Method: Two steps. Nothing unnecessary. Featuring Terra Face Wash and Terra Beard Oil.',
+    'Discover disciplined luxury grooming fundamentals for men. Featuring the best men\'s face wash for clear skin and premium botanical beard oil for healthy growth. The Terra Method: Two steps. Nothing unnecessary.',
   keywords: [
     'Terra Mens Co',
     'luxury mens grooming',
     'mens skincare',
+    'best mens face wash',
+    'premium mens beard oil',
     'mens face wash',
-    'mens beard oil',
+    'beard oil',
     'the terra method',
     'salicylic acid face wash',
     'botanical beard oil',
@@ -61,9 +63,9 @@ export const metadata: Metadata = {
     apple: '/images/logo/logo-dark.png',
   },
   openGraph: {
-    title: "TERRA MEN'S CO. — Because Men Deserve Better",
+    title: "TERRA MEN'S CO. | Premium Men's Face Wash & Beard Oil",
     description:
-      'The foundational two-step grooming method for men. Cleanse. Nourish. Nothing unnecessary.',
+      'The foundational two-step grooming method for men. Experience our premium botanical beard oil and salicylic acid men\'s face wash. Cleanse. Nourish. Nothing unnecessary.',
     type: 'website',
     url: 'https://www.terramensco.com',
     siteName: "TERRA MEN'S CO.",
@@ -75,16 +77,16 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: 'image/jpeg',
-        alt: "TERRA MEN'S CO. — Because Men Deserve Better",
+        alt: "TERRA MEN'S CO. — Premium Men's Face Wash & Beard Oil",
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@terramensco',
-    title: "TERRA MEN'S CO. — Because Men Deserve Better",
+    title: "TERRA MEN'S CO. | Premium Men's Face Wash & Beard Oil",
     description:
-      'Disciplined luxury grooming fundamentals for skin and beard. Cleanse. Nourish. Nothing unnecessary.',
+      'Disciplined luxury grooming fundamentals for skin and beard. Experience the best men\'s face wash and beard oil. Cleanse. Nourish. Nothing unnecessary.',
     images: ['/images/og/og-image.jpeg'],
   },
   robots: {
@@ -154,6 +156,7 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${cormorant.variable} ${plusJakarta.variable} scroll-smooth`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>

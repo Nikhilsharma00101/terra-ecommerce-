@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || 'Info@terramensco.com',
+      from: '"Terra Men\'s Co." <' + (process.env.EMAIL_FROM || 'info@terramensco.com') + '>',
       to: user.email,
       subject: 'Terra Men\'s Co - Password Reset Request',
       html: `

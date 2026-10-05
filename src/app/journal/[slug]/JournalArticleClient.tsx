@@ -629,7 +629,7 @@ export function JournalArticleClient({ slug }: JournalArticleClientProps) {
                           Dermatologically Tested
                         </span>
                         <span>•</span>
-                        <span>Free Shipping Above ₹999</span>
+                        <span>Free Pan-India Shipping</span>
                       </div>
                     </div>
 

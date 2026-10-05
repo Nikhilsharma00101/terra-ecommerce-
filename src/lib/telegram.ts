@@ -25,6 +25,9 @@ export async function sendAdminTelegramNotification(orderData: any) {
 
     const orderDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
+    const email = orderData.customerEmail ? orderData.customerEmail.replace(/(.{2})(.*)(?=@)/, '$1***') : 'N/A';
+    const phone = orderData.customerPhone ? orderData.customerPhone.replace(/.(?=.{4})/g, '*') : 'N/A';
+
     // Format the message using HTML parse mode for better structure
     const message = `🎉 <b>NEW ORDER RECEIVED!</b> 🎉
 ━━━━━━━━━━━━━━━━━━━━
@@ -34,8 +37,8 @@ export async function sendAdminTelegramNotification(orderData: any) {
 👤 <b>CUSTOMER DETAILS</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Name:</b> ${orderData.customerName}
-<b>Email:</b> ${orderData.customerEmail || 'N/A'}
-<b>Phone:</b> ${orderData.customerPhone || 'N/A'}
+<b>Email:</b> ${email}
+<b>Phone:</b> ${phone}
 
 🛍️ <b>ORDER SUMMARY</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -54,7 +57,8 @@ ${itemsList}
 📍 <b>SHIPPING ADDRESS</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>${orderData.shippingAddress?.firstName || ''} ${orderData.shippingAddress?.lastName || ''}</b>
-${address}
+${orderData.shippingAddress?.city}, ${orderData.shippingAddress?.state || ''} - ${orderData.shippingAddress?.postalCode}
+[Full address redacted for privacy]
 `;
 
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;

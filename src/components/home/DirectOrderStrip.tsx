@@ -367,7 +367,7 @@ export const DirectOrderStrip: React.FC = () => {
         <div className="mt-5 pt-4 border-t border-[#EAE4D9] flex flex-wrap items-center justify-between gap-3 text-[10px] text-gray-500 font-medium tracking-wide">
           <span>✓ AUTHENTIC BOTANICAL FORMULATIONS</span>
           <span>✓ CASH ON DELIVERY &amp; INSTANT UPI ACCEPTED</span>
-          <span>✓ 30-DAY RISK-FREE SATISFACTION POLICY</span>
+          <span>✓ DERMATOLOGICALLY TESTED & QUALITY ASSURED</span>
         </div>
 
       </div>

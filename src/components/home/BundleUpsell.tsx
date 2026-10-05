@@ -173,12 +173,7 @@ export const BundleUpsell: React.FC = () => {
           {/* Right Side: The Hard Sell */}
           <div className="w-full lg:w-1/2 space-y-10">
             <div>
-              <div className="flex items-center gap-2 mb-4 text-[#DC143C]">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={16} className="fill-current" />
-                ))}
-                <span className="text-gray-400 text-xs ml-2 uppercase tracking-widest">Over 10,000+ Sets Sold</span>
-              </div>
+
               <h2 className="text-5xl sm:text-6xl font-serif text-white font-light leading-tight mb-4">
                 The Complete<br />Method.
               </h2>
