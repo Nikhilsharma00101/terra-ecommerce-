@@ -887,13 +887,26 @@ function AccountPageContent() {
                                   </p>
                                 </div>
 
-                                {/* Main Action */}
-                                <button
-                                  onClick={() => handleOpenOrderDetails(order)}
-                                  className="w-full md:w-auto px-6 py-2.5 rounded-full bg-[#181817] text-[#FFFFFF] text-[11px] uppercase tracking-widest font-bold hover:bg-[#3A6753] transition-colors shadow-sm whitespace-nowrap"
-                                >
-                                  View Details
-                                </button>
+                                {/* Main Actions */}
+                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                  {(order.awbCode || order.trackingNumber) && (
+                                    <a
+                                      href={`https://shiprocket.co/tracking/${order.awbCode || order.trackingNumber}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="w-full md:w-auto px-6 py-2.5 rounded-full bg-[#3A6753] text-[#FFFFFF] text-[11px] uppercase tracking-widest font-bold hover:bg-[#2c4f40] transition-colors shadow-sm whitespace-nowrap text-center flex items-center justify-center gap-2"
+                                    >
+                                      <Truck size={14} />
+                                      Track Order
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={() => handleOpenOrderDetails(order)}
+                                    className="w-full md:w-auto px-6 py-2.5 rounded-full bg-[#181817] text-[#FFFFFF] text-[11px] uppercase tracking-widest font-bold hover:bg-[#3A6753] transition-colors shadow-sm whitespace-nowrap"
+                                  >
+                                    View Details
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Order Card Footer */}

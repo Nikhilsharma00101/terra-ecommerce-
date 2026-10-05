@@ -180,20 +180,30 @@ export const OrderDetailsDrawer: React.FC<OrderDetailsDrawerProps> = ({
                 </div>
 
                 {/* Tracking Details if Dispatched */}
-                {activeStep >= 2 && trackingNumber && (
+                {activeStep >= 2 && ((order as any).awbCode || trackingNumber) && (
                   <div className="mt-8 pt-4 border-t border-[#E2E3DF] flex items-center justify-between">
                     <div>
                       <span className="text-[11px] uppercase tracking-widest text-[#77736C] font-semibold block mb-1">Carrier Tracking</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[14px] text-[#1A1C1A]">{trackingNumber}</span>
-                        <button onClick={handleCopyAWB} className="text-[#45464C] hover:text-[#3A6753] transition-colors" title="Copy AWB">
+                        <span className="font-mono text-[14px] text-[#1A1C1A]">{(order as any).awbCode || trackingNumber}</span>
+                        <button onClick={() => {
+                          navigator.clipboard.writeText((order as any).awbCode || trackingNumber);
+                          setCopied(true); setTimeout(() => setCopied(false), 2000);
+                        }} className="text-[#45464C] hover:text-[#3A6753] transition-colors" title="Copy AWB">
                           {copied ? <CheckCircle2 size={14} className="text-[#3A6753]" /> : <Copy size={14} />}
                         </button>
                       </div>
+                      {(order as any).courierName && (
+                        <div className="text-[11px] font-semibold text-[#1A1C1A] mt-1">Via {(order as any).courierName}</div>
+                      )}
                     </div>
-                    <button className="px-4 py-2 bg-[#F4F4F0] hover:bg-[#E2E3DF] rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 text-[#1A1C1A]">
+                    <a 
+                      href={`https://shiprocket.co/tracking/${(order as any).awbCode || trackingNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-[#F4F4F0] hover:bg-[#E2E3DF] rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 text-[#1A1C1A]">
                       Track <ExternalLink size={14} />
-                    </button>
+                    </a>
                   </div>
                 )}
               </div>

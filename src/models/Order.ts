@@ -42,6 +42,15 @@ export interface IOrder extends Document {
   updatedAt: Date;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  emailSent?: boolean;
+  shiprocketOrderId?: number;
+  shiprocketShipmentId?: number;
+  awbCode?: string;
+  courierName?: string;
+  courierId?: number;
+  shipmentStatus?: string;
+  estimatedDelivery?: Date;
+  labelUrl?: string;
 }
 
 const OrderItemSchema = new Schema<IOrderItem>(
@@ -86,6 +95,7 @@ const OrderSchema = new Schema<IOrder>(
       required: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
     customerName: {
       type: String,
@@ -149,6 +159,18 @@ const OrderSchema = new Schema<IOrder>(
     razorpayPaymentId: {
       type: String,
     },
+    emailSent: {
+      type: Boolean,
+      default: false,
+    },
+    shiprocketOrderId: { type: Number, index: true },
+    shiprocketShipmentId: { type: Number },
+    awbCode: { type: String, index: true },
+    courierName: { type: String },
+    courierId: { type: Number },
+    shipmentStatus: { type: String },
+    estimatedDelivery: { type: Date },
+    labelUrl: { type: String },
   },
   {
     timestamps: true,

@@ -2364,10 +2364,13 @@ export default function AdminPage() {
 
                                   <span className="text-[11px] text-[#77736C] flex items-center gap-1">
                                     <Calendar size={12} className="text-[#8C887B]" />
-                                    {new Date(ord.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN', {
+                                    {new Date(ord.createdAt || '2024-01-01T00:00:00.000Z').toLocaleString('en-IN', {
                                       day: 'numeric',
                                       month: 'short',
                                       year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
                                     })}
                                   </span>
 
@@ -2641,10 +2644,13 @@ export default function AdminPage() {
                                 #{ord.orderNumber}
                               </span>
                               <span className="text-[11px] text-[#77736C]">
-                                {new Date(ord.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN', {
+                                {new Date(ord.createdAt || '2024-01-01T00:00:00.000Z').toLocaleString('en-IN', {
                                   day: 'numeric',
                                   month: 'short',
                                   year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
                                 })}
                               </span>
                             </div>
@@ -2857,7 +2863,6 @@ export default function AdminPage() {
                               <span className="font-bold text-[#181817] block">{r.author}</span>
                               <div className="text-[10px] text-[#77736C]">
                                 {r.location && <span className="block mb-0.5">{r.location}</span>}
-                                {r.email}
                               </div>
                             </td>
                             <td className="p-4">
@@ -3753,7 +3758,7 @@ export default function AdminPage() {
                       {selectedOrder.customerName || 'Customer Order'}
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-[#57534E] mt-1 font-mono">
-                      <span>{new Date(selectedOrder.createdAt || '2024-01-01T00:00:00.000Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span>{new Date(selectedOrder.createdAt || '2024-01-01T00:00:00.000Z').toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                       <span>•</span>
                       <span>{selectedOrder.paymentMethod || 'Prepaid / UPI'}</span>
                     </div>
@@ -4218,23 +4223,33 @@ export default function AdminPage() {
 
                           {/* Shipment Tracking Details */}
                           <div className="bg-[#FAF8F5] border border-[#DDD8CF] p-5 space-y-3">
-                            <span className="text-xs uppercase font-bold text-[#2D4438] tracking-wider flex items-center gap-1.5">
-                              <Truck size={14} /> Logistics Information
-                            </span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs uppercase font-bold text-[#2D4438] tracking-wider flex items-center gap-1.5">
+                                <Truck size={14} /> Logistics Information
+                              </span>
+                            </div>
 
                             <div className="p-3 bg-[#F5F2EA] border border-[#DDD8CF] space-y-2 text-xs">
                               <div className="flex justify-between items-center">
                                 <span className="text-[#77736C]">Assigned Carrier:</span>
-                                <span className="font-bold text-[#181817]">Shiprocket</span>
+                                <span className="font-bold text-[#181817]">{selectedOrder.courierName || 'Shiprocket (Pending)'}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-[#77736C]">Tracking ID:</span>
-                                {selectedOrder.trackingNumber ? (
+                                <span className="text-[#77736C]">Shiprocket Order ID:</span>
+                                <span className="font-bold text-[#181817]">{selectedOrder.shiprocketOrderId ? `#${selectedOrder.shiprocketOrderId}` : 'Not Pushed'}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-[#77736C]">Shiprocket Shipment ID:</span>
+                                <span className="font-bold text-[#181817]">{selectedOrder.shiprocketShipmentId ? `#${selectedOrder.shiprocketShipmentId}` : 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between items-center border-t border-[#DDD8CF] pt-2 mt-2">
+                                <span className="text-[#77736C]">Tracking AWB:</span>
+                                {selectedOrder.awbCode || selectedOrder.trackingNumber ? (
                                   <div className="flex items-center gap-1.5 font-mono font-bold text-[#181817]">
-                                    <span>#{selectedOrder.trackingNumber}</span>
+                                    <span>#{selectedOrder.awbCode || selectedOrder.trackingNumber}</span>
                                     <button
                                       onClick={() =>
-                                        handleCopyText(selectedOrder.trackingNumber, 'modal_tracking_val')
+                                        handleCopyText(selectedOrder.awbCode || selectedOrder.trackingNumber || '', 'modal_tracking_val')
                                       }
                                       className="text-[#77736C] hover:text-[#181817]"
                                     >
@@ -4247,11 +4262,69 @@ export default function AdminPage() {
                                   </div>
                                 ) : (
                                   <span className="text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 text-[10px]">
-                                    Pending Dispatch
+                                    Pending AWB
                                   </span>
                                 )}
                               </div>
+                              {selectedOrder.labelUrl && (
+                                <div className="flex justify-between items-center mt-2">
+                                  <span className="text-[#77736C]">Shipping Label:</span>
+                                  <a href={selectedOrder.labelUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Download PDF</a>
+                                </div>
+                              )}
                             </div>
+
+                            {/* Shiprocket Admin Action Buttons */}
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/orders/${selectedOrder._id}/shiprocket`, {
+                                      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'push' })
+                                    });
+                                    if(res.ok) { alert('Successfully pushed to Shiprocket'); window.location.reload(); }
+                                    else { const err = await res.json(); alert('Error: ' + err.error); }
+                                  } catch (e) { alert('Request failed'); }
+                                }}
+                                disabled={!!selectedOrder.shiprocketOrderId}
+                                className={`py-2 text-[10px] font-bold uppercase tracking-wider border transition-colors ${selectedOrder.shiprocketOrderId ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-transparent' : 'bg-[#2D4438] text-white hover:bg-[#181817] border-transparent'}`}
+                              >
+                                {selectedOrder.shiprocketOrderId ? 'Already Pushed' : 'Push Order'}
+                              </button>
+
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/orders/${selectedOrder._id}/shiprocket`, {
+                                      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'assign_awb' })
+                                    });
+                                    if(res.ok) { alert('AWB assigned successfully'); window.location.reload(); }
+                                    else { const err = await res.json(); alert('Error: ' + err.error); }
+                                  } catch (e) { alert('Request failed'); }
+                                }}
+                                disabled={!selectedOrder.shiprocketShipmentId || !!selectedOrder.awbCode}
+                                className={`py-2 text-[10px] font-bold uppercase tracking-wider border transition-colors ${!selectedOrder.shiprocketShipmentId || !!selectedOrder.awbCode ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-transparent' : 'bg-transparent text-[#2D4438] border-[#2D4438] hover:bg-[#F5F2EA]'}`}
+                              >
+                                {selectedOrder.awbCode ? 'AWB Assigned' : 'Assign AWB'}
+                              </button>
+                            </div>
+                            
+                            {!selectedOrder.labelUrl && selectedOrder.awbCode && (
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/orders/${selectedOrder._id}/shiprocket`, {
+                                      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: 'generate_label' })
+                                    });
+                                    if(res.ok) { alert('Label Generated!'); window.location.reload(); }
+                                    else { const err = await res.json(); alert('Error: ' + err.error); }
+                                  } catch (e) { alert('Request failed'); }
+                                }}
+                                className="w-full py-2 text-[10px] font-bold uppercase tracking-wider border border-[#2D4438] text-[#2D4438] hover:bg-[#F5F2EA] transition-colors mt-2"
+                              >
+                                Generate Label
+                              </button>
+                            )}
                           </div>
 
                         </div>
@@ -4481,7 +4554,7 @@ export default function AdminPage() {
                         <div className="max-w-md space-y-1">
                           <p className="font-bold text-gray-800 uppercase">Declaration & Terms:</p>
                           <p>1. We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
-                          <p>2. Terra 100% Botanical Guarantee: Returns/replacements accepted within 7 days in original sealed condition.</p>
+                          <p>2. Due to the cosmetic nature of our products, we do not accept returns or exchanges.</p>
                           <p>3. This is an electronically generated and authenticated computer document.</p>
                         </div>
                         <div className="text-center p-3 border border-gray-300 min-w-56 bg-gray-50/50">
@@ -4700,7 +4773,7 @@ export default function AdminPage() {
                 <div className="max-w-md space-y-0.5">
                   <p className="font-bold text-black uppercase">Declaration:</p>
                   <p>1. We declare that this invoice shows the actual price of the goods described.</p>
-                  <p>2. Returns/replacements accepted within 7 days in original sealed condition.</p>
+                  <p>2. Due to the cosmetic nature of our products, we do not accept returns or exchanges.</p>
                   <p>3. This is a computer-generated invoice and requires no physical signature.</p>
                 </div>
                 <div className="text-center p-2.5 border border-gray-400 min-w-52">

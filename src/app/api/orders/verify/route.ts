@@ -7,6 +7,7 @@ import { getAuthUser } from '@/lib/auth';
 import nodemailer from 'nodemailer';
 import { generateOrderConfirmationHtml } from '@/lib/email/templates';
 import { sendAdminTelegramNotification } from '@/lib/telegram';
+import Razorpay from 'razorpay';
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
+    let order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
 
     if (!order) {
       return NextResponse.json(
@@ -87,12 +88,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    order.paymentStatus = 'Paid';
-    order.razorpayPaymentId = razorpay_payment_id;
-    await order.save();
+    // F-PAY-3: Verify the paid amount with Razorpay
+    try {
+      const razorpay = new Razorpay({
+        key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+      });
+      const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
+      const expectedAmount = Math.round(order.total * 100);
+      if (razorpayOrder.amount !== expectedAmount) {
+        console.error(`Amount mismatch for order ${order.orderNumber}. Expected ${expectedAmount}, got ${razorpayOrder.amount}`);
+        return NextResponse.json(
+          { error: 'Payment amount mismatch.', success: false },
+          { status: 400 }
+        );
+      }
+    } catch (rzpError) {
+      console.error('Failed to verify Razorpay order amount:', rzpError);
+      return NextResponse.json(
+        { error: 'Failed to verify payment with payment gateway.', success: false },
+        { status: 500 }
+      );
+    }
+
+    // Atomic update to avoid race conditions (F-PAY-2)
+    order = await Order.findOneAndUpdate(
+      { razorpayOrderId: razorpay_order_id, paymentStatus: 'Pending' },
+      { $set: { paymentStatus: 'Paid', razorpayPaymentId: razorpay_payment_id } },
+      { returnDocument: 'after' }
+    );
+
+    if (!order) {
+       // It means it was updated by webhook in the meantime
+       return NextResponse.json(
+         { message: 'Order is already marked as paid.', success: true },
+         { status: 200 }
+       );
+    }
 
     // Send Telegram Notification
     await sendAdminTelegramNotification(order);
+
+    // Push to Shiprocket (Idempotent)
+    if (!order.shiprocketOrderId) {
+      try {
+        const { shiprocket } = await import('@/lib/shiprocket');
+        const srResponse = await shiprocket.createOrder(order, 'Prepaid');
+        
+        if (srResponse && srResponse.order_id) {
+          await Order.updateOne(
+            { _id: order._id },
+            { 
+              $set: { 
+                shiprocketOrderId: srResponse.order_id,
+                shiprocketShipmentId: srResponse.shipment_id,
+                shipmentStatus: srResponse.status
+              } 
+            }
+          );
+        }
+      } catch (srError) {
+        console.error(`Shiprocket Integration Error for Prepaid (Verify) ${order.orderNumber}:`, srError);
+      }
+    }
 
     // Decrement stock for Razorpay order
     if (order.items && order.items.length > 0) {
@@ -102,7 +160,8 @@ export async function POST(req: NextRequest) {
             $or: [
               { _id: item.productId.length === 24 ? item.productId : null },
               { slug: item.productId }
-            ]
+            ],
+            stock: { $gte: item.quantity }
           },
           update: { $inc: { stock: -item.quantity } },
         },
@@ -119,48 +178,51 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Send confirmation email
-    try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || 465,
-        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      });
-
-      const mailOptions = {
-        from: process.env.EMAIL_FROM || 'Info@terramensco.com',
-        to: order.customerEmail,
-        subject: `Terra Men's Co - Payment Received for Order ${order.orderNumber}`,
-        html: generateOrderConfirmationHtml({
-          orderNumber: order.orderNumber,
-          customerName: order.customerName,
-          customerEmail: order.customerEmail,
-          items: order.items,
-          subtotal: order.subtotal,
-          discountAmount: order.discountAmount,
-          couponCode: order.couponCode,
-          shipping: order.shipping,
-          total: order.total,
-          shippingAddress: {
-            firstName: order.shippingAddress.firstName,
-            lastName: order.shippingAddress.lastName || '',
-            address1: order.shippingAddress.address1,
-            address2: order.shippingAddress.address2,
-            city: order.shippingAddress.city,
-            state: order.shippingAddress.state,
-            postalCode: order.shippingAddress.postalCode
+    // Send confirmation email if not already sent
+    if (!order.emailSent) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_SERVER_HOST,
+          port: Number(process.env.EMAIL_SERVER_PORT) || 465,
+          secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+          auth: {
+            user: process.env.EMAIL_SERVER_USER || 'Info@terramensco.com',
+            pass: process.env.EMAIL_SERVER_PASSWORD,
           },
-          paymentMethod: 'razorpay'
-        }, true),
-      };
+        });
 
-      await transporter.sendMail(mailOptions);
-    } catch (emailError) {
-      console.error('Failed to send payment confirmation email:', emailError);
+        const mailOptions = {
+          from: '"Terra Men\'s Co." <' + (process.env.EMAIL_FROM || 'info@terramensco.com') + '>',
+          to: order.customerEmail,
+          subject: `Terra Men's Co - Payment Received for Order ${order.orderNumber}`,
+          html: generateOrderConfirmationHtml({
+            orderNumber: order.orderNumber,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            items: order.items,
+            subtotal: order.subtotal,
+            discountAmount: order.discountAmount,
+            couponCode: order.couponCode,
+            shipping: order.shipping,
+            total: order.total,
+            shippingAddress: {
+              firstName: order.shippingAddress.firstName,
+              lastName: order.shippingAddress.lastName || '',
+              address1: order.shippingAddress.address1,
+              address2: order.shippingAddress.address2,
+              city: order.shippingAddress.city,
+              state: order.shippingAddress.state,
+              postalCode: order.shippingAddress.postalCode
+            },
+            paymentMethod: 'razorpay'
+          }, true),
+        };
+
+        await transporter.sendMail(mailOptions);
+        await Order.updateOne({ _id: order._id }, { $set: { emailSent: true } });
+      } catch (emailError) {
+        console.error('Failed to send payment confirmation email:', emailError);
+      }
     }
 
     return NextResponse.json(

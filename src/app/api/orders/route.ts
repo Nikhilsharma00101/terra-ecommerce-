@@ -139,6 +139,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+    if (!emailRegex.test(customerEmail.trim())) {
+      return NextResponse.json({ error: 'Invalid email format.' }, { status: 400 });
+    }
+
+    if (customerPhone) {
+      const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+      if (!phoneRegex.test(String(customerPhone).trim())) {
+        return NextResponse.json({ error: 'Invalid phone format.' }, { status: 400 });
+      }
+    }
+
     await connectToDatabase();
 
     // Check if user is logged in
@@ -200,8 +212,9 @@ export async function POST(req: NextRequest) {
     if (couponCode && typeof couponCode === 'string') {
       const code = couponCode.trim().toUpperCase();
       if (code === 'WELCOME10') {
+        const emailToCheck = authUser ? authUser.email.toLowerCase().trim() : customerEmail.toLowerCase().trim();
         const existingOrdersCount = await Order.countDocuments({
-          customerEmail: customerEmail.toLowerCase().trim()
+          customerEmail: emailToCheck
         });
         if (existingOrdersCount > 0) {
           return NextResponse.json(
@@ -240,23 +253,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // I-1: Idempotency check — prevent duplicate orders within 60s window
+    // I-1 (F-RACE-4): Strong idempotency check — prevent duplicate orders
+    const itemSignature = validatedItems.map(i => `${i.productId}:${i.quantity}`).sort().join('|');
     const recentDuplicate = await Order.findOne({
       customerEmail: customerEmail.toLowerCase().trim(),
       total: calculatedTotal,
-      createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+      createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // Look back 5 mins for safety
     });
-    if (recentDuplicate) {
-      return NextResponse.json(
-        {
-          message: 'Order already placed.',
-          orderNumber: recentDuplicate.orderNumber,
-          razorpayOrderId: recentDuplicate.razorpayOrderId || null,
-          amount: Math.round(recentDuplicate.total * 100),
-          currency: 'INR',
-        },
-        { status: 200 }
-      );
+
+    if (recentDuplicate && recentDuplicate.items) {
+      const duplicateItemSignature = recentDuplicate.items.map((i: any) => `${i.productId}:${i.quantity}`).sort().join('|');
+      if (itemSignature === duplicateItemSignature) {
+        return NextResponse.json(
+          {
+            message: 'Order already placed.',
+            orderNumber: recentDuplicate.orderNumber,
+            razorpayOrderId: recentDuplicate.razorpayOrderId || null,
+            amount: Math.round(recentDuplicate.total * 100),
+            currency: 'INR',
+          },
+          { status: 200 }
+        );
+      }
     }
 
     // M-4: COD fraud protection — limit pending COD orders
@@ -338,7 +356,8 @@ export async function POST(req: NextRequest) {
             $or: [
               { _id: item.productId.length === 24 ? item.productId : null },
               { slug: item.productId }
-            ]
+            ],
+            stock: { $gte: item.quantity }
           },
           update: { $inc: { stock: -item.quantity } },
         },
@@ -397,7 +416,7 @@ export async function POST(req: NextRequest) {
         });
 
         const mailOptions = {
-          from: process.env.EMAIL_FROM || 'Info@terramensco.com',
+          from: '"Terra Men\'s Co." <' + (process.env.EMAIL_FROM || 'info@terramensco.com') + '>',
           to: customerEmail.toLowerCase().trim(),
           subject: `Terra Men's Co - Order Confirmation ${orderNumber}`,
           html: generateOrderConfirmationHtml({
@@ -431,6 +450,22 @@ export async function POST(req: NextRequest) {
 
       // Send Telegram notification to Admin
       await sendAdminTelegramNotification(newOrder);
+
+      // Push COD order to Shiprocket
+      try {
+        const { shiprocket } = await import('@/lib/shiprocket');
+        const srResponse = await shiprocket.createOrder(newOrder, 'COD');
+        
+        if (srResponse && srResponse.order_id) {
+          newOrder.shiprocketOrderId = srResponse.order_id;
+          newOrder.shiprocketShipmentId = srResponse.shipment_id;
+          newOrder.shipmentStatus = srResponse.status;
+          await newOrder.save();
+        }
+      } catch (srError) {
+        console.error(`Shiprocket Integration Error for COD ${orderNumber}:`, srError);
+        // We do not throw here so the user still gets their order confirmation success page
+      }
     } // End if (paymentMethod === 'cod')
 
     return NextResponse.json(
