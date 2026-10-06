@@ -32,8 +32,12 @@ export async function GET(req: NextRequest) {
         query.status = status;
       }
     } else {
-      // Standard user can only see their own orders
-      query.$or = [{ userId: user.userId }, { customerEmail: user.email.toLowerCase() }];
+      // Standard user can only see their own orders (by ID, or by email if it was a guest checkout)
+      query.$or = [
+        { userId: user.userId },
+        { customerEmail: user.email.toLowerCase(), userId: { $exists: false } },
+        { customerEmail: user.email.toLowerCase(), userId: null }
+      ];
     }
 
     const orders = await Order.find(query).sort({ createdAt: -1 }).lean();
@@ -255,6 +259,11 @@ export async function POST(req: NextRequest) {
 
     // I-1 (F-RACE-4): Strong idempotency check — prevent duplicate orders
     const itemSignature = validatedItems.map(i => `${i.productId}:${i.quantity}`).sort().join('|');
+    
+    // We add a short time window to the hash so they can order the same thing again after 5 mins
+    const timeWindow = Math.floor(Date.now() / (5 * 60 * 1000));
+    const idempotencyHash = crypto.createHash('sha256').update(`${customerEmail.toLowerCase().trim()}|${itemSignature}|${calculatedTotal}|${timeWindow}`).digest('hex');
+
     const recentDuplicate = await Order.findOne({
       customerEmail: customerEmail.toLowerCase().trim(),
       total: calculatedTotal,
@@ -318,8 +327,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newOrder = await Order.create({
-      orderNumber,
+    let newOrder;
+    try {
+      newOrder = await Order.create({
+        orderNumber,
       userId: authUser?.userId ? authUser.userId : undefined,
       customerEmail: customerEmail.toLowerCase().trim(),
       customerName: customerName.trim(),
@@ -344,34 +355,66 @@ export async function POST(req: NextRequest) {
         postalCode: shippingAddress.postalCode,
         country: shippingAddress.country || 'India',
       },
+      idempotencyKey: idempotencyHash,
     });
+    } catch (dbError: any) {
+      if (dbError.code === 11000 && dbError.keyPattern && dbError.keyPattern.idempotencyKey) {
+        const existingOrder = await Order.findOne({ idempotencyKey: idempotencyHash });
+        if (existingOrder) {
+          return NextResponse.json({
+            message: 'Order already placed.',
+            orderNumber: existingOrder.orderNumber,
+            razorpayOrderId: existingOrder.razorpayOrderId || null,
+            amount: Math.round(existingOrder.total * 100),
+            currency: 'INR',
+          }, { status: 200 });
+        }
+      }
+      throw dbError;
+    }
 
     let razorpayOrderId = null;
 
     // For COD, decrement stock immediately. For Razorpay, stock is decremented upon payment verification.
     if (paymentMethod === 'cod') {
-      const bulkOperations = validatedItems.map((item) => ({
-        updateOne: {
-          filter: {
-            $or: [
-              { _id: item.productId.length === 24 ? item.productId : null },
-              { slug: item.productId }
-            ],
-            stock: { $gte: item.quantity }
-          },
-          update: { $inc: { stock: -item.quantity } },
-        },
-      }));
-
-      // Clean up invalid object ids from filter just to be safe
-      bulkOperations.forEach(op => {
-        if (!op.updateOne.filter.$or[0]._id) {
-          op.updateOne.filter.$or.shift();
+      let stockDeductionSuccess = true;
+      const deductedItems = [];
+      for (const item of validatedItems) {
+        let filter: any = { stock: { $gte: item.quantity } };
+        if (item.productId.length === 24) {
+          filter.$or = [{ _id: item.productId }, { slug: item.productId }];
+        } else {
+          filter.slug = item.productId;
         }
-      });
 
-      if (bulkOperations.length > 0) {
-        await Product.bulkWrite(bulkOperations);
+        const updatedProduct = await Product.findOneAndUpdate(
+          filter,
+          { $inc: { stock: -item.quantity } }
+        );
+        
+        if (updatedProduct) {
+          deductedItems.push(item);
+        } else {
+          stockDeductionSuccess = false;
+          break;
+        }
+      }
+
+      if (!stockDeductionSuccess) {
+        for (const item of deductedItems) {
+          let filter: any = {};
+          if (item.productId.length === 24) {
+            filter.$or = [{ _id: item.productId }, { slug: item.productId }];
+          } else {
+            filter.slug = item.productId;
+          }
+          await Product.updateOne(filter, { $inc: { stock: item.quantity } });
+        }
+        await Order.findByIdAndDelete(newOrder._id);
+        return NextResponse.json(
+          { error: 'One or more items in your cart just went out of stock. Please review your cart.' },
+          { status: 400 }
+        );
       }
     }
 
@@ -442,29 +485,35 @@ export async function POST(req: NextRequest) {
           }, false),
         };
 
-        await transporter.sendMail(mailOptions);
+        const emailPromise = transporter.sendMail(mailOptions).catch(err => {
+          console.error('Failed to send order confirmation email:', err);
+        });
+
+        const telegramPromise = sendAdminTelegramNotification(newOrder).catch(err => {
+          console.error('Failed to send Telegram notification:', err);
+        });
+
+        const shiprocketPromise = (async () => {
+          try {
+            const { shiprocket } = await import('@/lib/shiprocket');
+            const srResponse = await shiprocket.createOrder(newOrder, 'COD');
+            
+            if (srResponse && srResponse.order_id) {
+              newOrder.shiprocketOrderId = srResponse.order_id;
+              newOrder.shiprocketShipmentId = srResponse.shipment_id;
+              newOrder.shipmentStatus = srResponse.status;
+              await newOrder.save();
+            }
+          } catch (srError) {
+            console.error(`Shiprocket Integration Error for COD ${orderNumber}:`, srError);
+          }
+        })();
+
+        // Run all three third-party network requests in parallel to drastically speed up checkout time!
+        await Promise.allSettled([emailPromise, telegramPromise, shiprocketPromise]);
+
       } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
-        // We deliberately do not throw here, so the order still successfully completes for the user.
-      }
-
-      // Send Telegram notification to Admin
-      await sendAdminTelegramNotification(newOrder);
-
-      // Push COD order to Shiprocket
-      try {
-        const { shiprocket } = await import('@/lib/shiprocket');
-        const srResponse = await shiprocket.createOrder(newOrder, 'COD');
-        
-        if (srResponse && srResponse.order_id) {
-          newOrder.shiprocketOrderId = srResponse.order_id;
-          newOrder.shiprocketShipmentId = srResponse.shipment_id;
-          newOrder.shipmentStatus = srResponse.status;
-          await newOrder.save();
-        }
-      } catch (srError) {
-        console.error(`Shiprocket Integration Error for COD ${orderNumber}:`, srError);
-        // We do not throw here so the user still gets their order confirmation success page
+        console.error('Failed to prepare email options:', emailError);
       }
     } // End if (paymentMethod === 'cod')
 
