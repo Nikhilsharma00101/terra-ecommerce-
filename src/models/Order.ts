@@ -32,7 +32,7 @@ export interface IOrder extends Document {
   tax: number;
   total: number;
   status: 'Confirmation' | 'Packed' | 'Dispatched' | 'Out for delivery' | 'Delivered' | 'Cancelled';
-  paymentStatus: 'Pending' | 'Paid' | 'Failed';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed' | 'Refunded';
   paymentMethod: string;
   shippingAddress: IOrderAddress;
   trackingNumber?: string;
@@ -51,6 +51,8 @@ export interface IOrder extends Document {
   shipmentStatus?: string;
   estimatedDelivery?: Date;
   labelUrl?: string;
+  shiprocketPushInitiated?: boolean;
+  idempotencyKey?: string;
 }
 
 const OrderItemSchema = new Schema<IOrderItem>(
@@ -131,7 +133,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed'],
+      enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
       default: 'Pending',
     },
     paymentMethod: {
@@ -171,6 +173,8 @@ const OrderSchema = new Schema<IOrder>(
     shipmentStatus: { type: String },
     estimatedDelivery: { type: Date },
     labelUrl: { type: String },
+    shiprocketPushInitiated: { type: Boolean, default: false },
+    idempotencyKey: { type: String, unique: true, sparse: true },
   },
   {
     timestamps: true,

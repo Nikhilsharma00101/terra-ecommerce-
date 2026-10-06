@@ -221,7 +221,7 @@ export default function CheckoutPage() {
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    if (!formData.phone || formData.phone.replace(/\D/g, '').length < 10) {
+    if (!formData.phone || formData.phone.replace(/\D/g, '').length !== 10) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
@@ -256,6 +256,11 @@ export default function CheckoutPage() {
   // Order submission
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateStep1()) {
+      alert("Please double-check your shipping details. Some fields are missing or invalid.");
+      return;
+    }
+    
     setIsProcessing(true);
 
     try {
@@ -353,6 +358,7 @@ export default function CheckoutPage() {
               if (verifyRes.ok) {
                 localStorage.setItem('terra_has_ordered', 'true');
                 clearCart();
+                setIsVerifying(false); // Instantly remove loader before navigation compiles
                 router.push(`/checkout/success?order=${orderNumber}&total=${total}`);
               } else {
                 const verifyData = await verifyRes.json();

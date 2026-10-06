@@ -72,8 +72,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const validTransitions: Record<string, string[]> = {
       'Confirmation': ['Packed', 'Cancelled'],
       'Packed': ['Dispatched', 'Cancelled'],
-      'Dispatched': ['Out for delivery', 'Cancelled'],
-      'Out for delivery': ['Delivered', 'Cancelled'],
+      'Dispatched': ['Out for delivery'], // Cannot be cancelled once shipped
+      'Out for delivery': ['Delivered'], // Cannot be cancelled once shipped
       'Delivered': [], // Can't cancel once delivered
       'Cancelled': [],
     };
@@ -81,6 +81,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (status && order.status !== status) {
       const allowedNextStates = validTransitions[order.status] || [];
       if (!allowedNextStates.includes(status)) {
+        if (status === 'Cancelled' && (order.status === 'Dispatched' || order.status === 'Out for delivery')) {
+          return NextResponse.json(
+            { error: 'Orders that have already been shipped cannot be cancelled. Please process this as an RTO/Return.' },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
           { error: `Invalid status transition from ${order.status} to ${status}` },
           { status: 400 }
@@ -93,13 +99,17 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (trackingNumber !== undefined) updateFields.trackingNumber = trackingNumber;
     if (paymentStatus) updateFields.paymentStatus = paymentStatus;
 
-    const updated = await Order.findOneAndUpdate(query, updateFields, {
+    const queryWithLock = { ...query, status: order.status };
+    const updated = await Order.findOneAndUpdate(queryWithLock, updateFields, {
       returnDocument: 'after',
       runValidators: true,
     });
 
     if (!updated) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      // If it fails with the lock, it means the order state changed concurrently
+      const currentOrder = await Order.findOne(query);
+      if (!currentOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Order status was modified by another request. Please refresh and try again.' }, { status: 409 });
     }
 
     // F-INV-1: Restore stock on order cancellation
@@ -135,6 +145,22 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           await shiprocket.cancelOrder([order.shiprocketOrderId]);
         } catch (srError) {
           console.error('Failed to cancel Shiprocket order:', srError);
+        }
+      }
+
+      // F-PAY-4: Process Razorpay Refund
+      if (order.paymentStatus === 'Paid' && order.razorpayPaymentId) {
+        try {
+          const Razorpay = (await import('razorpay')).default;
+          const razorpay = new Razorpay({
+            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+            key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+          });
+          await razorpay.payments.refund(order.razorpayPaymentId, { amount: Math.round(order.total * 100) });
+          updated.paymentStatus = 'Refunded';
+          await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Refunded' } });
+        } catch (refundError) {
+          console.error('Failed to process Razorpay refund on cancellation:', refundError);
         }
       }
     }

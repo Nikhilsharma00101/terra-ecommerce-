@@ -1,0 +1,1303 @@
+You are a senior e-commerce backend engineer, payment systems engineer, logistics integration engineer, and application security auditor.
+
+I want you to perform a COMPLETE END-TO-END AUDIT of the Shiprocket shipping/logistics workflow implemented in this website.
+
+DO NOT assume that the current implementation is correct.
+
+Your job is to inspect the ACTUAL CODEBASE, understand how the entire order → payment → Shiprocket → shipment → tracking → delivery/cancellation/refund lifecycle works, identify every possible bug and edge case, and then safely fix the issues you find.
+
+This is a production e-commerce system, so prioritize:
+
+1. Correctness
+2. Data consistency
+3. Payment/shipping state consistency
+4. Prevention of duplicate shipments/orders
+5. Webhook reliability
+6. Security
+7. Idempotency
+8. Failure recovery
+9. Customer experience
+10. Admin visibility
+11. Inventory correctness
+12. No silent failures
+
+IMPORTANT:
+
+* Do NOT blindly rewrite working code.
+* Do NOT change business logic unnecessarily.
+* First understand the existing architecture.
+* Trace the actual execution flow through the codebase.
+* Identify problems before modifying anything.
+* Preserve existing UI/UX unless a change is necessary for correctness.
+* Never expose or hardcode API keys, secrets, Shiprocket credentials, payment credentials, database credentials, or environment variables.
+* Do not use real customer/payment/shipping data for testing.
+* Do not make destructive production API calls.
+* If a test requires Shiprocket API interaction, use sandbox/test credentials or mock the external API.
+* Never create real shipments merely for testing.
+* Never cancel/refund real orders during testing.
+* Before making major architectural changes, explain why they are necessary.
+
+==================================================
+PHASE 1 — UNDERSTAND THE ENTIRE ARCHITECTURE
+============================================
+
+First inspect the complete codebase.
+
+Identify:
+
+* Framework
+* Frontend architecture
+* Backend/API architecture
+* Database
+* Authentication
+* Authorization
+* Payment gateway
+* Shiprocket integration
+* Order model/schema
+* User model/schema
+* Product model/schema
+* Inventory system
+* Cart system
+* Checkout system
+* Admin system
+* Webhook endpoints
+* Background jobs/cron jobs
+* Email/SMS/notification systems
+* Environment variables
+* Middleware
+* Rate limiting
+* Logging
+* Error handling
+* Retry mechanisms
+
+Locate every file related to:
+
+* Shiprocket
+* shipment
+* shipping
+* courier
+* tracking
+* delivery
+* order
+* checkout
+* payment
+* Razorpay/payment gateway
+* webhook
+* cancellation
+* refund
+* return
+* inventory
+* admin orders
+* customer orders
+
+Create a mental map of the architecture before changing anything.
+
+==================================================
+PHASE 2 — TRACE THE COMPLETE ORDER LIFECYCLE
+============================================
+
+Trace the complete lifecycle from the moment a customer adds a product to cart until the shipment is delivered.
+
+Verify this exact flow:
+
+CUSTOMER
+↓
+PRODUCT
+↓
+CART
+↓
+CHECKOUT
+↓
+ADDRESS
+↓
+ORDER CREATION
+↓
+PAYMENT
+↓
+PAYMENT VERIFICATION
+↓
+ORDER CONFIRMATION
+↓
+INVENTORY RESERVATION / DEDUCTION
+↓
+SHIPROCKET ORDER CREATION
+↓
+SHIPMENT CREATION
+↓
+AWB / COURIER ASSIGNMENT
+↓
+PICKUP SCHEDULE
+↓
+IN TRANSIT
+↓
+OUT FOR DELIVERY
+↓
+DELIVERED
+
+Also trace alternative flows:
+
+CUSTOMER
+↓
+CHECKOUT
+↓
+PAYMENT FAILURE
+↓
+ORDER STATE
+
+CUSTOMER
+↓
+CHECKOUT
+↓
+PAYMENT SUCCESS
+↓
+SHIPROCKET FAILURE
+
+CUSTOMER
+↓
+CHECKOUT
+↓
+ORDER CREATED
+↓
+PAYMENT SUCCESS
+↓
+SHIPROCKET ORDER CREATED
+↓
+AWB FAILURE
+
+CUSTOMER
+↓
+CHECKOUT
+↓
+PAYMENT SUCCESS
+↓
+SHIPMENT CREATED
+↓
+WEBHOOK FAILURE
+
+CUSTOMER
+↓
+ORDER
+↓
+CANCELLATION
+↓
+REFUND
+
+CUSTOMER
+↓
+ORDER
+↓
+SHIPMENT
+↓
+DELIVERY FAILURE
+↓
+RTO
+
+CUSTOMER
+↓
+ORDER
+↓
+RETURN REQUEST
+↓
+RETURN SHIPMENT
+↓
+REFUND
+
+Verify every transition.
+
+==================================================
+PHASE 3 — ORDER STATE MACHINE AUDIT
+===================================
+
+Determine exactly what statuses exist in the system.
+
+For example:
+
+* pending
+* payment_pending
+* paid
+* payment_failed
+* confirmed
+* processing
+* shipment_pending
+* shipment_created
+* shipped
+* in_transit
+* out_for_delivery
+* delivered
+* cancelled
+* refund_pending
+* refunded
+* returned
+* rto
+* failed
+
+Do not assume these are the actual statuses.
+
+Inspect the actual implementation.
+
+Then determine whether illegal state transitions are possible.
+
+For example:
+
+* delivered → cancelled
+* cancelled → shipped
+* payment_failed → shipped
+* unpaid → delivered
+* refunded → shipped
+* shipment_created → shipment_created again
+* delivered → payment_pending
+
+Prevent invalid transitions.
+
+Create a clear state transition model.
+
+If the existing implementation uses loosely controlled strings, determine whether this can cause bugs.
+
+==================================================
+PHASE 4 — SHIPROCKET ORDER CREATION AUDIT
+=========================================
+
+Inspect exactly how the website creates a Shiprocket order.
+
+Verify:
+
+* Customer name
+* Customer email
+* Customer phone
+* Billing address
+* Shipping address
+* City
+* State
+* Country
+* Pincode
+* Product name
+* SKU
+* Quantity
+* Price
+* Tax
+* Discount
+* Weight
+* Dimensions
+* Order ID
+* Order date
+* Payment method
+* COD/prepaid classification
+
+Verify that data sent to Shiprocket exactly corresponds to the internal order.
+
+Look for:
+
+* Missing fields
+* Wrong field mapping
+* Incorrect quantities
+* Incorrect prices
+* Floating-point problems
+* Incorrect total amount
+* Wrong COD amount
+* Incorrect pincode
+* Invalid phone number
+* Invalid state/city
+* Missing SKU
+* Zero/negative quantity
+* Zero/negative price
+* Invalid weight
+* Invalid dimensions
+
+Check whether customer-controlled values can directly manipulate Shiprocket payloads.
+
+==================================================
+PHASE 5 — DUPLICATE SHIPMENT / DUPLICATE ORDER PROTECTION
+=========================================================
+
+This is extremely important.
+
+Determine whether the same internal order can accidentally create multiple Shiprocket orders or shipments.
+
+Test scenarios such as:
+
+1. User double-clicks checkout.
+2. User refreshes checkout.
+3. User retries after timeout.
+4. Browser sends duplicate request.
+5. Network request succeeds but response is lost.
+6. Server times out after Shiprocket successfully creates the order.
+7. User opens checkout in two tabs.
+8. Admin clicks "Create Shipment" twice.
+9. Webhook is delivered twice.
+10. Background job retries.
+11. API request is retried automatically.
+12. Server restarts during processing.
+
+Ensure idempotency.
+
+There should be a reliable mechanism preventing:
+
+* Duplicate internal orders
+* Duplicate Shiprocket orders
+* Duplicate shipments
+* Duplicate AWBs
+* Duplicate inventory deduction
+* Duplicate payment processing
+
+Use idempotency keys / unique constraints / database transactions where appropriate.
+
+Do not rely only on frontend button disabling.
+
+==================================================
+PHASE 6 — PAYMENT + SHIPROCKET CONSISTENCY
+==========================================
+
+Audit the interaction between the payment gateway and Shiprocket.
+
+Verify that:
+
+* Payment is genuinely verified server-side.
+* Frontend payment success cannot be trusted.
+* Payment amount is verified.
+* Payment currency is verified where applicable.
+* Payment/order IDs are validated.
+* Signature verification is performed correctly.
+* Payment status comes from the gateway/server, not merely frontend input.
+* Unpaid orders cannot accidentally be shipped.
+* Failed payments cannot trigger shipment.
+* Cancelled payments cannot trigger shipment.
+
+Test:
+
+PAYMENT SUCCESS + SHIPROCKET SUCCESS
+
+PAYMENT SUCCESS + SHIPROCKET FAILURE
+
+PAYMENT FAILURE + SHIPROCKET SUCCESS
+
+PAYMENT TIMEOUT
+
+PAYMENT WEBHOOK DELAY
+
+PAYMENT WEBHOOK DUPLICATE
+
+PAYMENT SUCCESS BUT USER CLOSES BROWSER
+
+PAYMENT SUCCESS BUT SERVER CRASHES BEFORE ORDER UPDATE
+
+PAYMENT SUCCESS BUT DATABASE UPDATE FAILS
+
+SHIPROCKET SUCCESS BUT DATABASE UPDATE FAILS
+
+SHIPROCKET TIMEOUT AFTER SUCCESS
+
+For every scenario, determine the correct recovery mechanism.
+
+==================================================
+PHASE 7 — COD AUDIT
+===================
+
+If COD exists, thoroughly audit it.
+
+Verify:
+
+* COD orders are correctly identified.
+* COD amount is correct.
+* Discounts are correctly reflected.
+* Shipping charges are correctly reflected.
+* COD amount cannot be manipulated from frontend.
+* COD orders cannot accidentally be treated as prepaid.
+* COD amount matches internal order total.
+* Shiprocket receives correct COD information.
+* Cancellation works correctly.
+* RTO handling does not incorrectly mark the order delivered.
+* Inventory is handled correctly after RTO.
+
+Test:
+
+COD order
+
+COD order with discount
+
+COD order with shipping charge
+
+COD order cancellation
+
+COD shipment failure
+
+COD RTO
+
+COD partial/failed delivery if supported
+
+==================================================
+PHASE 8 — SHIPROCKET AUTHENTICATION & TOKEN MANAGEMENT
+======================================================
+
+Inspect how Shiprocket authentication works.
+
+Check:
+
+* Token generation
+* Token storage
+* Token expiration
+* Token refresh
+* Concurrent token requests
+* Failed authentication
+* Invalid credentials
+* Expired token
+* Token caching
+* Race conditions
+* Server restarts
+
+Ensure:
+
+* Credentials never reach the frontend.
+* Tokens are never exposed in API responses.
+* Tokens are not logged.
+* Secrets are never committed to Git.
+* Errors do not leak credentials.
+* Token refresh does not create excessive authentication requests.
+
+Check environment-variable handling carefully.
+
+==================================================
+PHASE 9 — SHIPROCKET API ERROR HANDLING
+=======================================
+
+Inspect every Shiprocket API request.
+
+For each request determine:
+
+* Timeout behavior
+* HTTP error handling
+* JSON parsing failures
+* Rate-limit handling
+* 400 errors
+* 401 errors
+* 403 errors
+* 404 errors
+* 409 errors
+* 422 errors
+* 429 errors
+* 500 errors
+* 502 errors
+* 503 errors
+* Network failures
+* DNS failures
+* Connection timeout
+* Response timeout
+* Malformed response
+* Unexpected response schema
+
+Ensure the system does not interpret an API failure as success.
+
+Pay special attention to:
+
+"Request timed out"
+
+because a timeout does NOT necessarily mean Shiprocket did not process the request.
+
+Determine how the system safely reconciles uncertain outcomes.
+
+==================================================
+PHASE 10 — RETRY & IDEMPOTENCY
+==============================
+
+Audit every retry mechanism.
+
+Retries must NOT create duplicate:
+
+* Orders
+* Shipments
+* AWBs
+* Inventory deductions
+* Refunds
+* Notifications
+
+Determine whether exponential backoff is appropriate.
+
+Avoid infinite retries.
+
+Handle:
+
+* transient errors
+* permanent errors
+* rate limiting
+* authentication errors
+* validation errors
+
+Use idempotent operations wherever possible.
+
+==================================================
+PHASE 11 — WEBHOOK SECURITY AUDIT
+=================================
+
+Find every Shiprocket webhook endpoint.
+
+Inspect:
+
+* Authentication
+* Signature verification
+* Secret validation
+* IP restrictions if applicable
+* Request validation
+* Payload validation
+* Replay protection
+* Idempotency
+* Duplicate webhook handling
+* Out-of-order webhook handling
+* Logging
+
+Assume an attacker can send a fake webhook.
+
+Determine whether someone could manually send a request such as:
+
+"DELIVERED"
+
+and cause the internal database to mark an order as delivered.
+
+This MUST NOT be possible.
+
+Validate webhook authenticity before changing order state.
+
+==================================================
+PHASE 12 — WEBHOOK EDGE CASES
+=============================
+
+Test:
+
+Webhook arrives once.
+
+Webhook arrives twice.
+
+Webhook arrives 10 times.
+
+Webhook arrives out of order.
+
+Example:
+
+DELIVERED
+then
+IN_TRANSIT
+
+The system must not incorrectly move the order backward.
+
+Test:
+
+OUT_FOR_DELIVERY
+then
+DELIVERED
+
+DELIVERED
+then
+RTO
+
+RTO
+then
+DELIVERED
+
+CANCELLED
+then
+DELIVERED
+
+Determine which transitions are valid according to the business rules and Shiprocket lifecycle.
+
+Webhook processing should be idempotent.
+
+==================================================
+PHASE 13 — WEBHOOK FAILURE RECOVERY
+===================================
+
+Determine what happens if:
+
+* Database is down.
+* Database update fails.
+* Webhook endpoint crashes.
+* Application restarts.
+* Webhook payload is malformed.
+* Webhook processing takes too long.
+* Shiprocket retries webhook.
+* Multiple webhooks arrive simultaneously.
+
+Do not perform slow operations before acknowledging a webhook if the architecture requires fast acknowledgement.
+
+If appropriate, use:
+
+Webhook
+→ validate
+→ store event
+→ acknowledge
+→ process asynchronously
+
+But only introduce this architecture if it fits the existing stack.
+
+==================================================
+PHASE 14 — TRACKING SYSTEM AUDIT
+================================
+
+Inspect how tracking information is obtained and displayed.
+
+Verify:
+
+* Tracking number
+* AWB
+* Courier name
+* Current status
+* Tracking history
+* Last updated timestamp
+* Estimated delivery date
+* Shipment status
+
+Check whether tracking data can become stale.
+
+Check caching.
+
+Check whether customers can see another customer's shipment.
+
+Check authorization on every tracking endpoint.
+
+Attempt to access another order by changing:
+
+* order ID
+* user ID
+* shipment ID
+* AWB
+
+Ensure IDOR/BOLA vulnerabilities do not exist.
+
+==================================================
+PHASE 15 — CUSTOMER ACCOUNT SECURITY
+====================================
+
+Audit:
+
+/account
+/orders
+/order/[id]
+/tracking/[id]
+
+and every relevant API route.
+
+Ensure a logged-in customer can ONLY access their own:
+
+* orders
+* addresses
+* tracking
+* invoices
+* shipment information
+* payment information
+
+Never trust:
+
+userId
+customerId
+email
+orderId
+
+from the frontend.
+
+Derive ownership from authenticated server-side identity.
+
+==================================================
+PHASE 16 — ADMIN SECURITY
+=========================
+
+Audit all admin shipping operations.
+
+Check:
+
+* Authentication
+* Authorization
+* Role validation
+* Admin-only routes
+* Shipment creation
+* Shipment cancellation
+* AWB assignment
+* Tracking refresh
+* Order status modification
+* Refund operations
+
+Ensure normal users cannot call admin APIs directly.
+
+Do not rely on hidden buttons or frontend routes for security.
+
+==================================================
+PHASE 17 — INVENTORY CONSISTENCY
+================================
+
+Audit inventory behavior throughout:
+
+ORDER CREATED
+PAYMENT SUCCESS
+SHIPMENT CREATED
+CANCELLED
+PAYMENT FAILED
+REFUNDED
+RTO
+RETURNED
+
+Determine exactly when stock is:
+
+* reserved
+* deducted
+* restored
+
+Test concurrent purchases of the final unit.
+
+Example:
+
+Stock = 1
+
+Customer A purchases product.
+
+Customer B purchases product simultaneously.
+
+Ensure both cannot successfully purchase the same unit unless overselling is intentionally supported.
+
+Check race conditions and database atomicity.
+
+==================================================
+PHASE 18 — ORDER CANCELLATION
+=============================
+
+Audit cancellation before:
+
+* payment
+* payment success
+* shipment creation
+* AWB generation
+* pickup
+* in transit
+* out for delivery
+* delivered
+
+Determine which states are cancellable.
+
+Verify that cancellation:
+
+* updates internal state correctly
+* cancels shipment when necessary
+* handles Shiprocket cancellation failure
+* handles payment refund
+* restores inventory where appropriate
+* prevents further shipment
+* prevents duplicate refunds
+
+==================================================
+PHASE 19 — REFUND CONSISTENCY
+=============================
+
+Audit refunds carefully.
+
+Check:
+
+* Duplicate refund requests
+* Partial refunds if supported
+* Full refunds
+* Refund after cancellation
+* Refund after shipment
+* Refund after RTO
+* Payment gateway refund failure
+* Refund timeout
+* Refund success but local DB failure
+
+Never allow:
+
+REFUNDED → REFUNDED AGAIN
+
+unless the payment provider explicitly supports the operation safely.
+
+Use idempotency and provider-side verification.
+
+==================================================
+PHASE 20 — RETURN / RTO WORKFLOW
+================================
+
+If returns/RTO are supported, inspect the entire lifecycle.
+
+Audit:
+
+* Return request
+* Return approval
+* Reverse pickup
+* Return shipment
+* RTO
+* Product received
+* Inventory restoration
+* Refund
+
+Handle cases where:
+
+* customer refuses delivery
+* address is unreachable
+* customer unavailable
+* shipment is lost
+* shipment is damaged
+* courier fails pickup
+* shipment gets returned
+* tracking updates stop
+* RTO happens without expected webhook
+
+==================================================
+PHASE 21 — ADDRESS EDGE CASES
+=============================
+
+Test:
+
+* Missing address
+* Very long address
+* Special characters
+* Hindi/non-English address
+* Invalid pincode
+* Valid pincode but unsupported location
+* Wrong city
+* Wrong state
+* Phone number formatting
+* International-looking phone numbers
+* Apartment/building numbers
+* Empty address fields
+* Extremely long address fields
+* HTML/script injection attempts
+
+Ensure the frontend validation is NOT the only validation.
+
+Validate again server-side.
+
+==================================================
+PHASE 22 — PRICE MANIPULATION
+=============================
+
+Assume the customer is malicious.
+
+Try modifying:
+
+* product price
+* quantity
+* discount
+* shipping charge
+* tax
+* total
+* COD amount
+* product ID
+* SKU
+
+from browser developer tools or manually crafted API requests.
+
+The server must calculate authoritative totals.
+
+Never trust:
+
+price
+total
+discount
+shipping
+tax
+
+sent by the client.
+
+==================================================
+PHASE 23 — CONCURRENCY TESTING
+==============================
+
+Test simultaneous requests.
+
+Examples:
+
+Two checkout requests.
+
+Two payment verification requests.
+
+Two shipment creation requests.
+
+Two cancellation requests.
+
+Two refund requests.
+
+Two webhook events.
+
+Two admin shipment creation requests.
+
+Two users buying the last item.
+
+Identify race conditions.
+
+Use:
+
+* database transactions
+* unique indexes
+* atomic updates
+* idempotency keys
+* locking where necessary
+
+where appropriate.
+
+==================================================
+PHASE 24 — DATABASE CONSISTENCY
+===============================
+
+Inspect all database writes involved in:
+
+Order
+Payment
+Shipment
+Tracking
+Inventory
+Refund
+Cancellation
+
+Find situations where:
+
+Operation A succeeds
+Operation B fails
+
+and leaves inconsistent data.
+
+Examples:
+
+Shiprocket shipment created
+BUT database says shipment pending.
+
+Payment successful
+BUT order says unpaid.
+
+Inventory deducted
+BUT order creation fails.
+
+Refund successful
+BUT database says refund pending.
+
+Shipment cancelled
+BUT database says shipped.
+
+For each situation, determine a recovery strategy.
+
+==================================================
+PHASE 25 — FRONTEND EDGE CASES
+==============================
+
+Audit:
+
+* double-clicks
+* refresh
+* back button
+* browser close
+* slow internet
+* mobile network
+* request timeout
+* stale checkout page
+* multiple tabs
+* expired session
+* expired cart
+* product becoming unavailable
+* product price changing during checkout
+
+Ensure the UI accurately reflects server state.
+
+Never show:
+
+"Order successful"
+
+unless the backend has confirmed the relevant operation.
+
+==================================================
+PHASE 26 — SECURITY AUDIT
+=========================
+
+Perform a security audit specifically around the Shiprocket integration.
+
+Look for:
+
+* IDOR
+* BOLA
+* Broken access control
+* SSRF
+* injection
+* XSS
+* CSRF
+* credential exposure
+* API key exposure
+* webhook spoofing
+* replay attacks
+* parameter tampering
+* privilege escalation
+* mass assignment
+* insecure direct object references
+* sensitive information leakage
+* excessive API permissions
+* unsafe logging
+
+Check server logs for:
+
+* Shiprocket tokens
+* API credentials
+* payment secrets
+* customer personal data
+* authorization headers
+
+These should not be unnecessarily logged.
+
+==================================================
+PHASE 27 — RATE LIMITING & ABUSE
+================================
+
+Determine whether attackers can spam:
+
+* checkout
+* order creation
+* payment verification
+* shipment creation
+* tracking endpoints
+* webhook endpoints
+* cancellation
+* refund
+* Shiprocket API calls
+
+Implement appropriate rate limiting where missing.
+
+Do not accidentally rate-limit legitimate webhook traffic.
+
+==================================================
+PHASE 28 — OBSERVABILITY
+========================
+
+Audit logging.
+
+A production system should make it possible to determine:
+
+ORDER ID
+→ PAYMENT ID
+→ SHIPROCKET ORDER ID
+→ SHIPMENT ID
+→ AWB
+→ COURIER
+→ CURRENT STATUS
+
+without exposing secrets.
+
+Use structured logs where appropriate.
+
+Every important transition should be traceable.
+
+Avoid logging sensitive credentials.
+
+==================================================
+PHASE 29 — FAILURE MATRIX
+=========================
+
+Create a failure matrix containing at least:
+
+| Scenario | Expected Result | Current Result | Severity | Fix |
+
+Include:
+
+* payment success / shipping failure
+* payment failure / shipping success
+* Shiprocket timeout
+* duplicate request
+* duplicate webhook
+* invalid webhook
+* expired token
+* invalid token
+* API 429
+* API 500
+* database failure
+* server restart
+* duplicate payment verification
+* duplicate shipment creation
+* cancellation during shipment creation
+* refund timeout
+* RTO
+* tracking unavailable
+* invalid address
+* out-of-stock race
+* stale checkout
+* concurrent checkout
+* malicious request
+* admin privilege abuse
+
+==================================================
+PHASE 30 — TEST PLAN
+====================
+
+Create a comprehensive test suite.
+
+Include:
+
+UNIT TESTS
+
+INTEGRATION TESTS
+
+API TESTS
+
+DATABASE TESTS
+
+WEBHOOK TESTS
+
+CONCURRENCY TESTS
+
+SECURITY TESTS
+
+END-TO-END TESTS
+
+Failure/recovery tests.
+
+Mock Shiprocket wherever necessary.
+
+Do not send destructive requests to production Shiprocket.
+
+==================================================
+PHASE 31 — FIX PRIORITY
+=======================
+
+Classify every discovered issue:
+
+P0 — Critical
+Can cause:
+
+* financial loss
+* duplicate shipment
+* duplicate payment/refund
+* security breach
+* major data corruption
+
+P1 — High
+Can cause:
+
+* order/shipment inconsistency
+* inventory corruption
+* broken checkout
+* serious customer impact
+
+P2 — Medium
+Can cause:
+
+* degraded reliability
+* incorrect UI state
+* tracking problems
+
+P3 — Low
+Minor:
+
+* logging
+* UX
+* maintainability
+* non-critical edge cases
+
+==================================================
+PHASE 32 — IMPLEMENT FIXES
+==========================
+
+After identifying the problems:
+
+1. Show me the findings.
+2. Explain the root cause.
+3. Explain the safest fix.
+4. Then implement the fixes.
+
+Do NOT rewrite the entire system just because something can be written differently.
+
+Preserve existing functionality.
+
+Use the smallest safe change that reliably fixes the issue.
+
+After each significant change, verify that existing functionality still works.
+
+==================================================
+PHASE 33 — POST-FIX VERIFICATION
+================================
+
+After fixing the issues, perform the audit again.
+
+Verify that:
+
+* normal checkout works
+* prepaid works
+* COD works
+* payment verification works
+* Shiprocket order creation works
+* shipment creation works
+* tracking works
+* webhooks work
+* duplicate requests are safe
+* duplicate webhooks are safe
+* cancellation works
+* refunds work
+* RTO is handled
+* inventory remains correct
+* customer authorization remains correct
+* admin authorization remains correct
+* secrets remain protected
+
+Run tests again after modifications.
+
+==================================================
+FINAL REPORT
+============
+
+At the end provide a professional audit report with:
+
+1. Executive Summary
+
+2. Architecture / Workflow Map
+
+3. Complete Shiprocket Workflow
+
+4. All Bugs Found
+
+For each bug:
+
+* Bug
+* File
+* Function/API
+* Root Cause
+* Impact
+* Severity
+* Reproduction Steps
+* Recommended Fix
+* Fix Implemented
+
+5. Security Findings
+
+6. Payment ↔ Shipping Consistency Findings
+
+7. Webhook Findings
+
+8. Idempotency Findings
+
+9. Concurrency Findings
+
+10. Inventory Findings
+
+11. Cancellation / Refund / RTO Findings
+
+12. Testing Results
+
+13. Remaining Risks
+
+14. Production Readiness Assessment
+
+15. Final Verdict:
+
+SAFE FOR PRODUCTION
+or
+NOT SAFE FOR PRODUCTION
+
+If NOT SAFE FOR PRODUCTION, clearly identify the blockers.
+
+IMPORTANT FINAL RULE:
+
+Do not tell me that the Shiprocket workflow is "working" merely because the happy path works.
+
+The purpose of this audit is to discover what happens when things go WRONG.
+
+Think like:
+
+* a senior backend engineer
+* a payment engineer
+* a logistics integration engineer
+* a security researcher
+* a malicious customer
+* a site administrator
+* a courier integration
+* a database failure
+* a network failure
+* a duplicate request
+* a webhook retry
+* a server crash
+
+Audit the system accordingly.

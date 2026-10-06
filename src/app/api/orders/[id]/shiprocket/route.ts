@@ -23,23 +23,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { action } = await req.json();
 
     if (action === 'push') {
-      if (order.shiprocketOrderId) {
-        return NextResponse.json({ error: 'Order already pushed to Shiprocket' }, { status: 400 });
+      if (order.status === 'Cancelled') {
+        return NextResponse.json({ error: 'Cannot push a cancelled order to Shiprocket' }, { status: 400 });
+      }
+      if (order.paymentMethod !== 'cod' && order.paymentStatus !== 'Paid') {
+        return NextResponse.json({ error: 'Cannot push an unpaid prepaid order to Shiprocket' }, { status: 400 });
       }
 
-      const paymentMethod = order.paymentMethod === 'cod' ? 'COD' : 'Prepaid';
-      const srResponse = await shiprocket.createOrder(order, paymentMethod);
-      
-      if (srResponse && srResponse.order_id) {
-        order.shiprocketOrderId = srResponse.order_id;
-        order.shiprocketShipmentId = srResponse.shipment_id;
-        order.shipmentStatus = srResponse.status;
-        await order.save();
-        return NextResponse.json({ success: true, message: 'Order pushed successfully', data: srResponse });
-      } else {
-        throw new Error('Failed to create order in Shiprocket');
+      const lockedOrder = await Order.findOneAndUpdate(
+        { _id: orderId, shiprocketPushInitiated: { $ne: true }, shiprocketOrderId: { $exists: false } },
+        { $set: { shiprocketPushInitiated: true } },
+        { returnDocument: 'after' }
+      );
+
+      if (!lockedOrder) {
+        if (order.shiprocketOrderId) return NextResponse.json({ error: 'Order already pushed to Shiprocket' }, { status: 400 });
+        if (order.shiprocketPushInitiated) return NextResponse.json({ error: 'Push to Shiprocket already in progress' }, { status: 400 });
+        return NextResponse.json({ error: 'Failed to lock order' }, { status: 500 });
       }
-    } 
+
+      const paymentMethod = lockedOrder.paymentMethod === 'cod' ? 'COD' : 'Prepaid';
+      try {
+        const srResponse = await shiprocket.createOrder(lockedOrder, paymentMethod);
+        
+        if (srResponse && srResponse.order_id) {
+          lockedOrder.shiprocketOrderId = srResponse.order_id;
+          lockedOrder.shiprocketShipmentId = srResponse.shipment_id;
+          lockedOrder.shipmentStatus = srResponse.status;
+          await lockedOrder.save();
+          return NextResponse.json({ success: true, message: 'Order pushed successfully', data: srResponse });
+        } else {
+          throw new Error('Failed to create order in Shiprocket');
+        }
+      } catch (err: any) {
+        await Order.updateOne({ _id: orderId }, { $set: { shiprocketPushInitiated: false } });
+        throw err;
+      }
+    }
     
     if (action === 'assign_awb') {
       if (!order.shiprocketShipmentId) {

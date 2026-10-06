@@ -73,44 +73,98 @@ export async function POST(req: NextRequest) {
           updateData.razorpayPaymentId = razorpayPaymentId;
         }
 
-        const order = await Order.findOneAndUpdate(
+        let order = await Order.findOneAndUpdate(
           { razorpayOrderId: razorpayOrderId, paymentStatus: 'Pending' },
           { $set: updateData },
           { returnDocument: 'after' }
         );
 
-        if (order) {
-          // Decrement stock for Razorpay order (F-PAY-1)
-          if (order.items && order.items.length > 0) {
-            const bulkOperations = order.items.map((item: any) => ({
-              updateOne: {
-                filter: {
-                  $or: [
-                    { _id: item.productId.length === 24 ? item.productId : null },
-                    { slug: item.productId }
-                  ],
-                  stock: { $gte: item.quantity }
-                },
-                update: { $inc: { stock: -item.quantity } },
-              },
-            }));
+        let wasAlreadyPaid = false;
 
-            bulkOperations.forEach((op: any) => {
-              if (!op.updateOne.filter.$or[0]._id) {
-                op.updateOne.filter.$or.shift();
+        if (!order) {
+          // It was already Paid. Just update the payment ID if needed.
+          if (razorpayPaymentId) {
+            order = await Order.findOneAndUpdate(
+              { razorpayOrderId: razorpayOrderId },
+              { $set: { razorpayPaymentId: razorpayPaymentId } },
+              { returnDocument: 'after' }
+            );
+          } else {
+            order = await Order.findOne({ razorpayOrderId: razorpayOrderId });
+          }
+          wasAlreadyPaid = true;
+        }
+
+        if (order && order.paymentStatus !== 'Refunded') {
+          if (!wasAlreadyPaid) {
+            // Decrement stock for Razorpay order (F-PAY-1) ONLY ONCE
+            let stockDeductionSuccess = true;
+            const deductedItems = [];
+            if (order.items && order.items.length > 0) {
+              for (const item of order.items) {
+                let filter: any = { stock: { $gte: item.quantity } };
+                if (item.productId.length === 24) {
+                  filter.$or = [{ _id: item.productId }, { slug: item.productId }];
+                } else {
+                  filter.slug = item.productId;
+                }
+
+                const updatedProduct = await Product.findOneAndUpdate(
+                  filter,
+                  { $inc: { stock: -item.quantity } }
+                );
+                
+                if (updatedProduct) {
+                  deductedItems.push(item);
+                } else {
+                  stockDeductionSuccess = false;
+                  break;
+                }
               }
-            });
 
-            if (bulkOperations.length > 0) {
-              await Product.bulkWrite(bulkOperations);
+              if (!stockDeductionSuccess) {
+                for (const item of deductedItems) {
+                  let filter: any = {};
+                  if (item.productId.length === 24) {
+                    filter.$or = [{ _id: item.productId }, { slug: item.productId }];
+                  } else {
+                    filter.slug = item.productId;
+                  }
+                  await Product.updateOne(filter, { $inc: { stock: item.quantity } });
+                }
+              }
+            }
+
+            if (!stockDeductionSuccess) {
+              try {
+                const Razorpay = (await import('razorpay')).default;
+                const razorpayClient = new Razorpay({
+                  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+                  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+                });
+                const payId = razorpayPaymentId || order.razorpayPaymentId;
+                if (payId) {
+                  await razorpayClient.payments.refund(payId, { amount: Math.round(order.total * 100) });
+                  await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Refunded' } });
+                }
+              } catch (refundError) {
+                console.error('Webhook: Failed to issue automatic refund for out of stock order:', refundError);
+              }
+              // Do not proceed to shiprocket, but return 200 so webhook doesn't retry
+              return NextResponse.json({ status: 'ok' }, { status: 200 });
             }
           }
 
           // Send Telegram Notification
           await sendAdminTelegramNotification(order);
 
-          // Push to Shiprocket
-          if (!order.shiprocketOrderId) {
+          // Push to Shiprocket with Atomic Lock
+          const lock = await Order.findOneAndUpdate(
+            { _id: order._id, shiprocketPushInitiated: false },
+            { $set: { shiprocketPushInitiated: true } }
+          );
+
+          if (lock && !order.shiprocketOrderId) {
             try {
               const { shiprocket } = await import('@/lib/shiprocket');
               const srResponse = await shiprocket.createOrder(order, 'Prepaid');

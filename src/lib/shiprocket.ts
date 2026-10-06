@@ -5,7 +5,10 @@ const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external';
 export class ShiprocketService {
   private static instance: ShiprocketService;
 
-  private constructor() {}
+  private cachedToken: string | null = null;
+  private tokenExpiry: number = 0;
+
+  private constructor() { }
 
   public static getInstance(): ShiprocketService {
     if (!ShiprocketService.instance) {
@@ -13,6 +16,8 @@ export class ShiprocketService {
     }
     return ShiprocketService.instance;
   }
+
+  private tokenPromise: Promise<string> | null = null;
 
   private async getToken(): Promise<string> {
     const email = process.env.SHIPROCKET_EMAIL;
@@ -22,25 +27,45 @@ export class ShiprocketService {
       throw new Error('Shiprocket credentials are not configured in environment variables.');
     }
 
-    const response = await fetch(`${SHIPROCKET_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('Shiprocket Auth Error:', err);
-      throw new Error('Failed to authenticate with Shiprocket');
+    // Return cached token if valid (buffer of 5 minutes)
+    if (this.cachedToken && Date.now() < this.tokenExpiry - 300000) {
+      return this.cachedToken;
     }
 
-    const data = await response.json();
-    return data.token;
+    if (this.tokenPromise) {
+      return this.tokenPromise;
+    }
+
+    this.tokenPromise = (async () => {
+      try {
+        const response = await fetch(`${SHIPROCKET_BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const err = await response.text();
+          console.error('Shiprocket Auth Error:', err);
+          throw new Error('Failed to authenticate with Shiprocket');
+        }
+
+        const data = await response.json();
+        this.cachedToken = data.token;
+        // Shiprocket tokens are valid for 10 days, but we will cache for 24 hours just to be safe
+        this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000); 
+        return data.token;
+      } finally {
+        this.tokenPromise = null;
+      }
+    })();
+
+    return this.tokenPromise;
   }
 
   private async makeApiCall(endpoint: string, method: 'GET' | 'POST' = 'GET', body?: any) {
     const token = await this.getToken();
-    
+
     const response = await fetch(`${SHIPROCKET_BASE_URL}${endpoint}`, {
       method,
       headers: {
@@ -51,7 +76,7 @@ export class ShiprocketService {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       console.error(`Shiprocket API Error [${endpoint}]:`, data);
       throw new Error(data.message || 'Shiprocket API request failed');
@@ -65,28 +90,43 @@ export class ShiprocketService {
   public async createOrder(order: any, paymentMethod: 'Prepaid' | 'COD'): Promise<any> {
     // 1. Map order items and fetch product weights
     const productIds = order.items.map((i: any) => i.productId);
-    
+
     const validObjectIds = productIds.filter((id: string) => id && id.length === 24);
-    const allDbProducts = await Product.find({ 
+    const allDbProducts = await Product.find({
       $or: [
-         { _id: { $in: validObjectIds } },
-         { slug: { $in: productIds } }
+        { _id: { $in: validObjectIds } },
+        { slug: { $in: productIds } }
       ]
     }).lean();
 
     let totalWeight = 0;
-    let maxLen = 10, maxBreadth = 10, maxHt = 10;
+    let maxLen = 8, maxBreadth = 8, maxHt = 4;
 
     const orderItems = order.items.map((item: any) => {
+      let itemWeight = 0.2; // default 200g
+
+      const sku = item.productId?.toLowerCase() || '';
+      const name = item.name?.toLowerCase() || '';
+
+      // Determine accurate weight based on name or SKU
+      if (sku.includes('beard-oil') || name.includes('beard oil')) {
+        itemWeight = 0.1; // 100gm
+      } else if (sku.includes('face-wash') || name.includes('wash')) {
+        itemWeight = 0.14; // 140gm
+      } else if (sku.includes('set') || name.includes('combo') || name.includes('method')) {
+        itemWeight = 0.2; // 200gm
+      }
+
       const dbProd: any = allDbProducts.find((p: any) => p._id.toString() === item.productId || p.slug === item.productId);
-      
+
       if (dbProd) {
-        totalWeight += (dbProd.weight || 0.5) * item.quantity;
-        maxLen = Math.max(maxLen, dbProd.dimensions?.length || 10);
-        maxBreadth = Math.max(maxBreadth, dbProd.dimensions?.breadth || 10);
-        maxHt = Math.max(maxHt, dbProd.dimensions?.height || 10);
+        // Use DB weight if it exists (in case you add it later), otherwise use our hardcoded weight
+        totalWeight += (dbProd.weight || itemWeight) * item.quantity;
+        maxLen = Math.max(maxLen, dbProd.dimensions?.length || 8);
+        maxBreadth = Math.max(maxBreadth, dbProd.dimensions?.breadth || 8);
+        maxHt = Math.max(maxHt, dbProd.dimensions?.height || 4);
       } else {
-        totalWeight += 0.5 * item.quantity;
+        totalWeight += itemWeight * item.quantity;
       }
 
       return {
@@ -99,7 +139,7 @@ export class ShiprocketService {
     });
 
     // Handle edge case where weight might end up as 0 (Shiprocket requires > 0)
-    if (totalWeight <= 0) totalWeight = 0.5;
+    if (totalWeight <= 0) totalWeight = 0.2;
 
     const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
 
@@ -107,8 +147,8 @@ export class ShiprocketService {
       order_id: order.orderNumber,
       order_date: new Date(order.createdAt || Date.now()).toISOString().replace('T', ' ').substring(0, 16),
       pickup_location: pickupLocation,
-      billing_customer_name: order.shippingAddress.firstName,
-      billing_last_name: order.shippingAddress.lastName || '',
+      billing_customer_name: order.shippingAddress.firstName?.trim() || 'Customer',
+      billing_last_name: order.shippingAddress.lastName?.trim() || order.shippingAddress.firstName?.trim() || 'Name',
       billing_address: order.shippingAddress.address1,
       billing_address_2: order.shippingAddress.address2 || '',
       billing_city: order.shippingAddress.city,
@@ -116,7 +156,7 @@ export class ShiprocketService {
       billing_state: order.shippingAddress.state,
       billing_country: order.shippingAddress.country || 'India',
       billing_email: order.customerEmail,
-      billing_phone: order.customerPhone || '0000000000',
+      billing_phone: order.customerPhone?.toString().replace(/\D/g, '').slice(-10) || '0000000000',
       shipping_is_billing: true,
       order_items: orderItems,
       payment_method: paymentMethod,
