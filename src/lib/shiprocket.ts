@@ -1,10 +1,4 @@
-import { Redis } from '@upstash/redis';
 import { Product } from '@/models/Product';
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
 
 const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external';
 
@@ -21,13 +15,6 @@ export class ShiprocketService {
   }
 
   private async getToken(): Promise<string> {
-    const CACHE_KEY = 'shiprocket:token';
-    const cachedToken = await redis.get<string>(CACHE_KEY);
-    
-    if (cachedToken) {
-      return cachedToken;
-    }
-
     const email = process.env.SHIPROCKET_EMAIL;
     const password = process.env.SHIPROCKET_PASSWORD;
 
@@ -48,11 +35,7 @@ export class ShiprocketService {
     }
 
     const data = await response.json();
-    const token = data.token;
-    
-    // Cache for 9 days (token is valid for 10 days)
-    await redis.set(CACHE_KEY, token, { ex: 9 * 24 * 60 * 60 });
-    return token;
+    return data.token;
   }
 
   private async makeApiCall(endpoint: string, method: 'GET' | 'POST' = 'GET', body?: any) {
