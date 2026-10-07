@@ -32,7 +32,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
     : [];
 
   const displayImages = validImages.length > 0
-    ? validImages.slice(0, 6)
+    ? validImages.slice(0, 15)
     : [
         {
           url: '/images/home/hero-products.jpeg',

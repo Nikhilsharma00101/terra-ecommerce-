@@ -573,16 +573,16 @@ export default function AdminPage() {
     }
 
     const currentImages = productForm.images || [];
-    if (currentImages.length >= 5) {
-      setUploadError('Maximum limit of 5 images per product reached.');
+    if (currentImages.length >= 15) {
+      setUploadError('Maximum limit of 15 images per product reached.');
       return;
     }
 
-    const availableSlots = 5 - currentImages.length;
+    const availableSlots = 15 - currentImages.length;
     const filesToUpload = fileArray.slice(0, availableSlots);
 
     if (fileArray.length > availableSlots) {
-      setUploadError(`Only ${availableSlots} more image(s) can be added (max 5 total).`);
+      setUploadError(`Only ${availableSlots} more image(s) can be added (max 15 total).`);
     }
 
     setUploadingImage(true);
@@ -1017,24 +1017,6 @@ export default function AdminPage() {
   };
 
   // User Role Promotion
-  const handleToggleUserRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    if (!confirm(`Change this user's role to ${newRole.toUpperCase()}?`)) {
-      return;
-    }
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole }),
-      });
-      if (res.ok) {
-        fetchUsers();
-      }
-    } catch (e) {
-      console.error('Role update error:', e);
-    }
-  };
 
   // Database Actions
 
@@ -2763,7 +2745,6 @@ export default function AdminPage() {
                         <th className="p-4">Role</th>
                         <th className="p-4">Tier Status</th>
                         <th className="p-4">Registered Date</th>
-                        <th className="p-4 pr-5 text-right">Role Access</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#DDD8CF]">
@@ -2796,18 +2777,6 @@ export default function AdminPage() {
                               month: 'short',
                               year: 'numeric',
                             })}
-                          </td>
-                          <td className="p-4 pr-5 text-right">
-                            <button
-                              onClick={() => handleToggleUserRole(u._id, u.role)}
-                              className={`px-3 py-1 text-xs uppercase font-bold transition-colors cursor-pointer border ${
-                                u.role === 'admin'
-                                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
-                                  : 'bg-[#181817] hover:bg-[#2D4438] text-white border-[#181817]'
-                              }`}
-                            >
-                              {u.role === 'admin' ? 'Change to User' : 'Promote to Admin'}
-                            </button>
                           </td>
                         </tr>
                       ))}
@@ -3406,7 +3375,7 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Uploaded Image Thumbnails (Sequenced 1 to 5) */}
+                {/* Uploaded Image Thumbnails (Sequenced 1 to 15) */}
                 {productForm.images && productForm.images.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-[#FAF8F5] border border-[#DDD8CF]">
                     {productForm.images.map((img, idx) => (
@@ -3471,7 +3440,7 @@ export default function AdminPage() {
                 )}
 
                 {/* Drag and Drop Zone */}
-                {(productForm.images?.length || 0) < 5 ? (
+                {(productForm.images?.length || 0) < 15 ? (
                   <div
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -3533,7 +3502,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="p-3 bg-[#EAE5DC] border border-[#DDD8CF] text-xs text-[#57534E] text-center font-mono">
-                    ✓ Maximum 5 photos uploaded for this product.
+                    ✓ Maximum 15 photos uploaded for this product.
                   </div>
                 )}
 
