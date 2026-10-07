@@ -125,6 +125,37 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 1.5 EDIT ADDRESS
+    if (action === 'edit_address') {
+      const { id, title, street, city, state, postalCode, country, phone, isDefault } = body.address;
+      const addrIndex = user.addresses.findIndex((a: any) => a.id === id);
+      
+      if (addrIndex > -1) {
+        if (isDefault) {
+          user.addresses.forEach((a: any) => (a.isDefault = false));
+        }
+        
+        user.addresses[addrIndex] = {
+          ...user.addresses[addrIndex],
+          title: title || user.addresses[addrIndex].title,
+          street: street || user.addresses[addrIndex].street,
+          city: city || user.addresses[addrIndex].city,
+          state: state || user.addresses[addrIndex].state,
+          postalCode: postalCode || user.addresses[addrIndex].postalCode,
+          country: country || user.addresses[addrIndex].country,
+          phone: phone || user.addresses[addrIndex].phone,
+          isDefault: isDefault !== undefined ? isDefault : user.addresses[addrIndex].isDefault,
+        } as any;
+        
+        await user.save();
+      }
+
+      return NextResponse.json({
+        message: 'Address updated successfully',
+        addresses: user.addresses,
+      });
+    }
+
     // 2. SET DEFAULT ADDRESS
     if (action === 'set_default_address') {
       const { addressId } = body;

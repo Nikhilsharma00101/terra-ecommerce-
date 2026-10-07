@@ -136,6 +136,7 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(true);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
 
   // Auto-fill logged in user info
   useEffect(() => {
@@ -219,21 +220,21 @@ export default function CheckoutPage() {
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Please enter a valid email address.';
     }
     if (!formData.phone || formData.phone.replace(/\D/g, '').length !== 10) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
+      newErrors.phone = 'Please enter a valid 10-digit phone number.';
     }
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.address1.trim()) newErrors.address1 = 'Street address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required.';
+    // Last name is now optional
+    if (!formData.address1.trim()) newErrors.address1 = 'Street address is required.';
+    if (!formData.city.trim()) newErrors.city = 'City is required.';
     if (!formData.postalCode || formData.postalCode.length !== 6 || !/^\d{6}$/.test(formData.postalCode)) {
-      newErrors.postalCode = 'Enter a valid 6-digit PIN code';
+      newErrors.postalCode = 'Enter a valid 6-digit PIN code.';
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   // Coupon apply handler
@@ -256,8 +257,11 @@ export default function CheckoutPage() {
   // Order submission
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep1()) {
-      alert("Please double-check your shipping details. Some fields are missing or invalid.");
+    const validationErrors = validateStep1();
+    const errorKeys = Object.keys(validationErrors);
+    if (errorKeys.length > 0) {
+      const firstError = validationErrors[errorKeys[0]];
+      alert(`Please fix the following error: ${firstError}`);
       return;
     }
     
@@ -295,14 +299,15 @@ export default function CheckoutPage() {
       };
 
       // 0. Auto-Save New Address if requested
-      if (user && formData.saveAddress && (!savedAddresses.length || isAddingNewAddress)) {
+      if (user && formData.saveAddress && (!savedAddresses.length || isAddingNewAddress || editingAddressId)) {
         try {
           await fetch('/api/user/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'add_address',
+              action: editingAddressId ? 'edit_address' : 'add_address',
               address: {
+                id: editingAddressId,
                 title: 'Home',
                 street: formData.address1,
                 city: formData.city,
@@ -544,7 +549,7 @@ export default function CheckoutPage() {
                         </div>
                         {user && savedAddresses.length > 0 && (
                           <button
-                            onClick={() => { setIsAddingNewAddress(!isAddingNewAddress); setSelectedAddressId(null); }}
+                            onClick={() => { setIsAddingNewAddress(!isAddingNewAddress); setSelectedAddressId(null); setEditingAddressId(null); }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-low hover:bg-surface-container text-secondary-container font-label-md text-label-md rounded-lg transition-colors"
                             type="button"
                           >
@@ -557,9 +562,9 @@ export default function CheckoutPage() {
                       {/* Radio Address Cards Grid */}
                       {user && savedAddresses.length > 0 && !isAddingNewAddress && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {savedAddresses.map((addr: any) => (
+                          {savedAddresses.map((addr: any, index: number) => (
                             <label
-                              key={addr.id}
+                              key={addr.id || addr._id || `addr-${index}`}
                               className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-xl shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedAddressId === addr.id ? 'bg-surface-container-low' : 'bg-surface-container-lowest'}`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-3">
@@ -576,6 +581,19 @@ export default function CheckoutPage() {
                                     <span className="bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded font-medium">Default</span>
                                   )}
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setEditingAddressId(addr.id);
+                                    handleAddressSelect(addr);
+                                    setIsAddingNewAddress(true);
+                                  }}
+                                  className="text-secondary-container hover:underline text-[12px] font-medium"
+                                >
+                                  Edit
+                                </button>
                               </div>
                               <div className="space-y-1 mb-4">
                                 <p className="font-headline-sm text-headline-sm text-on-surface">{addr.fullName || user?.name}</p>
@@ -598,7 +616,9 @@ export default function CheckoutPage() {
                         <div className="bg-surface-container-low/60 rounded-xl p-5 mt-2">
                           <div className="flex items-center gap-2 mb-5">
                             <FileEdit className="text-secondary-container text-[20px]" size={20} />
-                            <h3 className="font-headline-sm text-headline-sm text-on-surface">Enter Shipping Details</h3>
+                            <h3 className="font-headline-sm text-headline-sm text-on-surface">
+                              {editingAddressId ? 'Edit Shipping Details' : 'Enter Shipping Details'}
+                            </h3>
                           </div>
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

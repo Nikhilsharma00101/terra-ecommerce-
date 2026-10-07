@@ -119,6 +119,7 @@ function AccountPageContent() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -420,8 +421,8 @@ function AccountPageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'add_address',
-          address: newAddrForm,
+          action: editingAddressId ? 'edit_address' : 'add_address',
+          address: { ...newAddrForm, id: editingAddressId },
         }),
       });
 
@@ -431,6 +432,7 @@ function AccountPageContent() {
           setSavedAddresses(data.addresses);
         }
         setShowAddAddressModal(false);
+        setEditingAddressId(null);
         setNewAddrForm({
           title: 'Home',
           street: '',
@@ -1194,7 +1196,19 @@ function AccountPageContent() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setShowAddAddressModal(true)}
+                        onClick={() => {
+                          setEditingAddressId(null);
+                          setNewAddrForm({
+                            title: 'Home',
+                            street: '',
+                            city: '',
+                            state: 'Maharashtra',
+                            postalCode: '',
+                            phone: '',
+                            isDefault: false,
+                          });
+                          setShowAddAddressModal(true);
+                        }}
                         className="flex items-center gap-2 bg-[#000000] text-[#FFFFFF] px-4 py-2 rounded-lg text-[12px] uppercase tracking-wider font-medium hover:opacity-90 transition-opacity self-start sm:self-auto"
                       >
                         <Plus size={16} />
@@ -1209,7 +1223,7 @@ function AccountPageContent() {
                         className="bg-[#FFFFFF] p-6 rounded-xl shadow-sm border border-[#E2E3DF] space-y-6 animate-in fade-in duration-200"
                       >
                         <div className="flex items-center justify-between border-b border-[#E2E3DF] pb-4">
-                          <h3 className="font-serif text-xl text-[#1A1C1A]">Add Delivery Address</h3>
+                          <h3 className="font-serif text-xl text-[#1A1C1A]">{editingAddressId ? 'Edit Delivery Address' : 'Add Delivery Address'}</h3>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1365,6 +1379,26 @@ function AccountPageContent() {
                               </div>
 
                               <div className="flex items-center gap-3 pt-4 border-t border-[#E2E3DF]">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewAddrForm({
+                                      title: addr.title || 'Home',
+                                      street: addr.street || '',
+                                      city: addr.city || '',
+                                      state: addr.state || 'Maharashtra',
+                                      postalCode: addr.postalCode || '',
+                                      phone: addr.phone || '',
+                                      isDefault: !!addr.isDefault,
+                                    });
+                                    setEditingAddressId(addr.id);
+                                    setShowAddAddressModal(true);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  className="px-3 py-1.5 bg-[#F4F4F0] hover:bg-[#E2E3DF] text-[#1A1C1A] rounded-md text-[11px] uppercase tracking-wider font-medium transition-colors"
+                                >
+                                  Edit
+                                </button>
                                 {!addr.isDefault && (
                                   <button
                                     type="button"
