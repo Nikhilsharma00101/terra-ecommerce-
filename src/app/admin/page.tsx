@@ -402,7 +402,7 @@ export default function AdminPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/admin/stats', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -414,7 +414,7 @@ export default function AdminPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/products?all=true');
+      const res = await fetch('/api/products?all=true', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setProducts(data.products || []);
@@ -426,7 +426,7 @@ export default function AdminPage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders || []);
@@ -438,7 +438,7 @@ export default function AdminPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setUsersList(data.users || []);
@@ -454,7 +454,7 @@ export default function AdminPage() {
       // Actually backend defaults to approved. We need to pass status='all' if we want all, wait, looking at `api/reviews/route.ts`...
       // It sets `status = searchParams.get('status') || 'approved'`. So passing `status=` fetches all, wait, let me use `status=` (empty string).
       // Ah wait, `api/reviews/route.ts` does: `if (status) { query.status = status; }` so if we pass `status=` it won't filter by status!
-      const res = await fetch('/api/reviews?status=all');
+      const res = await fetch('/api/reviews?status=all', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setReviewsList(data.reviews || []);
