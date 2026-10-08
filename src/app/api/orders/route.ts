@@ -380,7 +380,7 @@ export async function POST(req: NextRequest) {
       let stockDeductionSuccess = true;
       const deductedItems = [];
       for (const item of validatedItems) {
-        let filter: any = { stock: { $gte: item.quantity } };
+        const filter: any = { stock: { $gte: item.quantity } };
         if (item.productId.length === 24) {
           filter.$or = [{ _id: item.productId }, { slug: item.productId }];
         } else {
@@ -402,7 +402,7 @@ export async function POST(req: NextRequest) {
 
       if (!stockDeductionSuccess) {
         for (const item of deductedItems) {
-          let filter: any = {};
+          const filter: any = {};
           if (item.productId.length === 24) {
             filter.$or = [{ _id: item.productId }, { slug: item.productId }];
           } else {

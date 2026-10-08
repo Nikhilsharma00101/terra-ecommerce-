@@ -32,7 +32,9 @@ import {
   FileEdit,
   Loader2,
   ShoppingBag,
-  Ticket
+  Ticket,
+  Wallet,
+  Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -117,7 +119,7 @@ export default function CheckoutPage() {
     city: '',
     state: 'Maharashtra',
     postalCode: '',
-    paymentMethod: 'upi',
+    paymentMethod: 'online',
     saveAddress: true,
   });
 
@@ -382,27 +384,6 @@ export default function CheckoutPage() {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
             contact: formData.phone,
-          },
-          config: {
-            display: {
-              blocks: {
-                default: {
-                  name: 'Complete Payment',
-                  instruments: [
-                    {
-                      method: formData.paymentMethod,
-                    }
-                  ]
-                }
-              },
-              sequence: ['block.default'],
-              preferences: {
-                show_default_blocks: false,
-              }
-            }
-          },
-          theme: {
-            color: '#181817',
           },
           modal: {
             ondismiss: function () {
@@ -714,71 +695,25 @@ export default function CheckoutPage() {
                       </div>
 
                       <div className="space-y-4">
-                        {/* UPI */}
-                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'upi' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'upi' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
+                        {/* Pay Online (Razorpay) */}
+                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'online' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'online' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
                           <div className="flex items-center gap-3">
-                            <input checked={formData.paymentMethod === 'upi'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
-                            <SmartphoneNfc className="text-secondary-container" size={24} />
-                            <span className="font-headline-sm text-headline-sm text-on-surface">UPI / QR</span>
+                            <input checked={formData.paymentMethod === 'online'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
+                            <div className="flex items-center gap-1.5 text-secondary-container">
+                              <SmartphoneNfc size={22} />
+                              <CreditCard size={22} />
+                              <Wallet size={22} />
+                            </div>
+                            <span className="font-headline-sm text-headline-sm text-on-surface ml-1">Pay Online (UPI, Cards, Wallets)</span>
                           </div>
                           <AnimatePresence>
-                            {formData.paymentMethod === 'upi' && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className="pt-3 pl-7">
-                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
-                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                                      Pay securely using <strong className="text-on-surface font-semibold">Google Pay, PhonePe, Paytm</strong>, or any UPI app.
-                                    </p>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Credit / Debit Cards */}
-                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'card' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'card' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input checked={formData.paymentMethod === 'card'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
-                              <CreditCard className="text-secondary-container" size={24} />
-                              <span className="font-headline-sm text-headline-sm text-on-surface">Credit / Debit Card</span>
-                            </div>
-                            <div className="flex items-center gap-1 opacity-60">
-                              <span className="px-1.5 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded shadow-2xs">VISA</span>
-                              <span className="px-1.5 py-0.5 bg-surface-container-highest text-[10px] font-bold rounded shadow-2xs">MC</span>
-                            </div>
-                          </div>
-                          <AnimatePresence>
-                            {formData.paymentMethod === 'card' && (
+                            {formData.paymentMethod === 'online' && (
                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                                 <div className="pt-3 pl-7">
                                   <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
                                     <Lock size={16} className="text-secondary-container flex-shrink-0 mt-0.5" />
                                     <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                                      You will be securely redirected to our bank-grade encrypted checkout gateway to enter your card details.
-                                    </p>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Netbanking */}
-                        <div onClick={() => setFormData({ ...formData, paymentMethod: 'netbanking' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'netbanking' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
-                          <div className="flex items-center gap-3">
-                            <input checked={formData.paymentMethod === 'netbanking'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
-                            <Landmark className="text-secondary-container" size={24} />
-                            <span className="font-headline-sm text-headline-sm text-on-surface">Netbanking</span>
-                          </div>
-                          <AnimatePresence>
-                            {formData.paymentMethod === 'netbanking' && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className="pt-3 pl-7">
-                                  <div className="bg-surface-container-lowest p-3.5 rounded-lg flex items-start gap-2.5">
-                                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                                      All major Indian banks are supported. You will select your bank on the next secure screen.
+                                      You will be redirected to a secure page to choose your payment method and complete your purchase.
                                     </p>
                                   </div>
                                 </div>
@@ -791,8 +726,11 @@ export default function CheckoutPage() {
                         <div onClick={() => setFormData({ ...formData, paymentMethod: 'cod' })} className={`cursor-pointer p-4 sm:p-5 rounded-xl transition-all shadow-sm flex flex-col gap-2 border-2 ${formData.paymentMethod === 'cod' ? 'bg-surface-container-low/70 border-secondary' : 'bg-surface-container-lowest border-transparent'}`}>
                           <div className="flex items-center gap-3">
                             <input checked={formData.paymentMethod === 'cod'} readOnly className="w-4 h-4 text-secondary-container focus:ring-0 accent-[#316bf3]" type="radio" />
-                            <Banknote className="text-secondary-container" size={24} />
-                            <span className="font-headline-sm text-headline-sm text-on-surface">Cash on Delivery (COD)</span>
+                            <div className="flex items-center gap-1.5 text-secondary-container">
+                              <Banknote size={22} />
+                              <Coins size={22} />
+                            </div>
+                            <span className="font-headline-sm text-headline-sm text-on-surface ml-1">Cash on Delivery (COD)</span>
                           </div>
                           <AnimatePresence>
                             {formData.paymentMethod === 'cod' && (
@@ -827,10 +765,9 @@ export default function CheckoutPage() {
                       </button>
                       <div className="text-center px-4">
                         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                          By placing this order, you agree to Terra Men's Co.'s
-                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Terms of Service</a>,
-                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Privacy Policy</a>, and
-                          <a className="text-secondary-container font-semibold hover:underline" href="#"> Return Guarantee</a>.
+                          By placing this order, you agree to Terra Men's Co.'s{' '}
+                          <Link href="/terms-of-service" target="_blank" className="text-secondary-container font-semibold hover:underline">Terms of Service</Link> and{' '}
+                          <Link href="/privacy-policy" target="_blank" className="text-secondary-container font-semibold hover:underline">Privacy Policy</Link>.
                         </p>
                       </div>
                     </div>

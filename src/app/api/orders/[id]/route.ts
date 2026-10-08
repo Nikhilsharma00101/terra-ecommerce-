@@ -145,6 +145,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           await shiprocket.cancelOrder([order.shiprocketOrderId]);
         } catch (srError) {
           console.error('Failed to cancel Shiprocket order:', srError);
+          await Order.updateOne({ _id: order._id }, { $set: { shiprocketCancelFailed: true } });
         }
       }
 
@@ -158,9 +159,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           });
           await razorpay.payments.refund(order.razorpayPaymentId, { amount: Math.round(order.total * 100) });
           updated.paymentStatus = 'Refunded';
-          await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Refunded' } });
+          await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Refunded', refundFailed: false } });
         } catch (refundError) {
           console.error('Failed to process Razorpay refund on cancellation:', refundError);
+          await Order.updateOne({ _id: order._id }, { $set: { refundFailed: true } });
         }
       }
     }

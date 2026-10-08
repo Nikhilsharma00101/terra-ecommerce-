@@ -52,23 +52,56 @@ export async function POST(req: NextRequest) {
 
     const event = JSON.parse(rawBody);
 
-    // We only care about payment captured or order paid events
+    // --- NEW SECURITY LOGIC: Handle failed payments securely ---
+    if (event.event === 'payment.failed') {
+      const razorpayOrderId = event.payload?.payment?.entity?.order_id;
+      if (razorpayOrderId) {
+        await connectToDatabase();
+        // Only mark as Failed if it's currently Pending to prevent overriding valid states
+        // This is crucial because a user might fail once, then succeed, and webhooks can arrive out of order
+        await Order.updateOne(
+          { razorpayOrderId: razorpayOrderId, paymentStatus: 'Pending' },
+          { $set: { paymentStatus: 'Failed' } }
+        );
+      }
+      return NextResponse.json({ status: 'ok' }, { status: 200 });
+    }
+
+    // --- NEW SECURITY LOGIC: Keep database in sync with Razorpay manual refunds ---
+    if (event.event === 'refund.processed') {
+      const razorpayPaymentId = event.payload?.refund?.entity?.payment_id;
+      if (razorpayPaymentId) {
+        await connectToDatabase();
+        // Sync the refund status so the admin dashboard is always accurate,
+        // even if the refund was initiated directly from the Razorpay dashboard
+        await Order.updateOne(
+          { razorpayPaymentId: razorpayPaymentId },
+          { $set: { paymentStatus: 'Refunded', refundFailed: false } }
+        );
+      }
+      return NextResponse.json({ status: 'ok' }, { status: 200 });
+    }
+
+    // We only care about payment captured or order paid events for fulfillment
     if (event.event === 'order.paid' || event.event === 'payment.captured') {
       let razorpayOrderId = null;
       let razorpayPaymentId = null;
+      let payloadAmount = null;
 
       if (event.event === 'order.paid') {
         razorpayOrderId = event.payload.order.entity.id;
+        payloadAmount = event.payload.order.entity.amount;
         // order.paid does not always contain payment id at the root, depending on Razorpay version
       } else if (event.event === 'payment.captured') {
         razorpayOrderId = event.payload.payment.entity.order_id;
         razorpayPaymentId = event.payload.payment.entity.id;
+        payloadAmount = event.payload.payment.entity.amount;
       }
 
       if (razorpayOrderId) {
         await connectToDatabase();
 
-        const updateData: any = { paymentStatus: 'Paid' };
+        const updateData: any = { paymentStatus: 'Processing' };
         if (razorpayPaymentId) {
           updateData.razorpayPaymentId = razorpayPaymentId;
         }
@@ -79,10 +112,11 @@ export async function POST(req: NextRequest) {
           { returnDocument: 'after' }
         );
 
-        let wasAlreadyPaid = false;
+        let lockAcquired = true;
 
         if (!order) {
-          // It was already Paid. Just update the payment ID if needed.
+          lockAcquired = false;
+          // It was already processed or is being processed. Just update the payment ID if needed.
           if (razorpayPaymentId) {
             order = await Order.findOneAndUpdate(
               { razorpayOrderId: razorpayOrderId },
@@ -92,17 +126,31 @@ export async function POST(req: NextRequest) {
           } else {
             order = await Order.findOne({ razorpayOrderId: razorpayOrderId });
           }
-          wasAlreadyPaid = true;
+          if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+          
+          if (order.paymentStatus === 'Processing') {
+             // Another process is handling stock deduction right now. Return 200.
+             return NextResponse.json({ status: 'ok' }, { status: 200 });
+          }
         }
 
-        if (order && order.paymentStatus !== 'Refunded') {
-          if (!wasAlreadyPaid) {
+        if (order && order.paymentStatus !== 'Refunded' && order.status !== 'Cancelled') {
+          if (lockAcquired) {
+            // INDUSTRY STANDARD: Verify the actual paid amount matches the order total
+            const expectedAmount = Math.round(order.total * 100);
+            if (payloadAmount && payloadAmount < expectedAmount) {
+              console.error(`Webhook amount mismatch for order ${order.orderNumber}. Expected ${expectedAmount}, got ${payloadAmount}`);
+              // Revert processing status since this is an invalid/partial payment
+              await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Pending' } });
+              return NextResponse.json({ error: 'Payment amount mismatch' }, { status: 400 });
+            }
+
             // Decrement stock for Razorpay order (F-PAY-1) ONLY ONCE
             let stockDeductionSuccess = true;
             const deductedItems = [];
             if (order.items && order.items.length > 0) {
               for (const item of order.items) {
-                let filter: any = { stock: { $gte: item.quantity } };
+                const filter: any = { stock: { $gte: item.quantity } };
                 if (item.productId.length === 24) {
                   filter.$or = [{ _id: item.productId }, { slug: item.productId }];
                 } else {
@@ -124,7 +172,7 @@ export async function POST(req: NextRequest) {
 
               if (!stockDeductionSuccess) {
                 for (const item of deductedItems) {
-                  let filter: any = {};
+                  const filter: any = {};
                   if (item.productId.length === 24) {
                     filter.$or = [{ _id: item.productId }, { slug: item.productId }];
                   } else {
@@ -145,14 +193,18 @@ export async function POST(req: NextRequest) {
                 const payId = razorpayPaymentId || order.razorpayPaymentId;
                 if (payId) {
                   await razorpayClient.payments.refund(payId, { amount: Math.round(order.total * 100) });
-                  await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Refunded' } });
+                  await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Refunded', refundFailed: false } });
                 }
               } catch (refundError) {
                 console.error('Webhook: Failed to issue automatic refund for out of stock order:', refundError);
+                await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Processing', refundFailed: true } });
               }
               // Do not proceed to shiprocket, but return 200 so webhook doesn't retry
               return NextResponse.json({ status: 'ok' }, { status: 200 });
             }
+            
+            // Mark as Paid after successful stock deduction
+            await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Paid' } });
           }
 
           // Send Telegram Notification

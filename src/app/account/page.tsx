@@ -57,7 +57,7 @@ function AccountPageContent() {
 
   useEffect(() => {
     if (tabParam && ['orders', 'profile', 'addresses', 'wishlist', 'replenishment'].includes(tabParam)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setActiveTab(tabParam as 'orders' | 'profile' | 'addresses' | 'wishlist' | 'replenishment');
     }
   }, [tabParam]);
@@ -111,18 +111,18 @@ function AccountPageContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [replenishCycle, setReplenishCycle] = useState<'30d' | '60d' | '90d'>('60d');
   const [isReplenishPaused, setIsReplenishPaused] = useState(false);
@@ -226,7 +226,7 @@ function AccountPageContent() {
     }
 
     if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setProfileData({
         name: user.name || '',
         phone: user.phone || '',
@@ -283,7 +283,7 @@ function AccountPageContent() {
   }, [user?.id, isLoading]);
 
   // Robust DB Product Image Resolver
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const getProductImage = (p: any): string => {
     if (p?.featuredImage && typeof p.featuredImage === 'string' && p.featuredImage.trim() !== '') {
       return p.featuredImage;
@@ -298,13 +298,13 @@ function AccountPageContent() {
   };
 
   // Robust Order Item Image Resolver — Always matches against live MongoDB products first
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const getOrderItemImage = (item: any): string => {
     const itemName = (item?.name || '').toLowerCase().trim();
     const itemPid = (item?.productId || item?.slug || '').toString().toLowerCase().trim();
 
     // 1. Primary: Match against loaded MongoDB products by ID, slug, or normalized name
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const dbProduct = products.find((p: any) => {
       const pId = (p._id || p.id || '').toString().toLowerCase();
       const pSlug = (p.slug || '').toLowerCase();
@@ -366,7 +366,7 @@ function AccountPageContent() {
       const matchesQuery =
         !orderSearch ||
         o.orderNumber?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         o.items?.some((i: any) => i.name?.toLowerCase().includes(orderSearch.toLowerCase()));
       return matchesFilter && matchesQuery;
     });
@@ -866,7 +866,7 @@ function AccountPageContent() {
                               <div className="flex flex-col md:flex-row gap-6 mt-5 items-center">
                                 {/* Thumbnails */}
                                 <div className="flex -space-x-4">
-                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                  { }
                                   {order.items?.slice(0, 3).map((item: any, idx: number) => {
                                     const itemImgSrc = getOrderItemImage(item);
                                     return (

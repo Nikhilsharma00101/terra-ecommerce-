@@ -96,10 +96,12 @@ export async function POST(req: NextRequest) {
       });
       const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
       const expectedAmount = Math.round(order.total * 100);
-      if (razorpayOrder.amount !== expectedAmount) {
-        console.error(`Amount mismatch for order ${order.orderNumber}. Expected ${expectedAmount}, got ${razorpayOrder.amount}`);
+      
+      // INDUSTRY STANDARD: Verify not just the requested amount, but the actually PAID amount and status
+      if (razorpayOrder.amount !== expectedAmount || razorpayOrder.status !== 'paid' || razorpayOrder.amount_paid < expectedAmount) {
+        console.error(`Amount mismatch or unpaid status for order ${order.orderNumber}. Expected ${expectedAmount}, got status: ${razorpayOrder.status}, amount_paid: ${razorpayOrder.amount_paid}`);
         return NextResponse.json(
-          { error: 'Payment amount mismatch.', success: false },
+          { error: 'Payment amount mismatch or payment incomplete.', success: false },
           { status: 400 }
         );
       }
@@ -114,14 +116,14 @@ export async function POST(req: NextRequest) {
     // Atomic update to avoid race conditions (F-PAY-2)
     order = await Order.findOneAndUpdate(
       { razorpayOrderId: razorpay_order_id, paymentStatus: 'Pending' },
-      { $set: { paymentStatus: 'Paid', razorpayPaymentId: razorpay_payment_id } },
+      { $set: { paymentStatus: 'Processing', razorpayPaymentId: razorpay_payment_id } },
       { returnDocument: 'after' }
     );
 
     if (!order) {
        // It means it was updated by webhook in the meantime
        return NextResponse.json(
-         { message: 'Order is already marked as paid.', success: true },
+         { message: 'Order is already marked as paid or being processed.', success: true },
          { status: 200 }
        );
     }
@@ -135,7 +137,7 @@ export async function POST(req: NextRequest) {
     const deductedItems = [];
     if (order.items && order.items.length > 0) {
       for (const item of order.items) {
-        let filter: any = { stock: { $gte: item.quantity } };
+        const filter: any = { stock: { $gte: item.quantity } };
         if (item.productId.length === 24) {
           filter.$or = [{ _id: item.productId }, { slug: item.productId }];
         } else {
@@ -157,7 +159,7 @@ export async function POST(req: NextRequest) {
 
       if (!stockDeductionSuccess) {
         for (const item of deductedItems) {
-          let filter: any = {};
+          const filter: any = {};
           if (item.productId.length === 24) {
             filter.$or = [{ _id: item.productId }, { slug: item.productId }];
           } else {
@@ -175,15 +177,19 @@ export async function POST(req: NextRequest) {
           key_secret: process.env.RAZORPAY_KEY_SECRET || '',
         });
         await razorpayClient.payments.refund(razorpay_payment_id, { amount: Math.round(order.total * 100) });
-        await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Refunded' } });
+        await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Refunded', refundFailed: false } });
       } catch (refundError) {
         console.error('Failed to issue automatic refund for out of stock order:', refundError);
+        await Order.updateOne({ _id: order._id }, { $set: { status: 'Cancelled', paymentStatus: 'Processing', refundFailed: true } });
       }
       return NextResponse.json(
         { error: 'One or more items went out of stock during payment. Your order has been cancelled and refunded.' },
         { status: 400 }
       );
     }
+
+    // Mark as Paid after successful stock deduction
+    await Order.updateOne({ _id: order._id }, { $set: { paymentStatus: 'Paid' } });
 
     // 2. Push to Shiprocket with Atomic Lock
     const shiprocketPromise = (async () => {
