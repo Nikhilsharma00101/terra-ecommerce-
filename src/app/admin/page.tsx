@@ -414,7 +414,7 @@ export default function AdminPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/products?all=true', { cache: 'no-store' });
+      const res = await fetch(`/api/products?all=true&t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setProducts(data.products || []);
