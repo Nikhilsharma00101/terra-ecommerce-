@@ -24,20 +24,31 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
 
-    const query: any = {};
+    const query: any = {
+      $and: [
+        {
+          $or: [
+            { paymentMethod: 'cod' },
+            { paymentStatus: { $ne: 'Pending' } }
+          ]
+        }
+      ]
+    };
 
     // If admin, can see all orders or filter by status
     if (user.role === 'admin') {
       if (status && status !== 'All') {
-        query.status = status;
+        query.$and.push({ status: status });
       }
     } else {
       // Standard user can only see their own orders (by ID, or by email if it was a guest checkout)
-      query.$or = [
-        { userId: user.userId },
-        { customerEmail: user.email.toLowerCase(), userId: { $exists: false } },
-        { customerEmail: user.email.toLowerCase(), userId: null }
-      ];
+      query.$and.push({
+        $or: [
+          { userId: user.userId },
+          { customerEmail: user.email.toLowerCase(), userId: { $exists: false } },
+          { customerEmail: user.email.toLowerCase(), userId: null }
+        ]
+      });
     }
 
     const orders = await Order.find(query).sort({ createdAt: -1 }).lean();
