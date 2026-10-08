@@ -19,11 +19,29 @@ export async function GET() {
 
       const [orders, productsCount, lowStockCount, usersCount, recentOrders] =
         await Promise.all([
-          Order.find({}),
+          Order.find({
+            $and: [
+              {
+                $or: [
+                  { paymentMethod: 'cod' },
+                  { paymentStatus: { $ne: 'Pending' } }
+                ]
+              }
+            ]
+          }),
           Product.countDocuments({}),
           Product.countDocuments({ stock: { $lte: 20 } }),
           User.countDocuments({}),
-          Order.find({}).sort({ createdAt: -1 }).limit(6),
+          Order.find({
+            $and: [
+              {
+                $or: [
+                  { paymentMethod: 'cod' },
+                  { paymentStatus: { $ne: 'Pending' } }
+                ]
+              }
+            ]
+          }).sort({ createdAt: -1 }).limit(6),
         ]);
 
       const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
