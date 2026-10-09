@@ -31,7 +31,7 @@ export const AnnouncementBar: React.FC = () => {
     {
       id: 'flash-sale',
       text: '10% OFF YOUR FIRST ORDER',
-      code: 'TERRA10',
+      code: 'WELCOME10',
     },
     {
       id: 'guarantee',

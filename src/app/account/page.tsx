@@ -1668,7 +1668,7 @@ function AccountPageContent() {
           userReviews={userReviews}
         />
 
-        <PrintableTaxInvoice order={orderToPrint} />
+        <PrintableTaxInvoice order={orderToPrint} mode="print" />
       </div>
   );
 }
