@@ -13,7 +13,6 @@ import {
   Leaf,
   Lock,
   Globe,
-  Sparkles,
   Camera,
   PlayCircle,
 } from 'lucide-react';
@@ -196,7 +195,7 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-3 text-xs text-gray-400">
               <li>
-                <Link href="/about#contact" className="hover:text-white transition-colors">
+                <Link href="/contact" className="hover:text-white transition-colors">
                   Contact Support
                 </Link>
               </li>
@@ -329,7 +328,7 @@ export const Footer: React.FC = () => {
         {/* 5. BOTTOM COPYRIGHT ROW                                                   */}
         {/* ========================================================================= */}
         <div className="pt-8 border-t border-[#333333] flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-4">
-          <p>© {new Date().getFullYear()} TERRA MEN’S CARE CO. All rights reserved. Prices include all GST taxes.</p>
+          <p>All rights reserved © 2026 SRI SAI ENTERPRISES</p>
           <div className="flex items-center space-x-6 font-mono text-[10px]">
             <span>Fast Dispatch across India</span>
             <span>✦</span>
